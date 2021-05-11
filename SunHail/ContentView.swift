@@ -1,9 +1,5 @@
-//
-//  ContentView.swift
-//  SunHail
-//
-//  Created by Anders Hovmöller on 2021-05-11.
-//
+// https://stackoverflow.com/questions/57334125/how-to-make-text-stroke-in-swiftui
+// https://www.smhi.se/data/oppna-data/meteorologiska-data/api-for-vaderprognosdata-1.34233
 
 import SwiftUI
 
@@ -43,18 +39,19 @@ struct ClockDial: Shape {
 
 struct Clock : View {
     var now: Date;
+    var showDials: Bool
     var body : some View {
         let calendar = Calendar.current
         let components = calendar.dateComponents([Calendar.Component.hour, Calendar.Component.minute, Calendar.Component.second, Calendar.Component.nanosecond], from: now)
         let hour = Double(components.hour!)
         let minutes = Double(components.minute!)
         let seconds = Double(components.second!) + Double(components.nanosecond!) / 1_000_000_000.0
-
+        let color = showDials ? Color.white : Color.gray
 
         ZStack {
-            ClockDial(now: now, progress: hour / 12, extraSize: 0.4).stroke(Color.white, style: StrokeStyle(lineWidth: 8, lineCap: .round))
-            ClockDial(now: now, progress: minutes / 60.0, extraSize: 0.9).stroke(Color.white, style: StrokeStyle(lineWidth: 4, lineCap: .round))
-            ClockDial(now: now, progress: seconds / 60.0, extraSize: 0.9).stroke(Color.white, style: StrokeStyle(lineWidth: 2, lineCap: .round))
+            ClockDial(now: now, progress: hour / 12, extraSize: 0.4).stroke(color, style: StrokeStyle(lineWidth: 8, lineCap: .round))
+            ClockDial(now: now, progress: minutes / 60.0, extraSize: 0.9).stroke(color, style: StrokeStyle(lineWidth: 4, lineCap: .round))
+            ClockDial(now: now, progress: seconds / 60.0, extraSize: 0.9).stroke(color, style: StrokeStyle(lineWidth: 2, lineCap: .round))
         }
     }
 }
@@ -63,22 +60,25 @@ struct ContentView: View {
     @State var now: Date = Date()
 
     let timer = Timer.publish(every: 0.05, on: .main, in: .common).autoconnect()
-
-    var clock: some View {
+    
+    var body: some View {
+        let calendar = Calendar.current
+        let components = calendar.dateComponents([Calendar.Component.hour], from: now)
+        
         VStack {
-            Clock(now: now)
+            Clock(now: now, showDials: components.hour! <= 12)
             .onReceive(timer) { input in
                 now = input
             }
             .background(Circle().stroke(Color.white)).foregroundColor(Color.white)
-            .padding(50)
-        }
-    }
-    
-    var body: some View {
-        VStack {
-            clock
-            clock
+            .padding(55)
+
+            Clock(now: now, showDials: components.hour! > 12)
+            .onReceive(timer) { input in
+                now = input
+            }
+            .background(Circle().stroke(Color.white)).foregroundColor(Color.white)
+            .padding(55)
         }
         .preferredColorScheme(.dark)
     }
