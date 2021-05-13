@@ -40,6 +40,8 @@ struct ClockDial: Shape {
 struct Clock : View {
     var now: Date;
     var showDials: Bool
+    @State var frame: CGSize = .zero
+    
     var body : some View {
         let calendar = Calendar.current
         let components = calendar.dateComponents([Calendar.Component.hour, Calendar.Component.minute, Calendar.Component.second, Calendar.Component.nanosecond], from: now)
@@ -49,10 +51,28 @@ struct Clock : View {
         let color = showDials ? Color.white : Color.gray
 
         ZStack {
+            GeometryReader { (geometry) in
+                self.makeView(geometry)
+            }
             ClockDial(now: now, progress: hour / 12, extraSize: 0.4).stroke(color, style: StrokeStyle(lineWidth: 8, lineCap: .round))
             ClockDial(now: now, progress: minutes / 60.0, extraSize: 0.9).stroke(color, style: StrokeStyle(lineWidth: 4, lineCap: .round))
             ClockDial(now: now, progress: seconds / 60.0, extraSize: 0.9).stroke(color, style: StrokeStyle(lineWidth: 2, lineCap: .round))
+            ForEach((0..<12), id: \.self) { id in
+                let radians : CGFloat = CGFloat.pi - 2.0 * CGFloat.pi / 12.0 * CGFloat(id)
+                let size : CGFloat = frame.height / 2.0 * 1.2
+                let x = sin(radians) * size + frame.width / 2
+                let y = cos(radians) * size + frame.height / 2
+                
+                Text("\(id)").font(.system(size: 35)).position(x: x, y: y)
+            }
         }
+        .background(Circle().stroke(Color.white)).foregroundColor(Color.white)
+        .padding(55)
+    }
+    
+    func makeView(_ geometry: GeometryProxy) -> some View {
+        DispatchQueue.main.async { self.frame = geometry.size }
+        return Text("")
     }
 }
 
@@ -70,15 +90,11 @@ struct ContentView: View {
             .onReceive(timer) { input in
                 now = input
             }
-            .background(Circle().stroke(Color.white)).foregroundColor(Color.white)
-            .padding(55)
 
             Clock(now: now, showDials: components.hour! > 12)
             .onReceive(timer) { input in
                 now = input
             }
-            .background(Circle().stroke(Color.white)).foregroundColor(Color.white)
-            .padding(55)
         }
         .preferredColorScheme(.dark)
     }
