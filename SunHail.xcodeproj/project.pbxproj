@@ -13,6 +13,11 @@
 		AE713E942649FFFD00A712A7 /* Preview Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = AE713E932649FFFD00A712A7 /* Preview Assets.xcassets */; };
 		AE713E9F2649FFFD00A712A7 /* SunHailTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = AE713E9E2649FFFD00A712A7 /* SunHailTests.swift */; };
 		AE713EAA2649FFFD00A712A7 /* SunHailUITests.swift in Sources */ = {isa = PBXBuildFile; fileRef = AE713EA92649FFFD00A712A7 /* SunHailUITests.swift */; };
+		AE713EB8264DACC100A712A7 /* LocationProvider.swift in Sources */ = {isa = PBXBuildFile; fileRef = AE713EB7264DACC100A712A7 /* LocationProvider.swift */; };
+		AE713EBA264DB79B00A712A7 /* Weather.swift in Sources */ = {isa = PBXBuildFile; fileRef = AE713EB9264DB79B00A712A7 /* Weather.swift */; };
+		AE7344D226FE261A0048EABF /* Icons.swift in Sources */ = {isa = PBXBuildFile; fileRef = AE7344D126FE261A0048EABF /* Icons.swift */; };
+		AE7344D426FF03500048EABF /* ColorHex.swift in Sources */ = {isa = PBXBuildFile; fileRef = AE7344D326FF034F0048EABF /* ColorHex.swift */; };
+		AE7344D626FF37D50048EABF /* DateFromComponents.swift in Sources */ = {isa = PBXBuildFile; fileRef = AE7344D526FF37D50048EABF /* DateFromComponents.swift */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXContainerItemProxy section */
@@ -45,6 +50,11 @@
 		AE713EA52649FFFD00A712A7 /* SunHailUITests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = SunHailUITests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
 		AE713EA92649FFFD00A712A7 /* SunHailUITests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SunHailUITests.swift; sourceTree = "<group>"; };
 		AE713EAB2649FFFD00A712A7 /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist.xml; path = Info.plist; sourceTree = "<group>"; };
+		AE713EB7264DACC100A712A7 /* LocationProvider.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LocationProvider.swift; sourceTree = "<group>"; };
+		AE713EB9264DB79B00A712A7 /* Weather.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Weather.swift; sourceTree = "<group>"; };
+		AE7344D126FE261A0048EABF /* Icons.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Icons.swift; sourceTree = "<group>"; };
+		AE7344D326FF034F0048EABF /* ColorHex.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ColorHex.swift; sourceTree = "<group>"; };
+		AE7344D526FF37D50048EABF /* DateFromComponents.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DateFromComponents.swift; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -97,9 +107,14 @@
 			children = (
 				AE713E8C2649FFFC00A712A7 /* SunHailApp.swift */,
 				AE713E8E2649FFFC00A712A7 /* ContentView.swift */,
+				AE7344D526FF37D50048EABF /* DateFromComponents.swift */,
 				AE713E902649FFFD00A712A7 /* Assets.xcassets */,
 				AE713E952649FFFD00A712A7 /* Info.plist */,
 				AE713E922649FFFD00A712A7 /* Preview Content */,
+				AE713EB7264DACC100A712A7 /* LocationProvider.swift */,
+				AE713EB9264DB79B00A712A7 /* Weather.swift */,
+				AE7344D126FE261A0048EABF /* Icons.swift */,
+				AE7344D326FF034F0048EABF /* ColorHex.swift */,
 			);
 			path = SunHail;
 			sourceTree = "<group>";
@@ -259,7 +274,12 @@
 			isa = PBXSourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				AE713EB8264DACC100A712A7 /* LocationProvider.swift in Sources */,
+				AE7344D426FF03500048EABF /* ColorHex.swift in Sources */,
 				AE713E8F2649FFFC00A712A7 /* ContentView.swift in Sources */,
+				AE713EBA264DB79B00A712A7 /* Weather.swift in Sources */,
+				AE7344D226FE261A0048EABF /* Icons.swift in Sources */,
+				AE7344D626FF37D50048EABF /* DateFromComponents.swift in Sources */,
 				AE713E8D2649FFFC00A712A7 /* SunHailApp.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
@@ -422,7 +442,7 @@
 				DEVELOPMENT_TEAM = B6FVY827P9;
 				ENABLE_PREVIEWS = YES;
 				INFOPLIST_FILE = SunHail/Info.plist;
-				IPHONEOS_DEPLOYMENT_TARGET = 14.0;
+				IPHONEOS_DEPLOYMENT_TARGET = 15.0;
 				LD_RUNPATH_SEARCH_PATHS = (
 					"$(inherited)",
 					"@executable_path/Frameworks",
@@ -444,7 +464,7 @@
 				DEVELOPMENT_TEAM = B6FVY827P9;
 				ENABLE_PREVIEWS = YES;
 				INFOPLIST_FILE = SunHail/Info.plist;
-				IPHONEOS_DEPLOYMENT_TARGET = 14.0;
+				IPHONEOS_DEPLOYMENT_TARGET = 15.0;
 				LD_RUNPATH_SEARCH_PATHS = (
 					"$(inherited)",
 					"@executable_path/Frameworks",
