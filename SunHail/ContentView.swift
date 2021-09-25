@@ -146,7 +146,8 @@ struct Clock : View {
                             .shadow(color: .black, radius: 0.5)
                             .shadow(color: .black, radius: 0.5)
                             .shadow(color: .black, radius: 0.5)
-                            .shadow(color: .black, radius: 0.5)
+                            .shadow(color: .black, radius: 1)
+                            .shadow(color: .black, radius: 1)
                     }
                 }
                 else {
@@ -154,12 +155,13 @@ struct Clock : View {
                 }
             }
             ForEach(0..<12, id: \.self) { id in
+                let time = datetimeToday(hour: id + start)
+                let hour = Calendar.current.dateComponents([.hour], from: time).hour!
                 let radians : CGFloat = CGFloat.pi - 2.0 * CGFloat.pi / 12.0 * CGFloat(id)
                 let size : CGFloat = frame.height / 2.0 * 0.74
                 let x = sin(radians) * size + frame.width / 2
                 let y = cos(radians) * size + frame.height / 2
-                let title = id == 0 ? 12 : id
-                Text("\(title)").position(x: x, y: y).foregroundColor(Color.init(white: 0.4))
+                Text("\(hour)").position(x: x, y: y).foregroundColor(Color.init(white: 0.4))
             }
         }
         .background(Circle().trim(from: 0.0, to: 0.98).rotation(.degrees(-102)).stroke(Color.white)).foregroundColor(Color.white)
@@ -219,45 +221,45 @@ struct ContentView: View {
     
     func fakeWeather() {
         let now = Date.now
-        self.weather[now.setHour( 1)!] = Weather(temperature:   1, weatherType:      .wind, rainMillimeter:  0)
-        self.weather[now.setHour( 2)!] = Weather(temperature:  10, weatherType:       .sun, rainMillimeter:  2)
-        self.weather[now.setHour( 3)!] = Weather(temperature:  13, weatherType: .lightning, rainMillimeter:  3)
-        self.weather[now.setHour( 4)!] = Weather(temperature:  14, weatherType:       .sun, rainMillimeter:  5)
-        self.weather[now.setHour( 5)!] = Weather(temperature:  16, weatherType:     .cloud, rainMillimeter:  6)
-        self.weather[now.setHour( 6)!] = Weather(temperature: -23, weatherType:      .wind, rainMillimeter:  8)
-        self.weather[now.setHour( 7)!] = Weather(temperature: -12, weatherType:      .rain, rainMillimeter:  9)
-        self.weather[now.setHour( 8)!] = Weather(temperature:  17, weatherType:      .wind, rainMillimeter: 10)
-        self.weather[now.setHour( 9)!] = Weather(temperature:  24, weatherType:     .cloud, rainMillimeter: 20)
-        self.weather[now.setHour(10)!] = Weather(temperature:  35, weatherType: .lightning, rainMillimeter: 40)
-        self.weather[now.setHour(11)!] = Weather(temperature:   1, weatherType:      .wind, rainMillimeter:  0)
-        self.weather[now.setHour(12)!] = Weather(temperature:  10, weatherType:       .sun, rainMillimeter:  2)
-        self.weather[now.setHour(13)!] = Weather(temperature:  13, weatherType: .lightning, rainMillimeter:  3)
-        self.weather[now.setHour(14)!] = Weather(temperature:  14, weatherType:       .sun, rainMillimeter:  5)
-        self.weather[now.setHour(15)!] = Weather(temperature:  16, weatherType:     .cloud, rainMillimeter:  6)
-        self.weather[now.setHour(16)!] = Weather(temperature: -23, weatherType:      .wind, rainMillimeter:  8)
-        self.weather[now.setHour(17)!] = Weather(temperature: -12, weatherType:      .rain, rainMillimeter:  9)
-        self.weather[now.setHour(18)!] = Weather(temperature:  17, weatherType:      .wind, rainMillimeter: 10)
-        self.weather[now.setHour(19)!] = Weather(temperature:  24, weatherType:     .cloud, rainMillimeter: 20)
-        self.weather[now.setHour(20)!] = Weather(temperature:  35, weatherType: .lightning, rainMillimeter: 40)
-        self.weather[now.setHour(21)!] = Weather(temperature:   1, weatherType:      .wind, rainMillimeter:  0)
-        self.weather[now.setHour(22)!] = Weather(temperature:  10, weatherType:       .sun, rainMillimeter:  2)
-        self.weather[now.setHour(23)!] = Weather(temperature:  13, weatherType: .lightning, rainMillimeter:  3)
-        self.weather[now.setHour(24)!] = Weather(temperature:  14, weatherType:       .sun, rainMillimeter:  5)
-        self.weather[now.setHour(25)!] = Weather(temperature:  16, weatherType:     .cloud, rainMillimeter:  6)
-        self.weather[now.setHour(26)!] = Weather(temperature: -23, weatherType:      .wind, rainMillimeter:  8)
-        self.weather[now.setHour(27)!] = Weather(temperature: -12, weatherType:      .rain, rainMillimeter:  9)
-        self.weather[now.setHour(28)!] = Weather(temperature:  17, weatherType:      .wind, rainMillimeter: 10)
-        self.weather[now.setHour(29)!] = Weather(temperature:  24, weatherType:     .cloud, rainMillimeter: 20)
-        self.weather[now.setHour(30)!] = Weather(temperature:  35, weatherType: .lightning, rainMillimeter: 40)
-        self.weather[now.setHour(31)!] = Weather(temperature:   1, weatherType:      .wind, rainMillimeter:  0)
-        self.weather[now.setHour(32)!] = Weather(temperature:  10, weatherType:       .sun, rainMillimeter:  2)
-        self.weather[now.setHour(33)!] = Weather(temperature:  13, weatherType: .lightning, rainMillimeter:  3)
-        self.weather[now.setHour(34)!] = Weather(temperature:  14, weatherType:       .sun, rainMillimeter:  5)
-        self.weather[now.setHour(35)!] = Weather(temperature:  16, weatherType:     .cloud, rainMillimeter:  6)
-        self.weather[now.setHour(36)!] = Weather(temperature: -23, weatherType:      .wind, rainMillimeter:  8)
-        self.weather[now.setHour(37)!] = Weather(temperature: -12, weatherType:      .rain, rainMillimeter:  9)
-        self.weather[now.setHour(38)!] = Weather(temperature:  17, weatherType:      .wind, rainMillimeter: 10)
-        self.weather[now.setHour(39)!] = Weather(temperature:  24, weatherType:     .cloud, rainMillimeter: 20)
+        self.weather[now.setHour( 1)!] = Weather(time: now.setHour( 1)!, temperature:   1, weatherType:      .wind, rainMillimeter:  0)
+        self.weather[now.setHour( 2)!] = Weather(time: now.setHour( 2)!, temperature:  10, weatherType:     .clear, rainMillimeter:  2)
+        self.weather[now.setHour( 3)!] = Weather(time: now.setHour( 3)!, temperature:  13, weatherType: .lightning, rainMillimeter:  3)
+        self.weather[now.setHour( 4)!] = Weather(time: now.setHour( 4)!, temperature:  14, weatherType:     .clear, rainMillimeter:  5)
+        self.weather[now.setHour( 5)!] = Weather(time: now.setHour( 5)!, temperature:  16, weatherType:     .cloud, rainMillimeter:  6)
+        self.weather[now.setHour( 6)!] = Weather(time: now.setHour( 6)!, temperature: -23, weatherType:      .wind, rainMillimeter:  8)
+        self.weather[now.setHour( 7)!] = Weather(time: now.setHour( 7)!, temperature: -12, weatherType:      .rain, rainMillimeter:  9)
+        self.weather[now.setHour( 8)!] = Weather(time: now.setHour( 8)!, temperature:  17, weatherType:      .wind, rainMillimeter: 10)
+        self.weather[now.setHour( 9)!] = Weather(time: now.setHour( 9)!, temperature:  24, weatherType:     .cloud, rainMillimeter: 20)
+        self.weather[now.setHour(10)!] = Weather(time: now.setHour(10)!, temperature:  35, weatherType: .lightning, rainMillimeter: 40)
+        self.weather[now.setHour(11)!] = Weather(time: now.setHour(11)!, temperature:   1, weatherType:      .wind, rainMillimeter:  0)
+        self.weather[now.setHour(12)!] = Weather(time: now.setHour(12)!, temperature:  10, weatherType:     .clear, rainMillimeter:  2)
+        self.weather[now.setHour(13)!] = Weather(time: now.setHour(13)!, temperature:  13, weatherType: .lightning, rainMillimeter:  3)
+        self.weather[now.setHour(14)!] = Weather(time: now.setHour(14)!, temperature:  14, weatherType:     .clear, rainMillimeter:  5)
+        self.weather[now.setHour(15)!] = Weather(time: now.setHour(15)!, temperature:  16, weatherType:     .cloud, rainMillimeter:  6)
+        self.weather[now.setHour(16)!] = Weather(time: now.setHour(16)!, temperature: -23, weatherType:      .wind, rainMillimeter:  8)
+        self.weather[now.setHour(17)!] = Weather(time: now.setHour(17)!, temperature: -12, weatherType:      .rain, rainMillimeter:  9)
+        self.weather[now.setHour(18)!] = Weather(time: now.setHour(18)!, temperature:  17, weatherType:      .wind, rainMillimeter: 10)
+        self.weather[now.setHour(19)!] = Weather(time: now.setHour(19)!, temperature:  24, weatherType:     .cloud, rainMillimeter: 20)
+        self.weather[now.setHour(20)!] = Weather(time: now.setHour(20)!, temperature:  35, weatherType: .lightning, rainMillimeter: 40)
+        self.weather[now.setHour(21)!] = Weather(time: now.setHour(21)!, temperature:   1, weatherType:      .wind, rainMillimeter:  0)
+        self.weather[now.setHour(22)!] = Weather(time: now.setHour(22)!, temperature:  10, weatherType:     .clear, rainMillimeter:  2)
+        self.weather[now.setHour(23)!] = Weather(time: now.setHour(23)!, temperature:  13, weatherType: .lightning, rainMillimeter:  3)
+        self.weather[now.setHour(24)!] = Weather(time: now.setHour(24)!, temperature:  14, weatherType:     .clear, rainMillimeter:  5)
+        self.weather[now.setHour(25)!] = Weather(time: now.setHour(25)!, temperature:  16, weatherType:     .cloud, rainMillimeter:  6)
+        self.weather[now.setHour(26)!] = Weather(time: now.setHour(26)!, temperature: -23, weatherType:      .wind, rainMillimeter:  8)
+        self.weather[now.setHour(27)!] = Weather(time: now.setHour(27)!, temperature: -12, weatherType:      .rain, rainMillimeter:  9)
+        self.weather[now.setHour(28)!] = Weather(time: now.setHour(28)!, temperature:  17, weatherType:      .wind, rainMillimeter: 10)
+        self.weather[now.setHour(29)!] = Weather(time: now.setHour(29)!, temperature:  24, weatherType:     .cloud, rainMillimeter: 20)
+        self.weather[now.setHour(30)!] = Weather(time: now.setHour(30)!, temperature:  35, weatherType: .lightning, rainMillimeter: 40)
+        self.weather[now.setHour(31)!] = Weather(time: now.setHour(31)!, temperature:   1, weatherType:      .wind, rainMillimeter:  0)
+        self.weather[now.setHour(32)!] = Weather(time: now.setHour(32)!, temperature:  10, weatherType:     .clear, rainMillimeter:  2)
+        self.weather[now.setHour(33)!] = Weather(time: now.setHour(33)!, temperature:  13, weatherType: .lightning, rainMillimeter:  3)
+        self.weather[now.setHour(34)!] = Weather(time: now.setHour(34)!, temperature:  14, weatherType:     .clear, rainMillimeter:  5)
+        self.weather[now.setHour(35)!] = Weather(time: now.setHour(35)!, temperature:  16, weatherType:     .cloud, rainMillimeter:  6)
+        self.weather[now.setHour(36)!] = Weather(time: now.setHour(36)!, temperature: -23, weatherType:      .wind, rainMillimeter:  8)
+        self.weather[now.setHour(37)!] = Weather(time: now.setHour(37)!, temperature: -12, weatherType:      .rain, rainMillimeter:  9)
+        self.weather[now.setHour(38)!] = Weather(time: now.setHour(38)!, temperature:  17, weatherType:      .wind, rainMillimeter: 10)
+        self.weather[now.setHour(39)!] = Weather(time: now.setHour(39)!, temperature:  24, weatherType:     .cloud, rainMillimeter: 20)
     }
         
     // TODO: switch to https://open-meteo.com/en/docs, or in addition to SMHI
@@ -361,7 +363,7 @@ struct ContentView: View {
                                     let weatherType : WeatherType
                                     switch weatherSymbol {
                                     case 1...4:
-                                        weatherType = .sun
+                                        weatherType = .clear
                                     case 6...7:
                                         weatherType = .cloud
                                         
@@ -373,7 +375,7 @@ struct ContentView: View {
                                         weatherType = .unknown
                                     }
 
-                                    self.weather[timeslot.validTime] = Weather(temperature: temperature, weatherType: weatherType, rainMillimeter: rainMillimeter)
+                                    self.weather[timeslot.validTime] = Weather(time: timeslot.validTime, temperature: temperature, weatherType: weatherType, rainMillimeter: rainMillimeter)
                                 }
                             }
                         }

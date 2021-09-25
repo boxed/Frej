@@ -2,7 +2,7 @@ import Foundation
 import SwiftUI
 
 enum WeatherType {
-    case sun
+    case clear
     case cloud
     case rain
     case lightning
@@ -19,18 +19,24 @@ enum RainIntensity {
 }
 
 struct Weather {
+    let time : Date
     let temperature : Float
     let weatherType : WeatherType
     let rainMillimeter : Float
     
     func textColor() -> Color {
         switch self.weatherType {
-        case .sun:
-            return Color.init(hex: 0xFFFDB0)
+        case .clear:
+            if isDay() {
+                return Color.init(hex: 0xFFFDB0)
+            }
+            else {
+                return .white
+            }
         case .lightning:
             return Color.init(hex: 0x929292)
         case .cloud:
-            return Color.init(hex: 0x929292)
+            return Color.init(hex: 0xC2C2C2)
         case .rain:
             return Color.init(hex: 0xCDE9FF)
         case .wind:
@@ -42,8 +48,13 @@ struct Weather {
     
     func iconColor() -> Color {
         switch self.weatherType {
-        case .sun:
-            return Color.init(hex: 0xF9E231)
+        case .clear:
+            if isDay() {
+                return Color.init(hex: 0xF9E231)
+            }
+            else {
+                return .white
+            }
         case .cloud:
             return Color.init(hex: 0x929292)
         case .rain:
@@ -55,11 +66,21 @@ struct Weather {
         }
     }
     
+    func isDay() -> Bool {
+        let components = Calendar.current.dateComponents([.hour], from: time)
+        return components.hour! > 6 && components.hour! < 20
+    }
+    
     @ViewBuilder
     func icon() -> some View {
         switch self.weatherType {
-        case .sun:
-            Sun().stroke(style: StrokeStyle(lineWidth: 3, lineCap: .round, lineJoin: .round))
+        case .clear:
+            if isDay() {
+                Sun().stroke(style: StrokeStyle(lineWidth: 3, lineCap: .round, lineJoin: .round))
+            }
+            else {
+                ClearNight()
+            }
         case .cloud:
             Cloud()
         case .rain:
