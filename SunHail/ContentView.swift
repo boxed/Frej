@@ -192,22 +192,29 @@ struct ContentView: View {
         let calendar = Calendar.current
         let components = calendar.dateComponents([Calendar.Component.hour], from: now)
         
-        ScrollView(.vertical){
-            VStack {
-                Clock(now: now, showDials: components.hour! <= 12, start: 0, weather: weather).frame(height: 350)
-                Clock(now: now, showDials: components.hour! > 12, start: 12, weather: weather).frame(height: 350)
-                Clock(now: now, showDials: components.hour! > 24, start: 24, weather: weather).frame(height: 350)
-//                Clock(now: now, showDials: components.hour! > 24, start: 36, weather: weather)
+        ZStack {
+            ScrollView(.vertical){
+                VStack {
+                    Clock(now: now, showDials: components.hour! <= 12, start: 0, weather: weather).frame(height: 350)
+                    Clock(now: now, showDials: components.hour! > 12, start: 12, weather: weather).frame(height: 350)
+                    Clock(now: now, showDials: components.hour! > 24, start: 24, weather: weather).frame(height: 350)
+    //                Clock(now: now, showDials: components.hour! > 24, start: 36, weather: weather)
+                }
             }
-        }
-        .onReceive(timer) { input in
-            now = input
-        }
-        .preferredColorScheme(.dark)
-        .onAppear {
-//            weatherFromSMI()
-            weatherFromOpenMeteo()
-//            fakeWeather()
+            .onReceive(timer) { input in
+                now = input
+            }
+            .preferredColorScheme(.dark)
+            .onAppear {
+    //            weatherFromSMI()
+                weatherFromOpenMeteo()
+    //            fakeWeather()
+            }
+            
+            VStack {
+                Spacer()
+                Link("Weather data by Open-Meteo.com", destination: URL(string: "https://open-meteo.com/")!).font(Font.system(size: 12)).foregroundColor(.gray)
+            }
         }
     }
     
