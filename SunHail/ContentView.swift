@@ -178,7 +178,6 @@ struct Clock : View {
 struct ContentView: View {
     @State var now: Date = Date()
     @StateObject var locationProvider = LocationProvider()
-    @State var weatherDataRaw : WeatherData?
     @State var weather : [Date: Weather] = [:]
     @State var cancellableLocation : AnyCancellable?
     @State var loadedURL : String = ""
@@ -206,9 +205,9 @@ struct ContentView: View {
         }
         .preferredColorScheme(.dark)
         .onAppear {
-            // TODO !!!
 //            weatherFromSMI()
-            fakeWeather()
+            weatherFromOpenMeteo()
+//            fakeWeather()
         }
     }
     
@@ -261,8 +260,106 @@ struct ContentView: View {
         self.weather[now.setHour(38)!] = Weather(time: now.setHour(38)!, temperature:  17, weatherType:      .wind, rainMillimeter: 10)
         self.weather[now.setHour(39)!] = Weather(time: now.setHour(39)!, temperature:  24, weatherType:     .cloud, rainMillimeter: 20)
     }
+ 
+    func weatherFromOpenMeteo() {
+        do {
+            try locationProvider.start()
+        }
+        catch {
+            print("No location access.")
+            locationProvider.requestAuthorization()
+        }
         
-    // TODO: switch to https://open-meteo.com/en/docs, or in addition to SMHI
+        cancellableLocation = locationProvider.locationWillChange.sink { loc in
+            // handleLocation(loc)
+            DispatchQueue.main.async {
+                let s = "https://api.open-meteo.com/v1/forecast?latitude=\(loc.coordinate.latitude)&longitude=\(loc.coordinate.longitude)&hourly=temperature_2m,precipitation,weathercode,cloudcover,windspeed_10m&past_days=1"
+                guard s != loadedURL else {
+                    return
+                }
+                guard let url = URL(string: s) else {
+                    return
+                }
+                loadedURL = s
+                
+                print("getting: \(url)")
+                let request = URLRequest(url: url)
+                let task = URLSession.shared.dataTask(with: request) { (data, response, error) in
+                    if let response = response as? HTTPURLResponse {
+                        
+                        if response.statusCode == 503 {
+                            return
+                        }
+                        
+                       if error != nil {
+                            return
+                        }
+                        
+                        do {
+                            if let data = data {
+//                                let string1 = String(data: data, encoding: String.Encoding.utf8) ?? "Data could not be printed"
+//                                print(string1)
+                                let decoder = JSONDecoder()
+                                
+                                let dateFormatter = DateFormatter()
+                                dateFormatter.dateFormat = "yyyy-MM-dd'T'HH:mm"
+                                
+                                decoder.dateDecodingStrategy = JSONDecoder.DateDecodingStrategy.formatted(dateFormatter)
+                                let result = try decoder.decode(OMWeatherData.self, from: data)
+                                print("Parsed!")
+                                
+                                for i in 0..<result.hourly.time.count {
+                                    let time = result.hourly.time[i]
+                                    let temperature = result.hourly.temperature_2m[i]
+                                    let weatherSymbol = result.hourly.weathercode[i]
+                                    let rainMillimeter = result.hourly.precipitation[i]
+                                                                     
+                                    /*
+                                     0              Clear sky
+                                     1, 2, 3        Mainly clear, partly cloudy, and overcast
+                                     45, 48         Fog and depositing rime fog
+                                     51, 53, 55     Drizzle: Light, moderate, and dense intensity
+                                     56, 57         Freezing Drizzle: Light and dense intensity
+                                     61, 63, 65     Rain: Slight, moderate and heavy intensity
+                                     66, 67         Freezing Rain: Light and heavy intensity
+                                     71, 73, 75     Snow fall: Slight, moderate, and heavy intensity
+                                     77             Snow grains
+                                     80, 81, 82     Rain showers: Slight, moderate, and violent
+                                     85, 86         Snow showers slight and heavy
+                                     95 *           Thunderstorm: Slight or moderate
+                                     96, 99 *       Thunderstorm with slight and heavy hail
+                                     */
+                                    
+                                    let weatherType : WeatherType
+                                    switch weatherSymbol {
+                                    case 0...1:
+                                        weatherType = .clear
+                                    case 2...3:
+                                        weatherType = .cloud
+                                    case 51...67:
+                                        weatherType = .rain
+                                    case 80...86:
+                                        weatherType = .rain
+                                    case 95...99:
+                                        weatherType = .lightning
+                                    default:
+                                        weatherType = .unknown
+                                    }
+
+                                    self.weather[time] = Weather(time: time, temperature: temperature, weatherType: weatherType, rainMillimeter: rainMillimeter)
+                                }
+                            }
+                        }
+                        catch let error {
+                            print("Error parsing (\(error))")
+                        }
+                    }
+                }
+                task.resume()
+            }
+        }
+    }
+    
     func weatherFromSMI() {
         do {
             try locationProvider.start()
@@ -303,9 +400,8 @@ struct ContentView: View {
 //                                print(string1)
                                 let decoder = JSONDecoder()
                                 decoder.dateDecodingStrategy = .iso8601
-                                let result = try decoder.decode(WeatherData.self, from: data)
+                                let result = try decoder.decode(SMHIWeatherData.self, from: data)
 //                                print("Parsed!")
-                                self.weatherDataRaw = result
                                 
                                 for timeslot in result.timeSeries {
                                     var temperature : Float?

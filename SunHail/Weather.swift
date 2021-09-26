@@ -2,6 +2,7 @@ import Foundation
 import SwiftUI
 
 enum WeatherType {
+    // TODO: Snow!!
     case clear
     case cloud
     case rain
@@ -118,16 +119,30 @@ struct Weather {
     }
 }
 
-struct WeatherData : Decodable {
-    let timeSeries : [WeatherTimeslot]
+struct SMHIWeatherData : Decodable {
+    let timeSeries : [SMHIWeatherTimeslot]
 }
 
-struct WeatherTimeslot : Decodable {
+struct SMHIWeatherTimeslot : Decodable {
     let validTime : Date
-    let parameters : [WeatherParameter]
+    let parameters : [SMHIWeatherParameter]
 }
 
-struct WeatherParameter : Decodable {
+struct SMHIWeatherParameter : Decodable {
     let name : String
     let values : [Float]
+}
+
+
+struct OMWeatherData : Decodable {
+    let hourly: OMFoo
+}
+
+struct OMFoo : Decodable {
+    let cloudcover : [Int]
+    let weathercode : [Int]
+    let windspeed_10m : [Float]
+    let precipitation : [Float]
+    let time : [Date]
+    let temperature_2m : [Float]
 }
