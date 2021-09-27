@@ -181,6 +181,7 @@ struct ContentView: View {
     @State var weather : [Date: Weather] = [:]
     @State var cancellableLocation : AnyCancellable?
     @State var loadedURL : String = ""
+    @State var timeOfData : Date = Date.init(timeIntervalSince1970: 0)
 
     let timer = Timer.publish(
         every: 10,  // seconds
@@ -281,7 +282,7 @@ struct ContentView: View {
             // handleLocation(loc)
             DispatchQueue.main.async {
                 let s = "https://api.open-meteo.com/v1/forecast?latitude=\(loc.coordinate.latitude)&longitude=\(loc.coordinate.longitude)&hourly=temperature_2m,precipitation,weathercode,cloudcover,windspeed_10m&past_days=1"
-                guard s != loadedURL else {
+                guard s != loadedURL && timeOfData.distance(to: Date.now) > 60*60 else {  // don't update more than once an hour
                     return
                 }
                 guard let url = URL(string: s) else {
@@ -380,7 +381,7 @@ struct ContentView: View {
             // handleLocation(loc)
             DispatchQueue.main.async {
                 let s = "https://opendata-download-metfcst.smhi.se/api/category/pmp3g/version/2/geotype/point/lon/\(loc.coordinate.longitude)/lat/\(loc.coordinate.latitude)/data.json"
-                guard s != loadedURL else {
+                guard s != loadedURL && timeOfData.distance(to: Date.now) > 60*60 else {
                     return
                 }
                 guard let url = URL(string: s) else {
