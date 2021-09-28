@@ -112,8 +112,8 @@ struct Clock : View {
     var body : some View {
         let calendar = Calendar.current
         let components = calendar.dateComponents([Calendar.Component.hour, Calendar.Component.minute, Calendar.Component.second, Calendar.Component.nanosecond], from: now)
-        let hour = Double(components.hour!)
         let minutes = Double(components.minute!)
+        let hour = Double(components.hour!) + minutes / 60
 //        let seconds = Double(components.second!) + Double(components.nanosecond!) / 1_000_000_000.0
         let color = showDials ? Color.white : Color.black
 
@@ -121,26 +121,29 @@ struct Clock : View {
             GeometryReader { (geometry) in
                 self.makeView(geometry)
             }
-            ClockDial(now: now, progress: hour / 12, extraSize: 0.4).stroke(color, style: StrokeStyle(lineWidth: 8, lineCap: .round))
-            ClockDial(now: now, progress: minutes / 60.0, extraSize: 0.7).stroke(color, style: StrokeStyle(lineWidth: 4, lineCap: .round))
+            let strokeWidth = frame.width / 70
+            ClockDial(now: now, progress: hour / 12, extraSize: 0.25).stroke(color, style: StrokeStyle(lineWidth: strokeWidth, lineCap: .round))
+            ClockDial(now: now, progress: minutes / 60.0, extraSize: 0.45).stroke(color, style: StrokeStyle(lineWidth: strokeWidth, lineCap: .round))
 //            ClockDial(now: now, progress: seconds / 60.0, extraSize: 0.9).stroke(color, style: StrokeStyle(lineWidth: 2, lineCap: .round))
+            Circle().trim(from: 0.0, to: 0.98).rotation(.degrees(-102)).stroke(Color.white).foregroundColor(Color.white).padding(frame.height * 0.2)
             ForEach(0..<12, id: \.self) { id in
                 let weather = weather[datetimeToday(hour: id + start)]
                 
                 let radians : CGFloat = CGFloat.pi - 2.0 * CGFloat.pi / 12.0 * CGFloat(id)
-                let size : CGFloat = frame.height / 2.0 * 1.17
+                let size : CGFloat = frame.height * 0.4
                 let x = sin(radians) * size + frame.width / 2
                 let y = cos(radians) * size + frame.height / 2
+                let iconSize = frame.height / 5
                 
                 if let weather = weather {
                     ZStack {
                         weather.icon()
-                            .frame(width: 60, height: 60)
+                            .frame(width: iconSize, height: iconSize)
                             .position(x: x, y: y)
                             .foregroundColor(weather.iconColor())
 
                         Text("\(Int(weather.temperature))°")
-                            .font(.system(size: 20))
+                            .font(.system(size: iconSize / 3))
                             .position(x: x + 3, y: y)
                             .foregroundColor(weather.textColor())
                             .shadow(color: .black, radius: 0.5)
@@ -158,14 +161,13 @@ struct Clock : View {
                 let time = datetimeToday(hour: id + start)
                 let hour = Calendar.current.dateComponents([.hour], from: time).hour!
                 let radians : CGFloat = CGFloat.pi - 2.0 * CGFloat.pi / 12.0 * CGFloat(id)
-                let size : CGFloat = frame.height / 2.0 * 0.74
+                let size : CGFloat = frame.height * 0.25
                 let x = sin(radians) * size + frame.width / 2
                 let y = cos(radians) * size + frame.height / 2
                 Text("\(hour)").position(x: x, y: y).foregroundColor(Color.init(white: 0.4))
             }
         }
-        .background(Circle().trim(from: 0.0, to: 0.98).rotation(.degrees(-102)).stroke(Color.white)).foregroundColor(Color.white)
-        .padding(65)
+//        .background(Rectangle().foregroundColor(.red))
     }
     
     func makeView(_ geometry: GeometryProxy) -> some View {
@@ -182,23 +184,34 @@ struct ContentView: View {
     @State var cancellableLocation : AnyCancellable?
     @State var loadedURL : String = ""
     @State var timeOfData : Date = Date.init(timeIntervalSince1970: 0)
+    @State var frame: CGSize = .zero
 
     let timer = Timer.publish(
         every: 10,  // seconds
         on: .main,
         in: .common
     ).autoconnect()
-    
+
+    func makeView(_ geometry: GeometryProxy) -> some View {
+        DispatchQueue.main.async { self.frame = geometry.size }
+        return Text("")
+    }
+
     var body: some View {
         let calendar = Calendar.current
         let components = calendar.dateComponents([Calendar.Component.hour], from: now)
         
         ZStack {
+            GeometryReader { (geometry) in
+                self.makeView(geometry)
+            }
             ScrollView(.vertical){
+                let height = frame.width
                 VStack {
-                    Clock(now: now, showDials: components.hour! <= 12, start: 0, weather: weather).frame(height: 350)
-                    Clock(now: now, showDials: components.hour! > 12, start: 12, weather: weather).frame(height: 350)
-                    Clock(now: now, showDials: components.hour! > 24, start: 24, weather: weather).frame(height: 350)
+                    Clock(now: now, showDials: components.hour! <= 12, start: 0, weather: weather).frame(height: height)
+                    Clock(now: now, showDials: components.hour! > 12*1, start: 12*1, weather: weather).frame(height: height)
+                    Clock(now: now, showDials: components.hour! > 12*2, start: 12*2, weather: weather).frame(height: height)
+                    Clock(now: now, showDials: components.hour! > 12*3, start: 12*3, weather: weather).frame(height: height)
     //                Clock(now: now, showDials: components.hour! > 24, start: 36, weather: weather)
                 }
             }
