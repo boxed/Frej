@@ -110,18 +110,30 @@ struct Clock : View {
     var weather : [Date: Weather]
     
     var body : some View {
+        let startTime = now.addingTimeInterval(TimeInterval(start * 60 * 60))
         let calendar = Calendar.current
-        let components = calendar.dateComponents([Calendar.Component.hour, Calendar.Component.minute, Calendar.Component.second, Calendar.Component.nanosecond], from: now)
+        let components = calendar.dateComponents([.hour, .minute, .second, .nanosecond], from: now)
         let minutes = Double(components.minute!)
         let hour = Double(components.hour!) + minutes / 60
 //        let seconds = Double(components.second!) + Double(components.nanosecond!) / 1_000_000_000.0
         let color = showDials ? Color.white : Color.black
+        let strokeWidth = frame.width / 70
+        let weekday = calendar.dateComponents([.weekday], from: startTime).weekday!
+        let weekdayStr = [
+            1: "Sunday",
+            2: "Monday",
+            3: "Tuesday",
+            4: "Wednesday",
+            5: "Thursday",
+            6: "Friday",
+            7: "Saturday",
+        ][weekday]!
 
         ZStack {
             GeometryReader { (geometry) in
                 self.makeView(geometry)
             }
-            let strokeWidth = frame.width / 70
+            Text("\(weekdayStr)").frame(width: frame.width, height: frame.height, alignment: .topLeading)
             ClockDial(now: now, progress: hour / 12, extraSize: 0.25).stroke(color, style: StrokeStyle(lineWidth: strokeWidth, lineCap: .round))
             ClockDial(now: now, progress: minutes / 60.0, extraSize: 0.45).stroke(color, style: StrokeStyle(lineWidth: strokeWidth, lineCap: .round))
 //            ClockDial(now: now, progress: seconds / 60.0, extraSize: 0.9).stroke(color, style: StrokeStyle(lineWidth: 2, lineCap: .round))
@@ -142,7 +154,7 @@ struct Clock : View {
                             .position(x: x, y: y)
                             .foregroundColor(weather.iconColor())
 
-                        Text("\(Int(weather.temperature))°")
+                        Text("\(Int(round(weather.temperature)))°")
                             .font(.system(size: iconSize / 3))
                             .position(x: x + 3, y: y)
                             .foregroundColor(weather.textColor())
@@ -217,12 +229,14 @@ struct ContentView: View {
             }
             .onReceive(timer) { input in
                 now = input
+                if now.distance(to: timeOfData) > 60 * 60 {
+                    fetchWeather()
+                }
             }
             .preferredColorScheme(.dark)
             .onAppear {
-    //            weatherFromSMI()
-                weatherFromOpenMeteo()
-    //            fakeWeather()
+                startLocationTracking()
+                fetchWeather()
             }
             
             VStack {
@@ -237,6 +251,12 @@ struct ContentView: View {
             return nil
         }
         return self.weather[date]
+    }
+    
+    func fetchWeather() {
+        // weatherFromSMI()
+        // fakeWeather()
+        weatherFromOpenMeteo()
     }
     
     func fakeWeather() {
@@ -281,16 +301,24 @@ struct ContentView: View {
         self.weather[now.setHour(38)!] = Weather(time: now.setHour(38)!, temperature:  17, weatherType:      .wind, rainMillimeter: 10)
         self.weather[now.setHour(39)!] = Weather(time: now.setHour(39)!, temperature:  24, weatherType:     .cloud, rainMillimeter: 20)
     }
- 
-    func weatherFromOpenMeteo() {
+    
+    func startLocationTracking() {
         do {
+            locationProvider.lm.allowsBackgroundLocationUpdates = false
             try locationProvider.start()
         }
         catch {
             print("No location access.")
             locationProvider.requestAuthorization()
+            do {
+                try locationProvider.start()
+            }
+            catch {
+            }
         }
-        
+    }
+ 
+    func weatherFromOpenMeteo() {
         cancellableLocation = locationProvider.locationWillChange.sink { loc in
             // handleLocation(loc)
             DispatchQueue.main.async {
@@ -329,8 +357,10 @@ struct ContentView: View {
                                 let result = try decoder.decode(OMWeatherData.self, from: data)
                                 print("Parsed!")
                                 
+                                let tzOffset = TimeInterval(TimeZone.current.secondsFromGMT())
+                                
                                 for i in 0..<result.hourly.time.count {
-                                    let time = result.hourly.time[i]
+                                    let time = result.hourly.time[i].advanced(by: tzOffset)
                                     let temperature = result.hourly.temperature_2m[i]
                                     let weatherSymbol = result.hourly.weathercode[i]
                                     let rainMillimeter = result.hourly.precipitation[i]

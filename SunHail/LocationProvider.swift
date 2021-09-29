@@ -159,6 +159,10 @@ extension LocationProvider: CLLocationManagerDelegate {
         print(#function, status.name)
         #endif
         //print()
+        
+        if status == .authorizedAlways || status == .authorizedWhenInUse {
+            self.lm.startUpdatingLocation()
+        }
     }
     
     public func locationManager(_ manager: CLLocationManager, didUpdateLocations locations: [CLLocation]) {
