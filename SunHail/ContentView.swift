@@ -119,7 +119,7 @@ struct Clock : View {
         let color = showDials ? Color.white : Color.black
         let strokeWidth = frame.width / 70
         let weekday = calendar.dateComponents([.weekday], from: startTime).weekday!
-        let weekdayStr = [
+        let weekdayStr = start % 24 == 0 ? [
             1: "Sunday",
             2: "Monday",
             3: "Tuesday",
@@ -127,7 +127,7 @@ struct Clock : View {
             5: "Thursday",
             6: "Friday",
             7: "Saturday",
-        ][weekday]!
+        ][weekday]! : ""
 
         ZStack {
             GeometryReader { (geometry) in
@@ -197,6 +197,7 @@ struct ContentView: View {
     @State var loadedURL : String = ""
     @State var timeOfData : Date = Date.init(timeIntervalSince1970: 0)
     @State var frame: CGSize = .zero
+    @State var currentLocation : String = ""
 
     let timer = Timer.publish(
         every: 10,  // seconds
@@ -220,6 +221,8 @@ struct ContentView: View {
             ScrollView(.vertical){
                 let height = frame.width
                 VStack {
+                    Text(currentLocation)
+                    Link("Weather data by Open-Meteo.com", destination: URL(string: "https://open-meteo.com/")!).font(Font.system(size: 12)).foregroundColor(.gray).background(RoundedRectangle(cornerRadius: 4).foregroundColor(.black))
                     Clock(now: now, showDials: components.hour! <= 12, start: 0, weather: weather).frame(height: height)
                     Clock(now: now, showDials: components.hour! > 12*1, start: 12*1, weather: weather).frame(height: height)
                     Clock(now: now, showDials: components.hour! > 12*2, start: 12*2, weather: weather).frame(height: height)
@@ -237,11 +240,6 @@ struct ContentView: View {
             .onAppear {
                 startLocationTracking()
                 fetchWeather()
-            }
-            
-            VStack {
-                Spacer()
-                Link("Weather data by Open-Meteo.com", destination: URL(string: "https://open-meteo.com/")!).font(Font.system(size: 12)).foregroundColor(.gray)
             }
         }
     }
@@ -320,6 +318,14 @@ struct ContentView: View {
  
     func weatherFromOpenMeteo() {
         cancellableLocation = locationProvider.locationWillChange.sink { loc in
+            let geocoder = CLGeocoder()
+            geocoder.reverseGeocodeLocation(loc) { (placemarks, error) in
+                if error == nil {
+                    let firstLocation = placemarks?[0]
+                    currentLocation = firstLocation?.locality ?? ""
+                }
+            }
+
             // handleLocation(loc)
             DispatchQueue.main.async {
                 let s = "https://api.open-meteo.com/v1/forecast?latitude=\(loc.coordinate.latitude)&longitude=\(loc.coordinate.longitude)&hourly=temperature_2m,precipitation,weathercode,cloudcover,windspeed_10m&past_days=1"
