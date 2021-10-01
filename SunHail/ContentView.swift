@@ -252,7 +252,14 @@ struct ContentView: View {
                         Clock(now: now, showDials: hour > 12*6, start: 12*6, weather: weather).frame(height: height)
                         Clock(now: now, showDials: hour > 12*7, start: 12*7, weather: weather).frame(height: height)
                     }
-    //                Clock(now: now, showDials: components.hour! > 24, start: 36, weather: weather)
+                    VStack {
+                        Clock(now: now, showDials: hour > 12*8, start: 12*8, weather: weather).frame(height: height)
+                        Clock(now: now, showDials: hour > 12*9, start: 12*9, weather: weather).frame(height: height)
+                    }
+                    VStack {
+                        Clock(now: now, showDials: hour > 12*10, start: 12*10, weather: weather).frame(height: height)
+                        Clock(now: now, showDials: hour > 12*11, start: 12*11, weather: weather).frame(height: height)
+                    }
                 }
                 .tabViewStyle(PageTabViewStyle(indexDisplayMode: .always)).frame(width: frame.width, height: frame.height)
             }
