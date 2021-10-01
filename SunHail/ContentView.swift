@@ -225,7 +225,7 @@ struct ContentView: View {
         let components = calendar.dateComponents([Calendar.Component.hour], from: now)
         let hour = components.hour!
         
-        let height = frame.width * 0.9
+        let height = min(frame.width * 0.9, abs(frame.height / 2 - 25))
 
         VStack {
             Spacer()
@@ -279,7 +279,7 @@ struct ContentView: View {
     }
     
     func getWeather(hour: Int) -> Weather? {
-        guard let date = Date.now.setHour(hour) else {
+        guard let date = Date().setHour(hour) else {
             return nil
         }
         return self.weather[date]
@@ -292,7 +292,7 @@ struct ContentView: View {
     }
     
     func fakeWeather() {
-        let now = Date.now
+        let now = Date()
         self.weather[now.setHour( 1)!] = Weather(time: now.setHour( 1)!, temperature:   1, weatherType:      .wind, rainMillimeter:  0)
         self.weather[now.setHour( 2)!] = Weather(time: now.setHour( 2)!, temperature:  10, weatherType:     .clear, rainMillimeter:  2)
         self.weather[now.setHour( 3)!] = Weather(time: now.setHour( 3)!, temperature:  13, weatherType: .lightning, rainMillimeter:  3)
@@ -363,7 +363,7 @@ struct ContentView: View {
             // handleLocation(loc)
             DispatchQueue.main.async {
                 let s = "https://api.open-meteo.com/v1/forecast?latitude=\(loc.coordinate.latitude)&longitude=\(loc.coordinate.longitude)&hourly=temperature_2m,precipitation,weathercode,cloudcover,windspeed_10m&past_days=1"
-                guard s != loadedURL && timeOfData.distance(to: Date.now) > 60*60 else {  // don't update more than once an hour
+                guard s != loadedURL && timeOfData.distance(to: Date()) > 60*60 else {  // don't update more than once an hour
                     return
                 }
                 guard let url = URL(string: s) else {
@@ -464,7 +464,7 @@ struct ContentView: View {
             // handleLocation(loc)
             DispatchQueue.main.async {
                 let s = "https://opendata-download-metfcst.smhi.se/api/category/pmp3g/version/2/geotype/point/lon/\(loc.coordinate.longitude)/lat/\(loc.coordinate.latitude)/data.json"
-                guard s != loadedURL && timeOfData.distance(to: Date.now) > 60*60 else {
+                guard s != loadedURL && timeOfData.distance(to: Date()) > 60*60 else {
                     return
                 }
                 guard let url = URL(string: s) else {
