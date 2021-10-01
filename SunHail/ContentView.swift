@@ -119,7 +119,7 @@ struct Clock : View {
         let color = showDials ? Color.white : Color.black
         let strokeWidth = frame.width / 70
         let weekday = calendar.dateComponents([.weekday], from: startTime).weekday!
-        let weekdayStr = start % 24 == 0 ? [
+        let weekdayStr = start == 0 ? "Today" : start % 24 == 0 ? [
             1: "Sunday",
             2: "Monday",
             3: "Tuesday",
@@ -136,7 +136,8 @@ struct Clock : View {
             Text("\(weekdayStr)").frame(width: frame.width, height: frame.height, alignment: .topLeading)
             ClockDial(now: now, progress: hour / 12, extraSize: 0.25).stroke(color, style: StrokeStyle(lineWidth: strokeWidth, lineCap: .round))
             ClockDial(now: now, progress: minutes / 60.0, extraSize: 0.45).stroke(color, style: StrokeStyle(lineWidth: strokeWidth, lineCap: .round))
-//            ClockDial(now: now, progress: seconds / 60.0, extraSize: 0.9).stroke(color, style: StrokeStyle(lineWidth: 2, lineCap: .round))
+            // second
+//            ClockDial(now: now, progress: seconds / 60.0, extraSize: 0.5).stroke(color, style: StrokeStyle(lineWidth: 2, lineCap: .round))
             Circle().trim(from: 0.0, to: 0.98).rotation(.degrees(-102)).stroke(Color.white).foregroundColor(Color.white).padding(frame.height * 0.2)
             ForEach(0..<12, id: \.self) { id in
                 let weather = weather[datetimeToday(hour: id + start)]
@@ -146,23 +147,31 @@ struct Clock : View {
                 let x = sin(radians) * size + frame.width / 2
                 let y = cos(radians) * size + frame.height / 2
                 let iconSize = frame.height / 5
+                let textX = x + 3
                 
                 if let weather = weather {
+                    let text = Text("\(Int(round(weather.temperature)))°")
+                        .font(.system(size: iconSize / 3))
+                        .foregroundColor(.black)
+                    
                     ZStack {
                         weather.icon()
                             .frame(width: iconSize, height: iconSize)
                             .position(x: x, y: y)
                             .foregroundColor(weather.iconColor())
+                        
+                        // "Border" hack
+                        text.position(x: textX + 1, y: y)
+                        text.position(x: textX - 1, y: y)
+                        text.position(x: textX, y: y + 1)
+                        text.position(x: textX, y: y - 1)
 
+                        // Actual text
                         Text("\(Int(round(weather.temperature)))°")
                             .font(.system(size: iconSize / 3))
-                            .position(x: x + 3, y: y)
+                            .position(x: textX, y: y)
                             .foregroundColor(weather.textColor())
-                            .shadow(color: .black, radius: 0.5)
-                            .shadow(color: .black, radius: 0.5)
-                            .shadow(color: .black, radius: 0.5)
-                            .shadow(color: .black, radius: 1)
-                            .shadow(color: .black, radius: 1)
+
                     }
                 }
                 else {
@@ -200,7 +209,8 @@ struct ContentView: View {
     @State var currentLocation : String = ""
 
     let timer = Timer.publish(
-        every: 10,  // seconds
+        // seconds
+        every: 10, // 0.05 to get a smooth second counter
         on: .main,
         in: .common
     ).autoconnect()
@@ -213,23 +223,40 @@ struct ContentView: View {
     var body: some View {
         let calendar = Calendar.current
         let components = calendar.dateComponents([Calendar.Component.hour], from: now)
+        let hour = components.hour!
         
-        ZStack {
-            GeometryReader { (geometry) in
-                self.makeView(geometry)
-            }
-            ScrollView(.vertical){
-                let height = frame.width
-                VStack {
-                    Text(currentLocation)
-                    Link("Weather data by Open-Meteo.com", destination: URL(string: "https://open-meteo.com/")!).font(Font.system(size: 12)).foregroundColor(.gray).background(RoundedRectangle(cornerRadius: 4).foregroundColor(.black))
-                    Clock(now: now, showDials: components.hour! <= 12, start: 0, weather: weather).frame(height: height)
-                    Clock(now: now, showDials: components.hour! > 12*1, start: 12*1, weather: weather).frame(height: height)
-                    Clock(now: now, showDials: components.hour! > 12*2, start: 12*2, weather: weather).frame(height: height)
-                    Clock(now: now, showDials: components.hour! > 12*3, start: 12*3, weather: weather).frame(height: height)
+        let height = frame.width * 0.9
+
+        VStack {
+            Spacer()
+            Text(currentLocation).font(.system(size: 25))
+            Link("Weather data by Open-Meteo.com", destination: URL(string: "https://open-meteo.com/")!).font(Font.system(size: 12)).foregroundColor(.gray).background(RoundedRectangle(cornerRadius: 4).foregroundColor(.black))
+            ZStack {
+                GeometryReader { (geometry) in
+                    self.makeView(geometry)
+                }
+                TabView {
+                    VStack {
+                        Clock(now: now, showDials: hour <= 12,  start: 0,    weather: weather).frame(height: height)
+                        Clock(now: now, showDials: hour > 12*1, start: 12*1, weather: weather).frame(height: height)
+                    }
+                    VStack {
+                        Clock(now: now, showDials: hour > 12*2, start: 12*2, weather: weather).frame(height: height)
+                        Clock(now: now, showDials: hour > 12*3, start: 12*3, weather: weather).frame(height: height)
+                    }
+                    VStack {
+                        Clock(now: now, showDials: hour > 12*4, start: 12*4, weather: weather).frame(height: height)
+                        Clock(now: now, showDials: hour > 12*5, start: 12*5, weather: weather).frame(height: height)
+                    }
+                    VStack {
+                        Clock(now: now, showDials: hour > 12*6, start: 12*6, weather: weather).frame(height: height)
+                        Clock(now: now, showDials: hour > 12*7, start: 12*7, weather: weather).frame(height: height)
+                    }
     //                Clock(now: now, showDials: components.hour! > 24, start: 36, weather: weather)
                 }
+                .tabViewStyle(PageTabViewStyle(indexDisplayMode: .always)).frame(width: frame.width, height: frame.height)
             }
+            .ignoresSafeArea(.all, edges: .bottom)
             .onReceive(timer) { input in
                 now = input
                 if now.distance(to: timeOfData) > 60 * 60 {
