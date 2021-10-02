@@ -19,38 +19,63 @@ enum RainIntensity {
     case violent
 }
 
+private func _textColor(isDay: Bool, weatherType: WeatherType) -> Color {
+    switch weatherType {
+    case .clear:
+        if isDay {
+            return Color.init(hex: 0xFFFDB0)
+        }
+        else {
+            return .white
+        }
+    case .lightning:
+        return Color.init(hex: 0x929292)
+    case .cloud:
+        return Color.init(hex: 0xC2C2C2)
+    case .rain:
+        return Color.init(hex: 0xCDE9FF)
+    case .wind:
+        return Color.init(hex: 0xD5D5D5)
+    case .unknown:
+        return .gray
+    }
+}
+
+
 struct Weather {
     let time : Date
     let temperature : Float
     let weatherType : WeatherType
     let rainMillimeter : Float
+    let textColor : Color
+    let isDay : Bool
+    let circleSegmentColor : Color
+    let circleSegmentWidth : CGFloat
     
-    func textColor() -> Color {
-        switch self.weatherType {
-        case .clear:
-            if isDay() {
-                return Color.init(hex: 0xFFFDB0)
-            }
-            else {
-                return .white
-            }
-        case .lightning:
-            return Color.init(hex: 0x929292)
-        case .cloud:
-            return Color.init(hex: 0xC2C2C2)
-        case .rain:
-            return Color.init(hex: 0xCDE9FF)
-        case .wind:
-            return Color.init(hex: 0xD5D5D5)
-        case .unknown:
-            return .gray
-        }
+    init(
+        time : Date,
+        temperature : Float,
+        weatherType : WeatherType,
+        rainMillimeter : Float
+    ) {
+        self.time = time
+        self.temperature = temperature
+        self.weatherType = weatherType
+        self.rainMillimeter = rainMillimeter
+        
+        let components = Calendar.current.dateComponents([.hour], from: time)
+        self.isDay =  components.hour! > 6 && components.hour! < 20
+        
+        self.textColor = _textColor(isDay: isDay, weatherType: weatherType)
+        
+        self.circleSegmentColor = rainMillimeter > 0 ? .blue : .white
+        self.circleSegmentWidth = max(1, CGFloat(log(rainMillimeter) * 10))
     }
-    
-    func iconColor() -> Color {
+            
+    var iconColor : Color {
         switch self.weatherType {
         case .clear:
-            if isDay() {
+            if isDay {
                 return Color.init(hex: 0xF9E231)
             }
             else {
@@ -66,17 +91,12 @@ struct Weather {
             return .white
         }
     }
-    
-    func isDay() -> Bool {
-        let components = Calendar.current.dateComponents([.hour], from: time)
-        return components.hour! > 6 && components.hour! < 20
-    }
-    
+        
     @ViewBuilder
     func icon() -> some View {
         switch self.weatherType {
         case .clear:
-            if isDay() {
+            if isDay {
                 Sun().stroke(style: StrokeStyle(lineWidth: 3, lineCap: .round, lineJoin: .round))
             }
             else {
