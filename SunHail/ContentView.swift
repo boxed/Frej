@@ -101,6 +101,16 @@ func datetimeToday(hour: Int) -> Date{
     return components.date!
 }
 
+let weekday_number_to_string = [
+    1: "Sunday",
+    2: "Monday",
+    3: "Tuesday",
+    4: "Wednesday",
+    5: "Thursday",
+    6: "Friday",
+    7: "Saturday",
+]
+
 
 struct Clock : View {
     var now: Date;
@@ -108,37 +118,34 @@ struct Clock : View {
     @State var frame: CGSize = .zero
     var start : Int
     var weather : [Date: Weather]
-    
+    let calendar = Calendar.current
+
+    func widthOfRain(_ mm : Float) -> CGFloat {
+        return max(1, CGFloat(log(mm) * 10))
+    }
+
     var body : some View {
         let startTime = now.addingTimeInterval(TimeInterval(start * 60 * 60))
-        let calendar = Calendar.current
         let components = calendar.dateComponents([.hour, .minute, .second, .nanosecond], from: now)
         let minutes = Double(components.minute!)
         let hour = Double(components.hour!) + minutes / 60
 //        let seconds = Double(components.second!) + Double(components.nanosecond!) / 1_000_000_000.0
-        let color = showDials ? Color.white : Color.black
         let strokeWidth = frame.width / 70
         let weekday = calendar.dateComponents([.weekday], from: startTime).weekday!
-        let weekdayStr = start == 0 ? "Today" : start % 24 == 0 ? [
-            1: "Sunday",
-            2: "Monday",
-            3: "Tuesday",
-            4: "Wednesday",
-            5: "Thursday",
-            6: "Friday",
-            7: "Saturday",
-        ][weekday]! : ""
+        let weekdayStr = start == 0 ? "Today" : start % 24 == 0 ? weekday_number_to_string[weekday]! : ""
 
         ZStack {
             GeometryReader { (geometry) in
                 self.makeView(geometry)
             }
             Text("\(weekdayStr)").frame(width: frame.width, height: frame.height, alignment: .topLeading)
-            ClockDial(now: now, progress: hour / 12, extraSize: 0.25).stroke(color, style: StrokeStyle(lineWidth: strokeWidth, lineCap: .round))
-            ClockDial(now: now, progress: minutes / 60.0, extraSize: 0.45).stroke(color, style: StrokeStyle(lineWidth: strokeWidth, lineCap: .round))
+            if showDials {
+                ClockDial(now: now, progress: hour / 12, extraSize: 0.25).stroke(.white, style: StrokeStyle(lineWidth: strokeWidth, lineCap: .round))
+                ClockDial(now: now, progress: minutes / 60.0, extraSize: 0.45).stroke(.white, style: StrokeStyle(lineWidth: strokeWidth, lineCap: .round))
+            }
             // second
 //            ClockDial(now: now, progress: seconds / 60.0, extraSize: 0.5).stroke(color, style: StrokeStyle(lineWidth: 2, lineCap: .round))
-            Circle().trim(from: 0.0, to: 0.98).rotation(.degrees(-102)).stroke(Color.white).foregroundColor(Color.white).padding(frame.height * 0.2)
+//            Circle().trim(from: 0.0, to: 0.98).rotation(.degrees(-102)).stroke(Color.white).foregroundColor(Color.white).padding(frame.height * 0.2)
             ForEach(0..<12, id: \.self) { id in
                 let weather = weather[datetimeToday(hour: id + start)]
                 
@@ -155,16 +162,41 @@ struct Clock : View {
                         .foregroundColor(.black)
                     
                     ZStack {
+                        Circle()
+                            .trim(from: 0.0, to: 1/12)
+                            .rotation(.radians(radians) - .degrees(45))
+                            .stroke(weather.rainMillimeter > 0 ? .blue : .white, lineWidth: widthOfRain(weather.rainMillimeter))
+                            .foregroundColor(weather.rainMillimeter > 0 ? .blue : .white)
+                            .padding(frame.height * 0.2)
+
                         weather.icon()
                             .frame(width: iconSize, height: iconSize)
                             .position(x: x, y: y)
                             .foregroundColor(weather.iconColor())
                         
                         // "Border" hack
-                        text.position(x: textX + 1, y: y)
-                        text.position(x: textX - 1, y: y)
-                        text.position(x: textX, y: y + 1)
-                        text.position(x: textX, y: y - 1)
+                        ZStack {
+                            text.position(x: textX + 1, y: y)
+                            text.position(x: textX - 1, y: y)
+                            text.position(x: textX + 1, y: y + 1)
+                            text.position(x: textX - 1, y: y + 1)
+                            text.position(x: textX + 1, y: y - 1)
+                            text.position(x: textX - 1, y: y - 1)
+                        }
+                        ZStack {
+                            text.position(x: textX, y: y + 1)
+                            text.position(x: textX, y: y - 1)
+                            text.position(x: textX + 1, y: y + 1)
+                            text.position(x: textX + 1, y: y - 1)
+                            text.position(x: textX - 1, y: y + 1)
+                            text.position(x: textX - 1, y: y - 1)
+                        }
+                        
+                        // Debug rain amount
+//                        Text("\(weather.rainMillimeter)")
+//                            .font(.system(size: iconSize / 3))
+//                            .position(x: textX, y: y)
+//                            .foregroundColor(weather.textColor())
 
                         // Actual text
                         Text("\(Int(round(weather.temperature)))°")

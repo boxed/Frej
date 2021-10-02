@@ -265,6 +265,7 @@ struct Rain: Shape {
         path.addCurve(to: CGPoint(x: 0.63356*width, y: 0.16282*height), control1: CGPoint(x: 0.66429*width, y: 0.2038*height), control2: CGPoint(x: 0.64582*width, y: 0.18683*height))
         path.addCurve(to: CGPoint(x: 0.61469*width, y: 0.10622*height), control1: CGPoint(x: 0.61507*width, y: 0.1266*height), control2: CGPoint(x: 0.61478*width, y: 0.10517*height))
         path.closeSubpath()
+        
         path.move(to: CGPoint(x: 0.32875*width, y: 0.192*height))
         path.addCurve(to: CGPoint(x: 0.31931*width, y: 0.23445*height), control1: CGPoint(x: 0.32875*width, y: 0.192*height), control2: CGPoint(x: 0.32969*width, y: 0.20539*height))
         path.addCurve(to: CGPoint(x: 0.28595*width, y: 0.31536*height), control1: CGPoint(x: 0.30951*width, y: 0.2619*height), control2: CGPoint(x: 0.28446*width, y: 0.28592*height))
@@ -273,6 +274,7 @@ struct Rain: Shape {
         path.addCurve(to: CGPoint(x: 0.34761*width, y: 0.2486*height), control1: CGPoint(x: 0.37834*width, y: 0.28958*height), control2: CGPoint(x: 0.35987*width, y: 0.27262*height))
         path.addCurve(to: CGPoint(x: 0.32875*width, y: 0.192*height), control1: CGPoint(x: 0.32912*width, y: 0.21239*height), control2: CGPoint(x: 0.32883*width, y: 0.19096*height))
         path.closeSubpath()
+        
         path.move(to: CGPoint(x: 0.68986*width, y: 0.37174*height))
         path.addCurve(to: CGPoint(x: 0.68042*width, y: 0.41419*height), control1: CGPoint(x: 0.68986*width, y: 0.37174*height), control2: CGPoint(x: 0.6908*width, y: 0.38513*height))
         path.addCurve(to: CGPoint(x: 0.64706*width, y: 0.4951*height), control1: CGPoint(x: 0.67063*width, y: 0.44163*height), control2: CGPoint(x: 0.64558*width, y: 0.46566*height))
@@ -281,6 +283,7 @@ struct Rain: Shape {
         path.addCurve(to: CGPoint(x: 0.70872*width, y: 0.42834*height), control1: CGPoint(x: 0.73945*width, y: 0.46932*height), control2: CGPoint(x: 0.72099*width, y: 0.45236*height))
         path.addCurve(to: CGPoint(x: 0.68986*width, y: 0.37174*height), control1: CGPoint(x: 0.69024*width, y: 0.39213*height), control2: CGPoint(x: 0.68995*width, y: 0.37069*height))
         path.closeSubpath()
+        
         path.move(to: CGPoint(x: 0.39329*width, y: 0.55883*height))
         path.addCurve(to: CGPoint(x: 0.38386*width, y: 0.60128*height), control1: CGPoint(x: 0.39329*width, y: 0.55883*height), control2: CGPoint(x: 0.39423*width, y: 0.57222*height))
         path.addCurve(to: CGPoint(x: 0.35049*width, y: 0.68219*height), control1: CGPoint(x: 0.37406*width, y: 0.62873*height), control2: CGPoint(x: 0.34901*width, y: 0.65275*height))
@@ -289,6 +292,7 @@ struct Rain: Shape {
         path.addCurve(to: CGPoint(x: 0.41215*width, y: 0.61543*height), control1: CGPoint(x: 0.44288*width, y: 0.65641*height), control2: CGPoint(x: 0.42442*width, y: 0.63945*height))
         path.addCurve(to: CGPoint(x: 0.39329*width, y: 0.55883*height), control1: CGPoint(x: 0.39367*width, y: 0.57922*height), control2: CGPoint(x: 0.39338*width, y: 0.55779*height))
         path.closeSubpath()
+        
         path.move(to: CGPoint(x: 0.76747*width, y: 0.5956*height))
         path.addCurve(to: CGPoint(x: 0.75804*width, y: 0.63805*height), control1: CGPoint(x: 0.76747*width, y: 0.5956*height), control2: CGPoint(x: 0.76842*width, y: 0.60898*height))
         path.addCurve(to: CGPoint(x: 0.72467*width, y: 0.71895*height), control1: CGPoint(x: 0.74824*width, y: 0.66549*height), control2: CGPoint(x: 0.72319*width, y: 0.68952*height))
@@ -297,6 +301,7 @@ struct Rain: Shape {
         path.addCurve(to: CGPoint(x: 0.78634*width, y: 0.6522*height), control1: CGPoint(x: 0.81707*width, y: 0.69318*height), control2: CGPoint(x: 0.7986*width, y: 0.67621*height))
         path.addCurve(to: CGPoint(x: 0.76747*width, y: 0.5956*height), control1: CGPoint(x: 0.76785*width, y: 0.61598*height), control2: CGPoint(x: 0.76756*width, y: 0.59455*height))
         path.closeSubpath()
+        
         path.move(to: CGPoint(x: 0.16698*width, y: 0.45834*height))
         path.addCurve(to: CGPoint(x: 0.15755*width, y: 0.50079*height), control1: CGPoint(x: 0.16698*width, y: 0.45834*height), control2: CGPoint(x: 0.16793*width, y: 0.47173*height))
         path.addCurve(to: CGPoint(x: 0.12418*width, y: 0.5817*height), control1: CGPoint(x: 0.14775*width, y: 0.52824*height), control2: CGPoint(x: 0.1227*width, y: 0.55226*height))
