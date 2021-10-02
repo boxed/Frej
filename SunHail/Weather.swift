@@ -105,7 +105,7 @@ struct Weather {
         case .cloud:
             Cloud()
         case .rain:
-            Rain()
+            Rain(mm: Int(self.circleSegmentWidth))
         case .lightning:
             Lightning()
         case .wind:
