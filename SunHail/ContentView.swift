@@ -126,7 +126,7 @@ struct Clock : View {
         let minutes = Double(components.minute!)
         let hour = Double(components.hour!) + minutes / 60
 //        let seconds = Double(components.second!) + Double(components.nanosecond!) / 1_000_000_000.0
-        let strokeWidth = frame.width / 70
+        let strokeWidth = frame.height / 70
         let weekday = calendar.dateComponents([.weekday], from: startTime).weekday!
         let weekdayStr = start == 0 ? "Today" : start % 24 == 0 ? weekday_number_to_string[weekday]! : ""
 
@@ -134,7 +134,10 @@ struct Clock : View {
             GeometryReader { (geometry) in
                 self.makeView(geometry)
             }
-            Text("\(weekdayStr)").frame(width: frame.width, height: frame.height, alignment: .topLeading)
+            VStack {
+                Text("\(weekdayStr)").frame(maxWidth: .infinity, alignment: .leading).padding()
+                Spacer()
+            }
             if showDials {
                 ClockDial(now: now, progress: hour / 12, extraSize: 0.25).stroke(.white, style: StrokeStyle(lineWidth: strokeWidth, lineCap: .round))
                 ClockDial(now: now, progress: minutes / 60.0, extraSize: 0.45).stroke(.white, style: StrokeStyle(lineWidth: strokeWidth, lineCap: .round))
@@ -250,14 +253,14 @@ struct ContentView: View {
         VStack {
             Spacer()
             Text(currentLocation).font(.system(size: 25))
-            Link("Weather data by Open-Meteo.com", destination: URL(string: "https://open-meteo.com/")!).font(Font.system(size: 12)).foregroundColor(.gray).background(RoundedRectangle(cornerRadius: 4).foregroundColor(.black))
+            Link("Weather data by Open-Meteo.com", destination: URL(string: "https://open-meteo.com/")!).font(Font.system(size: 12)).foregroundColor(.gray)
             ZStack {
                 GeometryReader { (geometry) in
                     self.makeView(geometry)
                 }
                 TabView {
                     VStack {
-                        Clock(now: now, showDials: hour < 12,  start: 0,    weather: weather).frame(height: height)
+                        Clock(now: now, showDials: hour < 12,    start: 0,    weather: weather).frame(height: height)
                         Clock(now: now, showDials: hour >= 12*1, start: 12*1, weather: weather).frame(height: height)
                     }
                     VStack {
