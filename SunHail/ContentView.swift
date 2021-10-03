@@ -159,7 +159,7 @@ struct Clock : View {
                     
                     ZStack {
                         Circle()
-                            .trim(from: 0.0, to: id == 11 ? 1/13 : 1/12)
+                            .trim(from: 0.0, to: id == 11 ? 1/14 : 1/12)
                             .rotation(-.radians(radians - CGFloat.pi/2 + CGFloat.pi/12))
                             .stroke(weather.circleSegmentColor, lineWidth: weather.circleSegmentWidth)
                             .foregroundColor(weather.rainMillimeter > 0 ? .blue : .white)
