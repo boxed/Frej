@@ -257,8 +257,8 @@ struct ContentView: View {
                 }
                 TabView {
                     VStack {
-                        Clock(now: now, showDials: hour <= 12,  start: 0,    weather: weather).frame(height: height)
-                        Clock(now: now, showDials: hour > 12*1, start: 12*1, weather: weather).frame(height: height)
+                        Clock(now: now, showDials: hour < 12,  start: 0,    weather: weather).frame(height: height)
+                        Clock(now: now, showDials: hour >= 12*1, start: 12*1, weather: weather).frame(height: height)
                     }
                     VStack {
                         Clock(now: now, showDials: hour > 12*2, start: 12*2, weather: weather).frame(height: height)
