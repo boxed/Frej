@@ -424,6 +424,7 @@ struct ContentView: View {
                                     let temperature = result.hourly.temperature_2m[i]
                                     let weatherSymbol = result.hourly.weathercode[i]
                                     let rainMillimeter = result.hourly.precipitation[i]
+                                    let windspeed = result.hourly.windspeed_10m[i]
                                                                      
                                     /*
                                      0              Clear sky
@@ -441,11 +442,13 @@ struct ContentView: View {
                                      96, 99 *       Thunderstorm with slight and heavy hail
                                      */
                                     
-                                    let weatherType : WeatherType
+                                    var weatherType : WeatherType
                                     switch weatherSymbol {
                                     case 0...1:
                                         weatherType = .clear
-                                    case 2...3:
+                                    case 1...2:
+                                        weatherType = .lightCloud
+                                    case 3:
                                         weatherType = .cloud
                                     case 51...67:
                                         weatherType = .rain
@@ -453,10 +456,16 @@ struct ContentView: View {
                                         weatherType = .rain
                                     case 95...99:
                                         weatherType = .lightning
+                                    case 45...48:
+                                        weatherType = .fog
                                     default:
                                         weatherType = .unknown
                                     }
-
+                                    
+                                    if windspeed > 20 {
+                                        weatherType = .wind
+                                    }
+                                    
                                     self.weather[time] = Weather(time: time, temperature: temperature, weatherType: weatherType, rainMillimeter: rainMillimeter)
                                 }
                             }

@@ -5,9 +5,11 @@ enum WeatherType {
     // TODO: Snow!!
     case clear
     case cloud
+    case lightCloud
     case rain
     case lightning
     case wind
+    case fog
     case unknown
 }
 
@@ -32,6 +34,10 @@ private func _textColor(isDay: Bool, weatherType: WeatherType) -> Color {
         return Color.init(hex: 0x929292)
     case .cloud:
         return Color.init(hex: 0xC2C2C2)
+    case .lightCloud:
+        return .white
+    case .fog:
+        return .white
     case .rain:
         return Color.init(hex: 0xCDE9FF)
     case .wind:
@@ -81,13 +87,19 @@ struct Weather {
             else {
                 return .white
             }
+        case .lightCloud:
+            return .white
         case .cloud:
             return Color.init(hex: 0x929292)
         case .rain:
             return Color.init(hex: 0x4F95CD);
         case .lightning:
             return Color.init(hex: 0xF9E231)
-        default:
+        case .fog:
+            return Color.init(hex: 0x929292)
+        case .unknown:
+            return .white
+        case .wind:
             return .white
         }
     }
@@ -104,12 +116,16 @@ struct Weather {
             }
         case .cloud:
             Cloud()
+        case .lightCloud:
+            Cloud()
         case .rain:
             Rain(mm: Int(self.circleSegmentWidth))
         case .lightning:
             Lightning()
         case .wind:
             Wind()
+        case .fog:
+            Fog().scale(0.8)
         case .unknown:
             Text("")
         }
