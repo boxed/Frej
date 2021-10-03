@@ -41,7 +41,7 @@ private func _textColor(isDay: Bool, weatherType: WeatherType) -> Color {
     case .rain:
         return Color.init(hex: 0xCDE9FF)
     case .wind:
-        return Color.init(hex: 0xD5D5D5)
+        return .white
     case .unknown:
         return .gray
     }
@@ -100,7 +100,7 @@ struct Weather {
         case .unknown:
             return .white
         case .wind:
-            return .white
+            return Color.init(hex: 0xB0B0B0)
         }
     }
         
