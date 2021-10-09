@@ -39,7 +39,7 @@
 /* End PBXContainerItemProxy section */
 
 /* Begin PBXFileReference section */
-		AE713E892649FFFC00A712A7 /* SunHail.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = SunHail.app; sourceTree = BUILT_PRODUCTS_DIR; };
+		AE713E892649FFFC00A712A7 /* Wind Gear.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = "Wind Gear.app"; sourceTree = BUILT_PRODUCTS_DIR; };
 		AE713E8C2649FFFC00A712A7 /* SunHailApp.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SunHailApp.swift; sourceTree = "<group>"; };
 		AE713E8E2649FFFC00A712A7 /* ContentView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ContentView.swift; sourceTree = "<group>"; };
 		AE713E902649FFFD00A712A7 /* Assets.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; name = Assets.xcassets; path = SunHail/Assets.xcassets; sourceTree = SOURCE_ROOT; };
@@ -97,7 +97,7 @@
 		AE713E8A2649FFFC00A712A7 /* Products */ = {
 			isa = PBXGroup;
 			children = (
-				AE713E892649FFFC00A712A7 /* SunHail.app */,
+				AE713E892649FFFC00A712A7 /* Wind Gear.app */,
 				AE713E9A2649FFFD00A712A7 /* SunHailTests.xctest */,
 				AE713EA52649FFFD00A712A7 /* SunHailUITests.xctest */,
 			);
@@ -151,9 +151,9 @@
 /* End PBXGroup section */
 
 /* Begin PBXNativeTarget section */
-		AE713E882649FFFC00A712A7 /* SunHail */ = {
+		AE713E882649FFFC00A712A7 /* Wind Gear */ = {
 			isa = PBXNativeTarget;
-			buildConfigurationList = AE713EAE2649FFFD00A712A7 /* Build configuration list for PBXNativeTarget "SunHail" */;
+			buildConfigurationList = AE713EAE2649FFFD00A712A7 /* Build configuration list for PBXNativeTarget "Wind Gear" */;
 			buildPhases = (
 				AE713E852649FFFC00A712A7 /* Sources */,
 				AE713E862649FFFC00A712A7 /* Frameworks */,
@@ -163,9 +163,9 @@
 			);
 			dependencies = (
 			);
-			name = SunHail;
+			name = "Wind Gear";
 			productName = SunHail;
-			productReference = AE713E892649FFFC00A712A7 /* SunHail.app */;
+			productReference = AE713E892649FFFC00A712A7 /* Wind Gear.app */;
 			productType = "com.apple.product-type.application";
 		};
 		AE713E992649FFFD00A712A7 /* SunHailTests */ = {
@@ -239,7 +239,7 @@
 			projectDirPath = "";
 			projectRoot = "";
 			targets = (
-				AE713E882649FFFC00A712A7 /* SunHail */,
+				AE713E882649FFFC00A712A7 /* Wind Gear */,
 				AE713E992649FFFD00A712A7 /* SunHailTests */,
 				AE713EA42649FFFD00A712A7 /* SunHailUITests */,
 			);
@@ -309,12 +309,12 @@
 /* Begin PBXTargetDependency section */
 		AE713E9C2649FFFD00A712A7 /* PBXTargetDependency */ = {
 			isa = PBXTargetDependency;
-			target = AE713E882649FFFC00A712A7 /* SunHail */;
+			target = AE713E882649FFFC00A712A7 /* Wind Gear */;
 			targetProxy = AE713E9B2649FFFD00A712A7 /* PBXContainerItemProxy */;
 		};
 		AE713EA72649FFFD00A712A7 /* PBXTargetDependency */ = {
 			isa = PBXTargetDependency;
-			target = AE713E882649FFFC00A712A7 /* SunHail */;
+			target = AE713E882649FFFC00A712A7 /* Wind Gear */;
 			targetProxy = AE713EA62649FFFD00A712A7 /* PBXContainerItemProxy */;
 		};
 /* End PBXTargetDependency section */
@@ -578,7 +578,7 @@
 			defaultConfigurationIsVisible = 0;
 			defaultConfigurationName = Release;
 		};
-		AE713EAE2649FFFD00A712A7 /* Build configuration list for PBXNativeTarget "SunHail" */ = {
+		AE713EAE2649FFFD00A712A7 /* Build configuration list for PBXNativeTarget "Wind Gear" */ = {
 			isa = XCConfigurationList;
 			buildConfigurations = (
 				AE713EAF2649FFFD00A712A7 /* Debug */,

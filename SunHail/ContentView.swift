@@ -112,17 +112,28 @@ let weekday_number_to_string = [
 ]
 
 
+func fromTo(sunrise: Date, sunset: Date, myStart: Double) -> (Double, Double) {
+    let from = max(0, CGFloat(sunrise.fractionalHour() - myStart)) / 12.0
+    var to = min(11.38, CGFloat(sunset.fractionalHour() - myStart)) / 12.0
+    if from == 0 {
+        // This and the weird ?: in the rotation for the cirlcle in Daylight is to correct for the circle starting half an hour before the hour starts
+        to += 0.5 / 12
+    }
+    return (from, to)
+}
+
 struct Daylight : View {
     var start : Double
     var sunrise: Date?
     var sunset: Date?
 
     var body : some View {
-        let myStart = start.truncatingRemainder(dividingBy: 24)
+        let myStart = start.truncatingRemainder(dividingBy: 24) + 0.5
         if let sunrise = sunrise, let sunset = sunset {
+            let (from, to) = fromTo(sunrise: sunrise, sunset: sunset, myStart: myStart)
             Circle()
-                .trim(from: max(0, CGFloat(sunrise.fractionalHour() - myStart)) / 12.0, to: min(11.38, CGFloat(sunset.fractionalHour() - myStart)) / 12.0)
-                .rotation(.degrees(-90))
+                .trim(from: from, to: to)
+                .rotation(.degrees(from == 0 ? -105 : -90))
                 .stroke(lineWidth: 2)
                 .foregroundColor(sunColor)
                 .scaleEffect(0.58)
