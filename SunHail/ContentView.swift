@@ -478,17 +478,15 @@ struct ContentView: View {
                                 let result = try decoder.decode(OMWeatherData.self, from: data)
                                 print("Parsed!")
                                 
-                                let tzOffset = TimeInterval(TimeZone.current.secondsFromGMT())
-                                
                                 for sunset_item in result.daily.sunset {
-                                    self.sunset[sunset_item.getNaiveDate()] = sunset_item.advanced(by: tzOffset)
+                                    self.sunset[sunset_item.getNaiveDate()] = sunset_item
                                 }
                                 for sunrise_item in result.daily.sunrise {
-                                    self.sunrise[sunrise_item.getNaiveDate()] = sunrise_item.advanced(by: tzOffset)
+                                    self.sunrise[sunrise_item.getNaiveDate()] = sunrise_item
                                 }
 
                                 for i in 0..<result.hourly.time.count {
-                                    let time = result.hourly.time[i].advanced(by: tzOffset)
+                                    let time = result.hourly.time[i]
                                     let temperature = result.hourly.temperature_2m[i]
                                     let weatherSymbol = result.hourly.weathercode[i]
                                     let rainMillimeter = result.hourly.precipitation[i]

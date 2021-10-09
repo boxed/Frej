@@ -50,6 +50,58 @@ private func _textColor(isDay: Bool, weatherType: WeatherType) -> Color {
     }
 }
 
+private func _iconColor(weatherType : WeatherType, isDay : Bool) -> Color {
+    switch weatherType {
+    case .clear:
+        if isDay {
+            return sunColor
+        }
+        else {
+            return .white
+        }
+    case .mainlyClear:
+        return .white
+    case .lightCloud:
+        return .white
+    case .cloud:
+        return Color.init(hex: 0x929292)
+    case .rain:
+        return rainColor;
+    case .lightning:
+        return Color.init(hex: 0xF9E231)
+    case .fog:
+        return Color.init(hex: 0x929292)
+    case .unknown:
+        return .white
+    case .wind:
+        return Color.init(hex: 0xB0B0B0)
+    }
+}
+
+private func _rainIntensity(rainMillimeter : Float) -> RainIntensity {
+    switch rainMillimeter {
+    case 0...0.01:
+        return .none
+    case 0...2.5:
+        return .light
+    case 2.5...7.5:
+        return .moderate
+    case 7.5...50:
+        return .heavy
+    default:
+        if rainMillimeter < 0 {
+            return .none
+        }
+        if rainMillimeter > 50 {
+            return .violent
+        }
+                    
+        assert(false)
+        return .none
+    }
+}
+
+
 let rainColor = Color.init(hex: 0x4F95CD)
 let sunColor = Color.init(hex: 0xF9E231)
 
@@ -62,6 +114,8 @@ struct Weather {
     let circleSegmentColor : Color
     let circleSegmentWidth : CGFloat
     let isDay : Bool
+    let iconColor : Color
+    let rainIntensity : RainIntensity
 
     init(
         time : Date,
@@ -74,41 +128,14 @@ struct Weather {
         self.temperature = temperature
         self.weatherType = weatherType
         self.rainMillimeter = rainMillimeter
-        
-        self.isDay =  isDay
-        
-        self.textColor = _textColor(isDay: isDay, weatherType: weatherType)
-        
+
+        self.isDay = isDay
+                
         self.circleSegmentColor = rainMillimeter > 0 ? rainColor : .white
         self.circleSegmentWidth = max(1, CGFloat(log(rainMillimeter) * 10))
-    }
-            
-    var iconColor : Color {
-        switch self.weatherType {
-        case .clear:
-            if isDay {
-                return sunColor
-            }
-            else {
-                return .white
-            }
-        case .mainlyClear:
-            return .white
-        case .lightCloud:
-            return .white
-        case .cloud:
-            return Color.init(hex: 0x929292)
-        case .rain:
-            return rainColor;
-        case .lightning:
-            return Color.init(hex: 0xF9E231)
-        case .fog:
-            return Color.init(hex: 0x929292)
-        case .unknown:
-            return .white
-        case .wind:
-            return Color.init(hex: 0xB0B0B0)
-        }
+        self.textColor = _textColor(isDay: isDay, weatherType: weatherType)
+        self.iconColor = _iconColor(weatherType: weatherType, isDay: isDay)
+        self.rainIntensity = _rainIntensity(rainMillimeter: self.rainMillimeter)
     }
     
     @ViewBuilder
@@ -155,29 +182,6 @@ struct Weather {
             Fog().scale(0.8).foregroundColor(self.iconColor)
         case .unknown:
             Text("")
-        }
-    }
-    
-    func rainIntensity() -> RainIntensity {
-        switch rainMillimeter {
-        case 0...0.01:
-            return .none
-        case 0...2.5:
-            return .light
-        case 2.5...7.5:
-            return .moderate
-        case 7.5...50:
-            return .heavy
-        default:
-            if rainMillimeter < 0 {
-                return .none
-            }
-            if rainMillimeter > 50 {
-                return .violent
-            }
-                        
-            assert(false)
-            return .none
         }
     }
 }

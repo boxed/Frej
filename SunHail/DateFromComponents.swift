@@ -15,7 +15,8 @@ extension Date {
     }
     
     func fractionalHour() -> Double {
-        let dc = Calendar.current.dateComponents(in: UTC, from: self)
+        //let dc = Calendar.current.dateComponents(in: UTC, from: self)
+        var dc = Calendar.current.dateComponents([.year, .month, .day, .hour, .minute], from: self)
         return Double(dc.hour!) + Double(dc.minute!) / 60.0
     }
     
