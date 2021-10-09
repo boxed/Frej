@@ -4,8 +4,9 @@ import SwiftUI
 enum WeatherType {
     // TODO: Snow!!
     case clear
-    case cloud
+    case mainlyClear
     case lightCloud
+    case cloud
     case rain
     case lightning
     case wind
@@ -30,6 +31,8 @@ private func _textColor(isDay: Bool, weatherType: WeatherType) -> Color {
         else {
             return .white
         }
+    case .mainlyClear:
+        return .white
     case .lightning:
         return Color.init(hex: 0x929292)
     case .cloud:
@@ -47,6 +50,8 @@ private func _textColor(isDay: Bool, weatherType: WeatherType) -> Color {
     }
 }
 
+let rainColor = Color.init(hex: 0x4F95CD)
+let sunColor = Color.init(hex: 0xF9E231)
 
 struct Weather {
     let time : Date
@@ -54,27 +59,27 @@ struct Weather {
     let weatherType : WeatherType
     let rainMillimeter : Float
     let textColor : Color
-    let isDay : Bool
     let circleSegmentColor : Color
     let circleSegmentWidth : CGFloat
-    
+    let isDay : Bool
+
     init(
         time : Date,
         temperature : Float,
         weatherType : WeatherType,
-        rainMillimeter : Float
+        rainMillimeter : Float,
+        isDay : Bool
     ) {
         self.time = time
         self.temperature = temperature
         self.weatherType = weatherType
         self.rainMillimeter = rainMillimeter
         
-        let components = Calendar.current.dateComponents([.hour], from: time)
-        self.isDay =  components.hour! > 6 && components.hour! < 20
+        self.isDay =  isDay
         
         self.textColor = _textColor(isDay: isDay, weatherType: weatherType)
         
-        self.circleSegmentColor = rainMillimeter > 0 ? .blue : .white
+        self.circleSegmentColor = rainMillimeter > 0 ? rainColor : .white
         self.circleSegmentWidth = max(1, CGFloat(log(rainMillimeter) * 10))
     }
             
@@ -82,17 +87,19 @@ struct Weather {
         switch self.weatherType {
         case .clear:
             if isDay {
-                return Color.init(hex: 0xF9E231)
+                return sunColor
             }
             else {
                 return .white
             }
+        case .mainlyClear:
+            return .white
         case .lightCloud:
             return .white
         case .cloud:
             return Color.init(hex: 0x929292)
         case .rain:
-            return Color.init(hex: 0x4F95CD);
+            return rainColor;
         case .lightning:
             return Color.init(hex: 0xF9E231)
         case .fog:
@@ -103,29 +110,49 @@ struct Weather {
             return Color.init(hex: 0xB0B0B0)
         }
     }
-        
+    
     @ViewBuilder
     func icon() -> some View {
         switch self.weatherType {
         case .clear:
             if isDay {
-                Sun().stroke(style: StrokeStyle(lineWidth: 3, lineCap: .round, lineJoin: .round))
+                Sun()
+                    .stroke(style: StrokeStyle(lineWidth: 3, lineCap: .round, lineJoin: .round))
+                    .foregroundColor(sunColor)
             }
             else {
                 ClearNight()
+                    .foregroundColor(self.iconColor)
             }
-        case .cloud:
-            Cloud()
+        case .mainlyClear:
+            ZStack {
+                if isDay {
+                    Sun()
+                        .stroke(style: StrokeStyle(lineWidth: 3, lineCap: .round, lineJoin: .round))
+                        .foregroundColor(sunColor)
+                }
+                else {
+                    ClearNight()
+                        .foregroundColor(self.iconColor)
+                }
+                Cloud()
+                    .foregroundColor(.white)
+                Cloud()
+                    .stroke(lineWidth: 1)
+                    .foregroundColor(.black)
+            }
         case .lightCloud:
-            Cloud()
+            Cloud().foregroundColor(self.iconColor)
+        case .cloud:
+            Cloud().foregroundColor(self.iconColor)
         case .rain:
-            Rain(mm: Int(self.circleSegmentWidth))
+            Rain(mm: Int(self.circleSegmentWidth)).foregroundColor(self.iconColor)
         case .lightning:
-            Lightning()
+            Lightning().foregroundColor(self.iconColor)
         case .wind:
-            Wind()
+            Wind().foregroundColor(self.iconColor)
         case .fog:
-            Fog().scale(0.8)
+            Fog().scale(0.8).foregroundColor(self.iconColor)
         case .unknown:
             Text("")
         }
@@ -171,14 +198,21 @@ struct SMHIWeatherParameter : Decodable {
 
 
 struct OMWeatherData : Decodable {
-    let hourly: OMFoo
+    let hourly: OMHourly
+    let daily: OMDaily
 }
 
-struct OMFoo : Decodable {
+struct OMHourly : Decodable {
     let cloudcover : [Int]
     let weathercode : [Int]
     let windspeed_10m : [Float]
     let precipitation : [Float]
     let time : [Date]
     let temperature_2m : [Float]
+}
+
+
+struct OMDaily : Decodable {
+    let sunset : [Date]
+    let sunrise : [Date]
 }

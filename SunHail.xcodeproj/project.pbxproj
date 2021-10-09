@@ -18,6 +18,7 @@
 		AE7344D226FE261A0048EABF /* Icons.swift in Sources */ = {isa = PBXBuildFile; fileRef = AE7344D126FE261A0048EABF /* Icons.swift */; };
 		AE7344D426FF03500048EABF /* ColorHex.swift in Sources */ = {isa = PBXBuildFile; fileRef = AE7344D326FF034F0048EABF /* ColorHex.swift */; };
 		AE7344D626FF37D50048EABF /* DateFromComponents.swift in Sources */ = {isa = PBXBuildFile; fileRef = AE7344D526FF37D50048EABF /* DateFromComponents.swift */; };
+		AEBD6CE42711818D007B9772 /* NaiveDate.swift in Sources */ = {isa = PBXBuildFile; fileRef = AEBD6CE32711818D007B9772 /* NaiveDate.swift */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXContainerItemProxy section */
@@ -55,6 +56,7 @@
 		AE7344D126FE261A0048EABF /* Icons.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Icons.swift; sourceTree = "<group>"; };
 		AE7344D326FF034F0048EABF /* ColorHex.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ColorHex.swift; sourceTree = "<group>"; };
 		AE7344D526FF37D50048EABF /* DateFromComponents.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DateFromComponents.swift; sourceTree = "<group>"; };
+		AEBD6CE32711818D007B9772 /* NaiveDate.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = NaiveDate.swift; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -115,6 +117,7 @@
 				AE713EB9264DB79B00A712A7 /* Weather.swift */,
 				AE7344D126FE261A0048EABF /* Icons.swift */,
 				AE7344D326FF034F0048EABF /* ColorHex.swift */,
+				AEBD6CE32711818D007B9772 /* NaiveDate.swift */,
 			);
 			path = SunHail;
 			sourceTree = "<group>";
@@ -277,6 +280,7 @@
 				AE713EB8264DACC100A712A7 /* LocationProvider.swift in Sources */,
 				AE7344D426FF03500048EABF /* ColorHex.swift in Sources */,
 				AE713E8F2649FFFC00A712A7 /* ContentView.swift in Sources */,
+				AEBD6CE42711818D007B9772 /* NaiveDate.swift in Sources */,
 				AE713EBA264DB79B00A712A7 /* Weather.swift in Sources */,
 				AE7344D226FE261A0048EABF /* Icons.swift in Sources */,
 				AE7344D626FF37D50048EABF /* DateFromComponents.swift in Sources */,
