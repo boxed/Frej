@@ -11,6 +11,7 @@ enum WeatherType {
     case lightning
     case wind
     case fog
+    case snow
     case unknown
 }
 
@@ -45,6 +46,8 @@ private func _textColor(isDay: Bool, weatherType: WeatherType) -> Color {
         return Color.init(hex: 0xCDE9FF)
     case .wind:
         return .white
+    case .snow:
+        return .white
     case .unknown:
         return .gray
     }
@@ -71,6 +74,8 @@ private func _iconColor(weatherType : WeatherType, isDay : Bool) -> Color {
         return Color.init(hex: 0xF9E231)
     case .fog:
         return Color.init(hex: 0x929292)
+    case .snow:
+        return .white
     case .unknown:
         return .white
     case .wind:
@@ -180,6 +185,11 @@ struct Weather {
             Wind().foregroundColor(self.iconColor)
         case .fog:
             Fog().scale(0.8).foregroundColor(self.iconColor)
+        case .snow:
+            ZStack {
+                SnowClouds().foregroundColor(self.iconColor)
+                Snow().stroke(lineWidth: 1).foregroundColor(self.iconColor)
+            }
         case .unknown:
             Text("")
         }

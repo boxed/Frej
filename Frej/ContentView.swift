@@ -1,50 +1,3 @@
-// https://stackoverflow.com/questions/57334125/how-to-make-text-stroke-in-swiftui
-// https://www.smhi.se/data/oppna-data/meteorologiska-data/api-for-vaderprognosdata-1.34233
-
-// https://opendata-download-metfcst.smhi.se/api/category/pmp3g/version/2/geotype/point/lon/16.158/lat/58.5812/data.json
-// json data:
-//      t : temperature C
-//      ws : wind speed m/s
-//      tcc_mean : Mean value of total cloud cover (0-9)
-//      pmin: Minimum precipitation intensity (mm/h)
-//      pmax: Maximum precipitation intensity (mm/h)
-//      pcat: Precipitation Category
-//            0    No precipitation
-//            1    Snow
-//            2    Snow and rain
-//            3    Rain
-//            4    Drizzle
-//            5    Freezing rain
-//            6    Freezing drizzle
-//      Wsymb2: Weather symbol
-//            1    Clear sky
-//            2    Nearly clear sky
-//            3    Variable cloudiness
-//            4    Halfclear sky
-//            5    Cloudy sky
-//            6    Overcast
-//            7    Fog
-//            8    Light rain showers
-//            9    Moderate rain showers
-//           10    Heavy rain showers
-//           11    Thunderstorm
-//           12    Light sleet showers
-//           13    Moderate sleet showers
-//           14    Heavy sleet showers
-//           15    Light snow showers
-//           16    Moderate snow showers
-//           17    Heavy snow showers
-//           18    Light rain
-//           19    Moderate rain
-//           20    Heavy rain
-//           21    Thunder
-//           22    Light sleet
-//           23    Moderate sleet
-//           24    Heavy sleet
-//           25    Light snowfall
-//           26    Moderate snowfall
-//           27    Heavy snowfall
-
 import SwiftUI
 import CoreLocation
 import Combine
@@ -367,13 +320,13 @@ struct ContentView: View {
     
     func fetchWeather() {
         // weatherFromSMI()
-//        fakeWeather()
-        weatherFromOpenMeteo()
+        fakeWeather()
+//        weatherFromOpenMeteo()
     }
     
     func fakeWeather() {
         let now = Date()
-        self.weather[now.setHour( 0)!] = Weather(time: now.setHour( 0)!, temperature:   1, weatherType: .mainlyClear, rainMillimeter:   0, isDay: false)
+        self.weather[now.setHour( 0)!] = Weather(time: now.setHour( 0)!, temperature:   1, weatherType: .snow, rainMillimeter:   0, isDay: false)
         self.weather[now.setHour( 1)!] = Weather(time: now.setHour( 1)!, temperature:   1, weatherType: .mainlyClear, rainMillimeter:   0, isDay: false)
         self.weather[now.setHour( 2)!] = Weather(time: now.setHour( 2)!, temperature:   2, weatherType:       .clear, rainMillimeter:   1, isDay: false)
         self.weather[now.setHour( 3)!] = Weather(time: now.setHour( 3)!, temperature:   3, weatherType:   .lightning, rainMillimeter:   2, isDay: false)

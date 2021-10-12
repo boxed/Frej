@@ -15,9 +15,9 @@
             <BuildableReference
                BuildableIdentifier = "primary"
                BlueprintIdentifier = "AE713E882649FFFC00A712A7"
-               BuildableName = "SunHail.app"
-               BlueprintName = "Wind Gear"
-               ReferencedContainer = "container:SunHail.xcodeproj">
+               BuildableName = "Frej.app"
+               BlueprintName = "Frej"
+               ReferencedContainer = "container:Frej.xcodeproj">
             </BuildableReference>
          </BuildActionEntry>
       </BuildActionEntries>
@@ -33,9 +33,9 @@
             <BuildableReference
                BuildableIdentifier = "primary"
                BlueprintIdentifier = "AE713E992649FFFD00A712A7"
-               BuildableName = "SunHailTests.xctest"
-               BlueprintName = "SunHailTests"
-               ReferencedContainer = "container:SunHail.xcodeproj">
+               BuildableName = "FrejTests.xctest"
+               BlueprintName = "FrejTests"
+               ReferencedContainer = "container:Frej.xcodeproj">
             </BuildableReference>
          </TestableReference>
          <TestableReference
@@ -43,9 +43,9 @@
             <BuildableReference
                BuildableIdentifier = "primary"
                BlueprintIdentifier = "AE713EA42649FFFD00A712A7"
-               BuildableName = "SunHailUITests.xctest"
-               BlueprintName = "SunHailUITests"
-               ReferencedContainer = "container:SunHail.xcodeproj">
+               BuildableName = "FrejUITests.xctest"
+               BlueprintName = "FrejUITests"
+               ReferencedContainer = "container:Frej.xcodeproj">
             </BuildableReference>
          </TestableReference>
       </Testables>
@@ -65,9 +65,9 @@
          <BuildableReference
             BuildableIdentifier = "primary"
             BlueprintIdentifier = "AE713E882649FFFC00A712A7"
-            BuildableName = "SunHail.app"
-            BlueprintName = "Wind Gear"
-            ReferencedContainer = "container:SunHail.xcodeproj">
+            BuildableName = "Frej.app"
+            BlueprintName = "Frej"
+            ReferencedContainer = "container:Frej.xcodeproj">
          </BuildableReference>
       </BuildableProductRunnable>
    </LaunchAction>
@@ -82,9 +82,9 @@
          <BuildableReference
             BuildableIdentifier = "primary"
             BlueprintIdentifier = "AE713E882649FFFC00A712A7"
-            BuildableName = "SunHail.app"
-            BlueprintName = "Wind Gear"
-            ReferencedContainer = "container:SunHail.xcodeproj">
+            BuildableName = "Frej.app"
+            BlueprintName = "Frej"
+            ReferencedContainer = "container:Frej.xcodeproj">
          </BuildableReference>
       </BuildableProductRunnable>
    </ProfileAction>
