@@ -320,8 +320,8 @@ struct ContentView: View {
     
     func fetchWeather() {
         // weatherFromSMI()
-        fakeWeather()
-//        weatherFromOpenMeteo()
+//        fakeWeather()
+        weatherFromOpenMeteo()
     }
     
     func fakeWeather() {
