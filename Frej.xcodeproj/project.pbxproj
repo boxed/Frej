@@ -39,6 +39,7 @@
 /* End PBXContainerItemProxy section */
 
 /* Begin PBXFileReference section */
+		AE6DAA622725C5F500152EC6 /* Frej.entitlements */ = {isa = PBXFileReference; lastKnownFileType = text.plist.entitlements; path = Frej.entitlements; sourceTree = "<group>"; };
 		AE713E892649FFFC00A712A7 /* Frej.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = Frej.app; sourceTree = BUILT_PRODUCTS_DIR; };
 		AE713E8C2649FFFC00A712A7 /* FrejApp.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FrejApp.swift; sourceTree = "<group>"; };
 		AE713E8E2649FFFC00A712A7 /* ContentView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ContentView.swift; sourceTree = "<group>"; };
@@ -107,6 +108,7 @@
 		AE713E8B2649FFFC00A712A7 /* Frej */ = {
 			isa = PBXGroup;
 			children = (
+				AE6DAA622725C5F500152EC6 /* Frej.entitlements */,
 				AE713E8C2649FFFC00A712A7 /* FrejApp.swift */,
 				AE713E8E2649FFFC00A712A7 /* ContentView.swift */,
 				AE7344D526FF37D50048EABF /* DateFromComponents.swift */,
@@ -442,6 +444,7 @@
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
 				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
 				ASSETCATALOG_COMPILER_INCLUDE_ALL_APPICON_ASSETS = NO;
+				CODE_SIGN_ENTITLEMENTS = Frej/Frej.entitlements;
 				CODE_SIGN_STYLE = Automatic;
 				DEVELOPMENT_ASSET_PATHS = "\"Frej/Preview Content\"";
 				DEVELOPMENT_TEAM = B6FVY827P9;
@@ -454,6 +457,7 @@
 				);
 				PRODUCT_BUNDLE_IDENTIFIER = net.kodare.sunhail;
 				PRODUCT_NAME = "$(TARGET_NAME)";
+				SUPPORTS_MACCATALYST = YES;
 				SWIFT_VERSION = 5.0;
 				TARGETED_DEVICE_FAMILY = "1,2";
 			};
@@ -465,6 +469,7 @@
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
 				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
 				ASSETCATALOG_COMPILER_INCLUDE_ALL_APPICON_ASSETS = NO;
+				CODE_SIGN_ENTITLEMENTS = Frej/Frej.entitlements;
 				CODE_SIGN_STYLE = Automatic;
 				DEVELOPMENT_ASSET_PATHS = "\"Frej/Preview Content\"";
 				DEVELOPMENT_TEAM = B6FVY827P9;
@@ -477,6 +482,7 @@
 				);
 				PRODUCT_BUNDLE_IDENTIFIER = net.kodare.sunhail;
 				PRODUCT_NAME = "$(TARGET_NAME)";
+				SUPPORTS_MACCATALYST = YES;
 				SWIFT_VERSION = 5.0;
 				TARGETED_DEVICE_FAMILY = "1,2";
 			};

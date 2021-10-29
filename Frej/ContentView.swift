@@ -128,8 +128,8 @@ struct Clock : View {
             }
             Daylight(start: Double(start), sunrise: sunrise[startTime.getNaiveDate()], sunset: sunset[startTime.getNaiveDate()])
             if showDials {
-                ClockDial(now: now, progress: hour / 12, extraSize: 0.25).stroke(.white, style: StrokeStyle(lineWidth: strokeWidth, lineCap: .round))
-                ClockDial(now: now, progress: minutes / 60.0, extraSize: 0.45).stroke(.white, style: StrokeStyle(lineWidth: strokeWidth, lineCap: .round))
+                ClockDial(now: now, progress: hour / 12, extraSize: 0.25).stroke(Color.white, style: StrokeStyle(lineWidth: strokeWidth, lineCap: .round))
+                ClockDial(now: now, progress: minutes / 60.0, extraSize: 0.45).stroke(Color.white, style: StrokeStyle(lineWidth: strokeWidth, lineCap: .round))
                 // second
 //                ClockDial(now: now, progress: seconds / 60.0, extraSize: 0.5).stroke(color, style: StrokeStyle(lineWidth: 2, lineCap: .round))
             }
@@ -218,7 +218,7 @@ struct Foo : View {
     let height : CGFloat
     let hour : Int
     let now : Date
-    let frame : CGSize
+    let size : CGSize
     var sunrise : [NaiveDate: Date]
     var sunset : [NaiveDate: Date]
 
@@ -250,7 +250,7 @@ struct Foo : View {
                 Clock(now: now, showDials: hour > 12*11, start: 12*11, weather: weather, sunrise: sunrise, sunset: sunset).frame(height: height)
             }
         }
-        .tabViewStyle(PageTabViewStyle(indexDisplayMode: .always)).frame(width: frame.width, height: frame.height)
+        .tabViewStyle(PageTabViewStyle(indexDisplayMode: .always)).frame(width: size.width, height: size.height)
     }
 }
 
@@ -264,7 +264,7 @@ struct ContentView: View {
     @State var cancellableLocation : AnyCancellable?
     @State var loadedURL : String = ""
     @State var timeOfData : Date = Date.init(timeIntervalSince1970: 0)
-    @State var frame: CGSize = .zero
+    @State var size: CGSize = .zero
     @State var currentLocation : String = ""
 
     let timer = Timer.publish(
@@ -275,7 +275,7 @@ struct ContentView: View {
     ).autoconnect()
 
     func makeView(_ geometry: GeometryProxy) -> some View {
-        DispatchQueue.main.async { self.frame = geometry.size }
+        DispatchQueue.main.async { self.size = geometry.size }
         return Text("")
     }
 
@@ -284,7 +284,7 @@ struct ContentView: View {
         let components = calendar.dateComponents([Calendar.Component.hour], from: now)
         let hour = components.hour!
         
-        let height = min(frame.width * 0.9, abs(frame.height / 2 - 25))
+        let height = min(size.width * 0.9, abs(size.height / 2 - 25))
 
         VStack {
             Spacer()
@@ -294,7 +294,7 @@ struct ContentView: View {
                 GeometryReader { (geometry) in
                     self.makeView(geometry)
                 }
-                Foo(weather: weather, height: height, hour: hour, now: now, frame: frame, sunrise: sunrise, sunset: sunset)
+                Foo(weather: weather, height: height, hour: hour, now: now, size: size, sunrise: sunrise, sunset: sunset)
             }
             .ignoresSafeArea(.all, edges: .bottom)
             .onReceive(timer) { input in
