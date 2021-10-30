@@ -145,7 +145,6 @@ struct Clock : View {
                 
                 if let weather = weather {
                     let text = Text("\(Int(round(weather.temperature)))°")
-                        .font(.system(size: iconSize / 3))
                         .foregroundColor(.black)
                     
                     ZStack {
@@ -213,6 +212,7 @@ struct Clock : View {
     }
 }
 
+
 struct Foo : View {
     let weather : [Date: Weather]
     let height : CGFloat
@@ -221,6 +221,7 @@ struct Foo : View {
     let size : CGSize
     var sunrise : [NaiveDate: Date]
     var sunset : [NaiveDate: Date]
+    @State var selectedImageIndex: Int = 0
 
     
     var body: some View {
@@ -264,7 +265,6 @@ struct ContentView: View {
     @State var cancellableLocation : AnyCancellable?
     @State var loadedURL : String = ""
     @State var timeOfData : Date = Date.init(timeIntervalSince1970: 0)
-    @State var size: CGSize = .zero
     @State var currentLocation : String = ""
 
     let timer = Timer.publish(
@@ -274,27 +274,21 @@ struct ContentView: View {
         in: .common
     ).autoconnect()
 
-    func makeView(_ geometry: GeometryProxy) -> some View {
-        DispatchQueue.main.async { self.size = geometry.size }
-        return Text("")
-    }
-
     var body: some View {
         let calendar = Calendar.current
         let components = calendar.dateComponents([Calendar.Component.hour], from: now)
         let hour = components.hour!
         
-        let height = min(size.width * 0.9, abs(size.height / 2 - 25))
-
         VStack {
             Spacer()
             Text(currentLocation).font(.system(size: 25))
             Link("Weather data by Open-Meteo.com", destination: URL(string: "https://open-meteo.com/")!).font(Font.system(size: 12)).foregroundColor(.gray)
             ZStack {
                 GeometryReader { (geometry) in
-                    self.makeView(geometry)
+                    let size = geometry.size
+                    let height = min(size.width * 0.9, abs(size.height / 2 - 25))
+                    Foo(weather: weather, height: height, hour: hour, now: now, size: size, sunrise: sunrise, sunset: sunset)
                 }
-                Foo(weather: weather, height: height, hour: hour, now: now, size: size, sunrise: sunrise, sunset: sunset)
             }
             .ignoresSafeArea(.all, edges: .bottom)
             .onReceive(timer) { input in
