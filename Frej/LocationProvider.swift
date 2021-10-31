@@ -21,6 +21,8 @@ public let defaultAuthorizationRequestType = CLAuthorizationStatus.authorizedAlw
 
 #if os(iOS)
 public let allowedAuthorizationTypes : Set<CLAuthorizationStatus> = Set([.authorizedWhenInUse, .authorizedAlways])
+#elseif os(watchOS)
+public let allowedAuthorizationTypes : Set<CLAuthorizationStatus> = Set([.authorizedWhenInUse, .authorizedAlways])
 #elseif os(macOS)
 public let allowedAuthorizationTypes : Set<CLAuthorizationStatus> = Set([.authorized, .authorizedAlways])
 #endif
@@ -69,9 +71,9 @@ public class LocationProvider: NSObject, ObservableObject {
         self.lm.desiredAccuracy = kCLLocationAccuracyBest
         self.lm.activityType = .fitness
         self.lm.distanceFilter = 10
+        #if os(iOS)
         self.lm.allowsBackgroundLocationUpdates = true
         self.lm.pausesLocationUpdatesAutomatically = false
-        #if os(iOS)
         self.lm.showsBackgroundLocationIndicator = true
         #endif
     }
