@@ -149,8 +149,12 @@ struct Weather {
         case .clear:
             if isDay {
                 Sun()
+                #if os(watchOS)
+                    .stroke(style: StrokeStyle(lineWidth: 2, lineCap: .round, lineJoin: .round))
+                #else
                     .stroke(style: StrokeStyle(lineWidth: 3, lineCap: .round, lineJoin: .round))
-                    .foregroundColor(sunColor)
+                #endif
+                .foregroundColor(sunColor)
             }
             else {
                 ClearNight()
@@ -160,8 +164,12 @@ struct Weather {
             ZStack {
                 if isDay {
                     Sun()
+                    #if os(watchOS)
+                        .stroke(style: StrokeStyle(lineWidth: 2, lineCap: .round, lineJoin: .round))
+                    #else
                         .stroke(style: StrokeStyle(lineWidth: 3, lineCap: .round, lineJoin: .round))
-                        .foregroundColor(sunColor)
+                    #endif
+                    .foregroundColor(sunColor)
                 }
                 else {
                     ClearNight()

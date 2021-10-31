@@ -108,9 +108,15 @@ struct ClockInner : View {
         
         let radians : CGFloat = CGFloat.pi - 2.0 * CGFloat.pi / 12.0 * CGFloat(id)
         let size : CGFloat = frame.height * 0.4
-        let x = sin(radians) * size + frame.width / 2
-        let y = cos(radians) * size + frame.height / 2
+        let x = sin(radians) * size + frame.width / 2 - 2
+        let y = cos(radians) * size + frame.height / 2 - 2
+        
+        #if os(watchOS)
+        let iconSize = frame.height / 4.5
+        #else
         let iconSize = frame.height / 5
+        #endif
+
         let textX = x + 3
         
         if let weather = weather {
@@ -236,8 +242,6 @@ struct Foo : View {
     let size : CGSize
     var sunrise : [NaiveDate: Date]
     var sunset : [NaiveDate: Date]
-    @State var selectedImageIndex: Int = 0
-
     
     var body: some View {
         TabView {
@@ -301,15 +305,16 @@ struct FrejView: View {
             #if os(iOS)
             .ignoresSafeArea(.all, edges: .bottom)
             #endif
-            .onReceive(timer) { input in
-                now = input
-                if now.distance(to: timeOfData) > 60 * 60 {
-                    fetchWeather()
-                }
-            }
             .preferredColorScheme(.dark)
             .onAppear {
                 startLocationTracking()
+                fetchWeather()
+            }
+        }
+        .onReceive(timer) { input in
+            now = input
+            if now.distance(to: timeOfData) > 60 * 60 {
+                timeOfData = now
                 fetchWeather()
             }
         }
