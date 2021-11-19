@@ -102,6 +102,16 @@ struct ClockInner : View {
     var start : Int
     var frame : CGSize
     let id : Int
+    let unit: String
+    
+    func temperature(weather: Weather) -> Int {
+        if unit == "F" {
+            return Int(weather.temperature * 9 / 5 + 32)
+        }
+        else {
+            return Int(round(weather.temperature))
+        }
+    }
 
     var body : some View {
         let weather = weather[datetimeToday(hour: id + start)]
@@ -121,7 +131,8 @@ struct ClockInner : View {
         
         if let weather = weather {
             let font = Font.system(size: iconSize / 3)
-            let text = Text("\(Int(round(weather.temperature)))°")
+            let temperature = Text("\(self.temperature(weather: weather))°")
+            let text = temperature
                 .foregroundColor(.black)
                 .font(font)
             
@@ -157,7 +168,7 @@ struct ClockInner : View {
                 }
                 
                 // Actual text
-                Text("\(Int(round(weather.temperature)))°")
+                temperature
                     .font(font)
                     .position(x: textX, y: y)
                     .foregroundColor(weather.textColor)
@@ -174,6 +185,7 @@ struct Clock : View {
     let calendar = Calendar.current
     var sunrise : [NaiveDate: Date]
     var sunset : [NaiveDate: Date]
+    let unit : String
 
 
     var body : some View {
@@ -205,7 +217,7 @@ struct Clock : View {
     //                ClockDial(now: now, progress: seconds / 60.0, extraSize: 0.5).stroke(color, style: StrokeStyle(lineWidth: 2, lineCap: .round))
                 }
                 ForEach(0..<12, id: \.self) { id in
-                    ClockInner(weather: weather, start: start, frame: frame, id: id)
+                    ClockInner(weather: weather, start: start, frame: frame, id: id, unit: unit)
                 }
                 ForEach(0..<12, id: \.self) { id in
                     let time = datetimeToday(hour: id + start)
@@ -242,13 +254,14 @@ struct Foo : View {
     let size : CGSize
     var sunrise : [NaiveDate: Date]
     var sunset : [NaiveDate: Date]
+    let unit: String
     
     var body: some View {
         TabView {
             #if os(watchOS)
             ForEach(0..<12, id: \.self) { id in
                 let start1 = 12*id
-                Clock(now: now, showDials: hour > start1,    start: start1,    weather: weather, sunrise: sunrise, sunset: sunset)
+                Clock(now: now, showDials: hour > start1,    start: start1,    weather: weather, sunrise: sunrise, sunset: sunset, unit: unit)
             }
             #else
             ForEach(0..<6, id: \.self) { id in
@@ -256,8 +269,8 @@ struct Foo : View {
                     let i = id * 2
                     let start1 = 12*i
                     let start2 = 12*(i + 1)
-                    Clock(now: now, showDials: hour > start1,    start: start1,    weather: weather, sunrise: sunrise, sunset: sunset).frame(height: height)
-                    Clock(now: now, showDials: hour > start2, start: start2, weather: weather, sunrise: sunrise, sunset: sunset).frame(height: height)
+                    Clock(now: now, showDials: hour > start1,    start: start1,    weather: weather, sunrise: sunrise, sunset: sunset, unit: unit).frame(height: height)
+                    Clock(now: now, showDials: hour > start2, start: start2, weather: weather, sunrise: sunrise, sunset: sunset, unit: unit).frame(height: height)
                 }
             }
             #endif
@@ -267,6 +280,24 @@ struct Foo : View {
     }
 }
 
+class UserSettings: ObservableObject {
+    @Published var hasChosenUnit: Bool {
+        didSet {
+            UserDefaults.standard.set(hasChosenUnit, forKey: "hasChosenUnit")
+        }
+    }
+    
+    @Published var unit: String {
+        didSet {
+            UserDefaults.standard.set(unit, forKey: "unit")
+        }
+    }
+    
+    init() {
+        self.hasChosenUnit = UserDefaults.standard.bool(forKey: "hasChosenUnit")
+        self.unit = UserDefaults.standard.string(forKey: "unit") ?? "C"
+    }
+}
 
 struct FrejView: View {
     @State var now: Date = Date()
@@ -278,6 +309,8 @@ struct FrejView: View {
     @State var loadedURL : String = ""
     @State var timeOfData : Date = Date.init(timeIntervalSince1970: 0)
     @State var currentLocation : String = ""
+    @State var showUnitChooser = false
+    @ObservedObject var userSettings = UserSettings()
 
     let timer = Timer.publish(
         // seconds
@@ -287,35 +320,55 @@ struct FrejView: View {
     ).autoconnect()
 
     var body: some View {
-        let calendar = Calendar.current
-        let components = calendar.dateComponents([Calendar.Component.hour], from: now)
-        let hour = components.hour!
-        
-        VStack {
-            #if !os(watchOS)
-            Spacer()
-            Text(currentLocation).font(.system(size: 25))
-            Link("Weather data by Open-Meteo.com", destination: URL(string: "https://open-meteo.com/")!).font(Font.system(size: 12)).foregroundColor(.gray)
-            #endif
-            GeometryReader { (geometry) in
-                let size = geometry.size
-                let height = min(size.width * 0.9, abs(size.height / 2 - 25))
-                Foo(weather: weather, height: height, hour: hour, now: now, size: size, sunrise: sunrise, sunset: sunset)
-            }
-            #if os(iOS)
-            .ignoresSafeArea(.all, edges: .bottom)
-            #endif
-            .preferredColorScheme(.dark)
-            .onAppear {
-                startLocationTracking()
-                fetchWeather()
-            }
+        if showUnitChooser {
+            VStack {
+                Button(action: {
+                    userSettings.unit = "C"
+                    userSettings.hasChosenUnit = true
+                    showUnitChooser = false
+                }) {
+                    Text("Celsius").font(.system(size: 40)).padding()
+                }
+                Button(action: {
+                    userSettings.unit = "F"
+                    userSettings.hasChosenUnit = true
+                    showUnitChooser = false
+                }) {
+                    Text("Fahrenheit").font(.system(size: 40))
+                }
+            }.preferredColorScheme(.dark)
         }
-        .onReceive(timer) { input in
-            now = input
-            if now.distance(to: timeOfData) > 60 * 60 {
-                timeOfData = now
-                fetchWeather()
+        else {
+            let calendar = Calendar.current
+            let components = calendar.dateComponents([Calendar.Component.hour], from: now)
+            let hour = components.hour!
+            
+            VStack {
+                #if !os(watchOS)
+                Spacer()
+                Text(currentLocation).font(.system(size: 25))
+                Link("Weather data by Open-Meteo.com", destination: URL(string: "https://open-meteo.com/")!).font(Font.system(size: 12)).foregroundColor(.gray)
+                #endif
+                GeometryReader { (geometry) in
+                    let size = geometry.size
+                    let height = min(size.width * 0.9, abs(size.height / 2 - 25))
+                    Foo(weather: weather, height: height, hour: hour, now: now, size: size, sunrise: sunrise, sunset: sunset, unit: userSettings.unit)
+                }
+                #if os(iOS)
+                .ignoresSafeArea(.all, edges: .bottom)
+                #endif
+                .preferredColorScheme(.dark)
+                .onAppear {
+                    startLocationTracking()
+                    fetchWeather()
+                }
+            }
+            .onReceive(timer) { input in
+                now = input
+                if now.distance(to: timeOfData) > 60 * 60 {
+                    timeOfData = now
+                    fetchWeather()
+                }
             }
         }
     }
@@ -400,6 +453,10 @@ struct FrejView: View {
                 if error == nil {
                     let firstLocation = placemarks?[0]
                     currentLocation = firstLocation?.locality ?? ""
+                    
+                    if firstLocation?.country ?? "unknown" == "United States" && !userSettings.hasChosenUnit {
+                        showUnitChooser = true
+                    }
                 }
             }
 
