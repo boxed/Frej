@@ -261,7 +261,15 @@ struct Foo : View {
             #if os(watchOS)
             ForEach(0..<12, id: \.self) { id in
                 let start1 = 12*id
-                Clock(now: now, showDials: hour > start1,    start: start1,    weather: weather, sunrise: sunrise, sunset: sunset, unit: unit)
+                Clock(
+                    now: now,
+                    showDials: hour > start1 && hour < start1 + 12,
+                    start: start1,
+                    weather: weather,
+                    sunrise: sunrise,
+                    sunset: sunset,
+                    unit: unit
+                )
             }
             #else
             ForEach(0..<6, id: \.self) { id in
@@ -269,8 +277,24 @@ struct Foo : View {
                     let i = id * 2
                     let start1 = 12*i
                     let start2 = 12*(i + 1)
-                    Clock(now: now, showDials: hour > start1,    start: start1,    weather: weather, sunrise: sunrise, sunset: sunset, unit: unit).frame(height: height)
-                    Clock(now: now, showDials: hour > start2, start: start2, weather: weather, sunrise: sunrise, sunset: sunset, unit: unit).frame(height: height)
+                    Clock(
+                        now: now,
+                        showDials: hour > start1 && hour < start1 + 12,
+                        start: start1,
+                        weather: weather,
+                        sunrise: sunrise,
+                        sunset: sunset,
+                        unit: unit
+                    ).frame(height: height)
+                    Clock(
+                        now: now,
+                        showDials: hour > start2 && hour < start2 + 12,
+                        start: start2,
+                        weather: weather,
+                        sunrise: sunrise,
+                        sunset: sunset,
+                        unit: unit
+                    ).frame(height: height)
                 }
             }
             #endif
