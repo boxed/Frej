@@ -279,7 +279,7 @@ struct Foo : View {
                     let start2 = 12*(i + 1)
                     Clock(
                         now: now,
-                        showDials: hour > start1 && hour < start1 + 12,
+                        showDials: hour >= start1 && hour < start1 + 12,
                         start: start1,
                         weather: weather,
                         sunrise: sunrise,
@@ -288,7 +288,7 @@ struct Foo : View {
                     ).frame(height: height)
                     Clock(
                         now: now,
-                        showDials: hour > start2 && hour < start2 + 12,
+                        showDials: hour >= start2 && hour < start2 + 12,
                         start: start2,
                         weather: weather,
                         sunrise: sunrise,
