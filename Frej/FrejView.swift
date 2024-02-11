@@ -2,6 +2,10 @@ import SwiftUI
 import CoreLocation
 import Combine
 
+let sun_ray_density = 1.1
+let cloud_ray_density = 0.3
+let rain_density = 0.5
+
 
 func clockPathInner(path: inout Path, bounds: CGRect, progress: TimeInterval, extraSize: CGFloat = 1) {
     let pi = Double.pi
@@ -36,6 +40,57 @@ struct ClockDial: Shape {
     }
 }
 
+extension BinaryInteger {
+    var degreesToRadians: CGFloat { CGFloat(self) * .pi / 180 }
+}
+
+extension FloatingPoint {
+    var degreesToRadians: Self { self * .pi / 180 }
+    var radiansToDegrees: Self { self * 180 / .pi }
+}
+
+
+struct Rays: Shape {
+    let a: CGFloat
+    let b: CGFloat
+    let ray_density: Double
+    var wiggle_a: Bool = false
+    var wiggle_b: Bool = false
+    var start_degree = 0.0
+    var end_degree = 360.0
+    
+    func path(in rect: CGRect) -> Path {
+        var p = Path()
+        let degrees = end_degree - start_degree
+
+        let number_of_rays = Int(Double(degrees) * ray_density)
+        
+        if number_of_rays < 0 {
+            return p
+        }
+        
+        for i in 0..<number_of_rays {
+            let degree = start_degree + CGFloat(i) / ray_density
+            var size_a : CGFloat = rect.height/a
+            var size_b : CGFloat = rect.height/b
+            if wiggle_a && i % 2 == 0 {
+                size_a *= 1.01
+            }
+            if wiggle_b && i % 2 == 1 {
+                size_b *= 1.01
+            }
+            let radians = .pi - degree.degreesToRadians
+            let x = sin(radians) * size_a + rect.width / 2
+            let y = cos(radians) * size_a + rect.height / 2
+            let x2 = sin(radians) * size_b + rect.width / 2
+            let y2 = cos(radians) * size_b + rect.height / 2
+            p.move(to: CGPoint(x: x, y: y))
+            p.addLine(to: CGPoint(x: x2, y: y2))
+        }
+        return p
+    }
+}
+
 func createDate(year: Int, month: Int, day: Int, hour: Int) -> Date {
     var components = DateComponents()
     components.year = year
@@ -54,6 +109,22 @@ func datetimeToday(hour: Int) -> Date{
     return components.date!
 }
 
+func rainIntensityToLineWidth(_ rain_intensity: RainIntensity) -> Double {
+    switch rain_intensity {
+        
+    case .none:
+        return 0
+    case .light:
+        return 1
+    case .moderate:
+        return 2
+    case .heavy:
+        return 3
+    case .violent:
+        return 5
+    }
+}
+
 let weekday_number_to_string = [
     1: "Sunday",
     2: "Monday",
@@ -65,31 +136,24 @@ let weekday_number_to_string = [
 ]
 
 
-func fromTo(sunrise: Date, sunset: Date, myStart: Double) -> (Double, Double) {
-    let from = max(0, CGFloat(sunrise.fractionalHour() - myStart)) / 12.0
-    var to = min(11.38, CGFloat(sunset.fractionalHour() - myStart)) / 12.0
-    if from == 0 {
-        // This and the weird ?: in the rotation for the cirlcle in Daylight is to correct for the circle starting half an hour before the hour starts
-        to += 0.5 / 12
-    }
-    return (from, to)
+func datetime_to_degrees(sunrise: Date, sunset: Date, start: Int) -> (Double, Double) {
+    let myStart = Double(start).truncatingRemainder(dividingBy: 24) - 0.5
+    let from = 1/12 * max(0, Double(sunrise.fractionalHour() - myStart))
+    let to = 1/12 * min(11.9, Double(sunset.fractionalHour() - myStart))
+    let x = 360/12.0/2
+    return (360 * from - x, 360 * to - x)
 }
 
 struct Daylight : View {
-    var start : Double
+    var start : Int
     var sunrise: Date?
     var sunset: Date?
 
     var body : some View {
-        let myStart = start.truncatingRemainder(dividingBy: 24) + 0.5
         if let sunrise = sunrise, let sunset = sunset {
-            let (from, to) = fromTo(sunrise: sunrise, sunset: sunset, myStart: myStart)
-            Circle()
-                .trim(from: from, to: to)
-                .rotation(.degrees(from == 0 ? -105 : -90))
-                .stroke(lineWidth: 2)
-                .foregroundColor(sunColor)
-                .scaleEffect(0.58)
+            let (from, to) = datetime_to_degrees(sunrise: sunrise, sunset: sunset, start: start)
+            Rays(a: 2.5, b: 3.31, ray_density: sun_ray_density, wiggle_a: true, start_degree: from, end_degree: to)
+                .stroke(Color.yellow, style: StrokeStyle(lineWidth: 1, lineCap: .butt))
         }
         else {
             Text("")
@@ -97,8 +161,8 @@ struct Daylight : View {
     }
 }
 
-struct ClockInner : View {
-    var weather : [Date: Weather]
+struct Temperature : View {
+    var weather : Weather
     var start : Int
     var frame : CGSize
     let id : Int
@@ -114,12 +178,10 @@ struct ClockInner : View {
     }
 
     var body : some View {
-        let weather = weather[datetimeToday(hour: id + start)]
-        
         let radians : CGFloat = CGFloat.pi - 2.0 * CGFloat.pi / 12.0 * CGFloat(id)
-        let size : CGFloat = frame.height * 0.4
+        let size : CGFloat = frame.height * 0.45
         let x = sin(radians) * size + frame.width / 2 - 2
-        let y = cos(radians) * size + frame.height / 2 - 2
+        let y = cos(radians) * size + frame.height / 2 - 2 + 4
         
         #if os(watchOS)
         let iconSize = frame.height / 4.5
@@ -128,57 +190,44 @@ struct ClockInner : View {
         #endif
 
         let textX = x + 3
-        
-        if let weather = weather {
-            let font = Font.system(size: iconSize / 3)
-            let temperature = Text("\(self.temperature(weather: weather))°")
-            let text = temperature
-                .foregroundColor(.black)
-                .font(font)
-            
-            ZStack {
-                if weather.rainMillimeter > 0 {
-                    Circle()
-                        .trim(from: 0.0, to: id == 11 ? 1/14 : 1/12)
-                        .rotation(-.radians(radians - CGFloat.pi/2 + CGFloat.pi/12))
-                        .stroke(weather.circleSegmentColor, lineWidth: weather.circleSegmentWidth + 1)
-                        .scaleEffect(0.62)
-                }
-
-                weather.icon()
-                    .frame(width: iconSize, height: iconSize)
-                    .position(x: x, y: y)
-                
-                // "Border" hack
-                ZStack {
-                    text.position(x: textX + 1, y: y)
-                    text.position(x: textX - 1, y: y)
-                    text.position(x: textX + 1, y: y + 1)
-                    text.position(x: textX - 1, y: y + 1)
-                    text.position(x: textX + 1, y: y - 1)
-                    text.position(x: textX - 1, y: y - 1)
-                }
-                ZStack {
-                    text.position(x: textX, y: y + 1)
-                    text.position(x: textX, y: y - 1)
-                    text.position(x: textX + 1, y: y + 1)
-                    text.position(x: textX + 1, y: y - 1)
-                    text.position(x: textX - 1, y: y + 1)
-                    text.position(x: textX - 1, y: y - 1)
-                }
-                
-                // Actual text
-                temperature
-                    .font(font)
-                    .position(x: textX, y: y)
-                    .foregroundColor(weather.textColor)
-            }
-        }
+    
+        let font = Font.system(size: iconSize / 3.2)
+        let temperature = Text("\(self.temperature(weather: weather))°")
+        temperature
+            .font(font)
+            .position(x: textX, y: y)
     }
 }
 
+let hour_slice = 360/12
+
+func hourToStartDegree(hour: Int) -> Int {
+    assert(hour >= 0)
+    assert(hour <= 24)
+    if hour > 12 {
+        return hourToStartDegree(hour: hour - 12)
+    }
+    let x = hour * hour_slice
+    return x - hour_slice / 2
+}
+
+func hourToEndDegree(hour: Int) -> Int {
+    return hourToStartDegree(hour: hour) + hour_slice
+}
+
+func rainDegrees(date: Date) -> (Double, Double) {
+    let k = date.hour() % 12
+    let mid = Double(k * 30)
+    let x: Double = k == 11 ? 2.1 : 0
+    return (mid - 15.0, mid + 15.0 - x)
+}
+
+let circle_inner_diameter = 3.3
+let cloud_diameter = 2.8
+
 struct Clock : View {
     var now: Date;
+    var startOfToday: Date;
     var showDials: Bool
     var start : Int
     var weather : [Date: Weather]
@@ -191,16 +240,16 @@ struct Clock : View {
     var body : some View {
         GeometryReader { (geometry) in
             let frame = geometry.size
-            let startTime = now.addingTimeInterval(TimeInterval(start * 60 * 60))
+            let startTime = startOfToday.addingTimeInterval(TimeInterval(start * 60 * 60))
             let components = calendar.dateComponents([.hour, .minute, .second, .nanosecond], from: now)
             let minutes = Double(components.minute!)
-            let hour = startTime.fractionalHour()
+            let hour = now.fractionalHour()
     //        let seconds = Double(components.second!) + Double(components.nanosecond!) / 1_000_000_000.0
             let strokeWidth = frame.height / 70
             let weekday = calendar.dateComponents([.weekday], from: startTime).weekday!
             let weekdayStr = start == 0 ? "Today" : start % 24 == 0 ? weekday_number_to_string[weekday]! : ""
-
             ZStack {
+                Daylight(start: start, sunrise: sunrise[startTime.getNaiveDate()], sunset: sunset[startTime.getNaiveDate()])
                 #if !os(watchOS)
                 VStack {
                     Text("\(weekdayStr)").frame(maxWidth: .infinity, alignment: .leading)
@@ -209,16 +258,48 @@ struct Clock : View {
                     Spacer()
                 }
                 #endif
-                Daylight(start: Double(start), sunrise: sunrise[startTime.getNaiveDate()], sunset: sunset[startTime.getNaiveDate()])
+                
+                // Hour and minute dials
                 if showDials {
-                    ClockDial(now: now, progress: hour / 12, extraSize: 0.25).stroke(Color.white, style: StrokeStyle(lineWidth: strokeWidth, lineCap: .round))
+                    ClockDial(now: now, progress: hour / 12.0, extraSize: 0.25).stroke(Color.white, style: StrokeStyle(lineWidth: strokeWidth, lineCap: .round))
                     ClockDial(now: now, progress: minutes / 60.0, extraSize: 0.45).stroke(Color.white, style: StrokeStyle(lineWidth: strokeWidth, lineCap: .round))
                     // second
     //                ClockDial(now: now, progress: seconds / 60.0, extraSize: 0.5).stroke(color, style: StrokeStyle(lineWidth: 2, lineCap: .round))
                 }
                 ForEach(0..<12, id: \.self) { id in
-                    ClockInner(weather: weather, start: start, frame: frame, id: id, unit: unit)
+                    let startDatetime = startOfToday.addingTimeInterval(TimeInterval((id + start) * 60 * 60))
+                    if let weather = weather[startDatetime] {
+                        // Rain
+                        let (from, to) = rainDegrees(date: startDatetime)
+                        
+                        let darkClouds  = weather.rainMillimeter > 0 || weather.weatherType == .rain || weather.weatherType == .cloud
+                    
+                        if darkClouds {
+                            // black anti-rays
+                            Rays(a: cloud_diameter, b: circle_inner_diameter, ray_density: sun_ray_density, start_degree: from, end_degree: to )
+                                .stroke(Color(hex: 0, alpha: 1), style: StrokeStyle(lineWidth: 2, lineCap: .round))
+                        }
+                        
+                        if weather.rainMillimeter > 0 {
+                            // rain
+                            Rays(a: cloud_diameter, b: circle_inner_diameter, ray_density: rain_density, wiggle_a: true, wiggle_b: true, start_degree: from, end_degree: to)
+                                .stroke(rainColor, style: StrokeStyle(lineWidth: rainIntensityToLineWidth(weather.rainIntensity), lineCap: .butt, dash: [2]))
+                        }
+                        if weather.weatherType == .lightCloud  {
+                            // white clouds
+                            Rays(a: cloud_diameter, b: 2.83, ray_density: cloud_ray_density, wiggle_a: false, wiggle_b: false, start_degree: from + 0.5, end_degree: to + 0.5)
+                                .stroke(Color.white, style: StrokeStyle(lineWidth: 12, lineCap: .round))
+                        }
+                        if darkClouds {
+                            // dark clouds
+                            Rays(a: cloud_diameter, b: 2.83, ray_density: cloud_ray_density, wiggle_a: false, wiggle_b: false, start_degree: from + 0.5, end_degree: to + 0.5)
+                                .stroke(Color(hex: 0x606060, alpha: 1), style: StrokeStyle(lineWidth: 12, lineCap: .round))
+                        }
+
+                        Temperature(weather: weather, start: start, frame: frame, id: id, unit: unit)
+                    }
                 }
+                // Hours strings
                 ForEach(0..<12, id: \.self) { id in
                     let time = datetimeToday(hour: id + start)
                     let hour = Calendar.current.dateComponents([.hour], from: time).hour!
@@ -232,6 +313,7 @@ struct Clock : View {
                     .font(.system(size: 9))
                     #endif
                 }
+                // ground, or circle showing the break in the timeline
                 Circle()
                     .trim(from: 0.0, to: 0.99)
                     .rotation(.degrees(-105))
@@ -257,13 +339,15 @@ struct Foo : View {
     let unit: String
     
     var body: some View {
+        let fractionalHour: Double = now.fractionalHour()
+        let startOfToday = now.set(hour: 0, minute: 0)!
         TabView {
             #if os(watchOS)
             ForEach(0..<12, id: \.self) { id in
                 let start1 = 12*id
                 Clock(
                     now: now,
-                    showDials: hour > start1 && hour < start1 + 12,
+                    showDials: fractionalHour > (start1 - 0.5) && fractionalHour < (start1 + 12 - 0.5),
                     start: start1,
                     weather: weather,
                     sunrise: sunrise,
@@ -272,14 +356,17 @@ struct Foo : View {
                 )
             }
             #else
-            ForEach(0..<6, id: \.self) { id in
+            ForEach(0..<6, id: \.self) { day in
                 VStack {
-                    let i = id * 2
-                    let start1 = 12*i
-                    let start2 = 12*(i + 1)
+                    let i: Int = day * 2
+                    let start1: Int = 12*i
+                    let start2: Int = 12*(i + 1)
+                    let start1_d = Double(start1)
+                    let start2_d = Double(start2)
                     Clock(
                         now: now,
-                        showDials: hour >= start1 && hour < start1 + 12,
+                        startOfToday: startOfToday,
+                        showDials: fractionalHour > (start1_d - 0.5) && fractionalHour < (start1_d + 12 - 0.5),
                         start: start1,
                         weather: weather,
                         sunrise: sunrise,
@@ -288,7 +375,8 @@ struct Foo : View {
                     ).frame(height: height)
                     Clock(
                         now: now,
-                        showDials: hour >= start2 && hour < start2 + 12,
+                        startOfToday: startOfToday,
+                        showDials: fractionalHour > (start2_d - 0.5) && fractionalHour < (start2_d + 12 - 0.5),
                         start: start2,
                         weather: weather,
                         sunrise: sunrise,
@@ -335,6 +423,7 @@ struct FrejView: View {
     @State var currentLocation : String = ""
     @State var showUnitChooser = false
     @ObservedObject var userSettings = UserSettings()
+    @State var fake = false
 
     let timer = Timer.publish(
         // seconds
@@ -398,7 +487,7 @@ struct FrejView: View {
     }
     
     func getWeather(hour: Int) -> Weather? {
-        guard let date = Date().setHour(hour) else {
+        guard let date = Date().set(hour: hour) else {
             return nil
         }
         return self.weather[date]
@@ -406,52 +495,58 @@ struct FrejView: View {
     
     func fetchWeather() {
         // weatherFromSMI()
-//        fakeWeather()
-        weatherFromOpenMeteo()
+        if (fake) {
+            fakeWeather()
+        }
+        else {
+            weatherFromOpenMeteo()
+        }
     }
     
     func fakeWeather() {
         let now = Date()
-        self.weather[now.setHour( 0)!] = Weather(time: now.setHour( 0)!, temperature:   1, weatherType: .snow, rainMillimeter:   0, isDay: false)
-        self.weather[now.setHour( 1)!] = Weather(time: now.setHour( 1)!, temperature:   1, weatherType: .mainlyClear, rainMillimeter:   0, isDay: false)
-        self.weather[now.setHour( 2)!] = Weather(time: now.setHour( 2)!, temperature:   2, weatherType:       .clear, rainMillimeter:   1, isDay: false)
-        self.weather[now.setHour( 3)!] = Weather(time: now.setHour( 3)!, temperature:   3, weatherType:   .lightning, rainMillimeter:   2, isDay: false)
-        self.weather[now.setHour( 4)!] = Weather(time: now.setHour( 4)!, temperature:   4, weatherType:        .wind, rainMillimeter:   3, isDay: false)
-        self.weather[now.setHour( 5)!] = Weather(time: now.setHour( 5)!, temperature:   5, weatherType:       .cloud, rainMillimeter:   4, isDay: false)
-        self.weather[now.setHour( 6)!] = Weather(time: now.setHour( 6)!, temperature:  -6, weatherType:.  lightCloud, rainMillimeter:   5, isDay: false)
-        self.weather[now.setHour( 7)!] = Weather(time: now.setHour( 7)!, temperature:  -7, weatherType:        .rain, rainMillimeter:   6, isDay:  true)
-        self.weather[now.setHour( 8)!] = Weather(time: now.setHour( 8)!, temperature:   8, weatherType:        .wind, rainMillimeter:   7, isDay:  true)
-        self.weather[now.setHour( 9)!] = Weather(time: now.setHour( 9)!, temperature:   9, weatherType:       .cloud, rainMillimeter:   9, isDay:  true)
-        self.weather[now.setHour(10)!] = Weather(time: now.setHour(10)!, temperature:  10, weatherType:   .lightning, rainMillimeter:  10, isDay:  true)
-        self.weather[now.setHour(11)!] = Weather(time: now.setHour(11)!, temperature:  11, weatherType:        .wind, rainMillimeter:  20, isDay:  true)
-        self.weather[now.setHour(12)!] = Weather(time: now.setHour(12)!, temperature:  12, weatherType:       .clear, rainMillimeter:  30, isDay:  true)
-        self.weather[now.setHour(13)!] = Weather(time: now.setHour(13)!, temperature:  13, weatherType:   .lightning, rainMillimeter:  40, isDay:  true)
-        self.weather[now.setHour(14)!] = Weather(time: now.setHour(14)!, temperature:  14, weatherType:       .clear, rainMillimeter:  50, isDay:  true)
-        self.weather[now.setHour(15)!] = Weather(time: now.setHour(15)!, temperature:  16, weatherType:       .cloud, rainMillimeter:  60, isDay:  true)
-        self.weather[now.setHour(16)!] = Weather(time: now.setHour(16)!, temperature: -23, weatherType:        .wind, rainMillimeter:  70, isDay:  true)
-        self.weather[now.setHour(17)!] = Weather(time: now.setHour(17)!, temperature: -12, weatherType:        .rain, rainMillimeter:  80, isDay:  true)
-        self.weather[now.setHour(18)!] = Weather(time: now.setHour(18)!, temperature:  17, weatherType:        .wind, rainMillimeter:  90, isDay:  true)
-        self.weather[now.setHour(19)!] = Weather(time: now.setHour(19)!, temperature:  24, weatherType:       .cloud, rainMillimeter: 100, isDay: false)
-        self.weather[now.setHour(20)!] = Weather(time: now.setHour(20)!, temperature:  35, weatherType:   .lightning, rainMillimeter: 110, isDay: false)
-        self.weather[now.setHour(21)!] = Weather(time: now.setHour(21)!, temperature:   1, weatherType:        .wind, rainMillimeter: 120, isDay: false)
-        self.weather[now.setHour(22)!] = Weather(time: now.setHour(22)!, temperature:  10, weatherType:       .clear, rainMillimeter: 130, isDay: false)
-        self.weather[now.setHour(23)!] = Weather(time: now.setHour(23)!, temperature:  13, weatherType:   .lightning, rainMillimeter: 140, isDay: false)
-        self.weather[now.setHour(24)!] = Weather(time: now.setHour(24)!, temperature:  14, weatherType:       .clear, rainMillimeter:   5, isDay: false)
-        self.weather[now.setHour(25)!] = Weather(time: now.setHour(25)!, temperature:  16, weatherType:       .cloud, rainMillimeter:   6, isDay: false)
-        self.weather[now.setHour(26)!] = Weather(time: now.setHour(26)!, temperature: -23, weatherType:        .wind, rainMillimeter:   8, isDay: false)
-        self.weather[now.setHour(27)!] = Weather(time: now.setHour(27)!, temperature: -12, weatherType:        .rain, rainMillimeter:   9, isDay: false)
-        self.weather[now.setHour(28)!] = Weather(time: now.setHour(28)!, temperature:  17, weatherType:        .wind, rainMillimeter:  10, isDay: false)
-        self.weather[now.setHour(29)!] = Weather(time: now.setHour(29)!, temperature:  24, weatherType:       .cloud, rainMillimeter:  20, isDay: false)
-        self.weather[now.setHour(30)!] = Weather(time: now.setHour(30)!, temperature:  35, weatherType:   .lightning, rainMillimeter:  40, isDay: false)
-        self.weather[now.setHour(31)!] = Weather(time: now.setHour(31)!, temperature:   1, weatherType:        .wind, rainMillimeter:   0, isDay: true)
-        self.weather[now.setHour(32)!] = Weather(time: now.setHour(32)!, temperature:  10, weatherType:       .clear, rainMillimeter:   2, isDay:  true)
-        self.weather[now.setHour(33)!] = Weather(time: now.setHour(33)!, temperature:  13, weatherType:   .lightning, rainMillimeter:   3, isDay:  true)
-        self.weather[now.setHour(34)!] = Weather(time: now.setHour(34)!, temperature:  14, weatherType:       .clear, rainMillimeter:   5, isDay:  true)
-        self.weather[now.setHour(35)!] = Weather(time: now.setHour(35)!, temperature:  16, weatherType:       .cloud, rainMillimeter:   6, isDay:  true)
-        self.weather[now.setHour(36)!] = Weather(time: now.setHour(36)!, temperature: -23, weatherType:        .wind, rainMillimeter:   8, isDay:  true)
-        self.weather[now.setHour(37)!] = Weather(time: now.setHour(37)!, temperature: -12, weatherType:        .rain, rainMillimeter:   9, isDay:  true)
-        self.weather[now.setHour(38)!] = Weather(time: now.setHour(38)!, temperature:  17, weatherType:        .wind, rainMillimeter:  10, isDay:  true)
-        self.weather[now.setHour(39)!] = Weather(time: now.setHour(39)!, temperature:  24, weatherType:       .cloud, rainMillimeter:  20, isDay:  true)
+        self.sunrise[now.getNaiveDate()] = now.set(hour: 6, minute: 20)
+        self.sunset[now.getNaiveDate()] = now.set(hour: 20, minute: 10)
+        self.weather[now.set(hour:  0)!] = Weather(time: now.set(hour:  0)!, temperature:   1, weatherType: .snow, rainMillimeter:   1, isDay: false)
+        self.weather[now.set(hour:  1)!] = Weather(time: now.set(hour:  1)!, temperature:   1, weatherType: .mainlyClear, rainMillimeter:   0, isDay: false)
+        self.weather[now.set(hour:  2)!] = Weather(time: now.set(hour:  2)!, temperature:   2, weatherType:       .clear, rainMillimeter:   1, isDay: false)
+        self.weather[now.set(hour:  3)!] = Weather(time: now.set(hour:  3)!, temperature:   3, weatherType:   .lightning, rainMillimeter:   3, isDay: false)
+        self.weather[now.set(hour:  4)!] = Weather(time: now.set(hour:  4)!, temperature:   4, weatherType:        .wind, rainMillimeter:   9, isDay: false)
+        self.weather[now.set(hour:  5)!] = Weather(time: now.set(hour:  5)!, temperature:   5, weatherType:       .cloud, rainMillimeter:   100, isDay: false)
+        self.weather[now.set(hour:  6)!] = Weather(time: now.set(hour:  6)!, temperature:  -6, weatherType:.  lightCloud, rainMillimeter:   1, isDay: false)
+        self.weather[now.set(hour:  7)!] = Weather(time: now.set(hour:  7)!, temperature:  -7, weatherType:        .rain, rainMillimeter:   0, isDay:  true)
+        self.weather[now.set(hour:  8)!] = Weather(time: now.set(hour:  8)!, temperature:   8, weatherType:        .wind, rainMillimeter:   10, isDay:  true)
+        self.weather[now.set(hour:  9)!] = Weather(time: now.set(hour:  9)!, temperature:   9, weatherType:       .cloud, rainMillimeter:   0, isDay:  true)
+        self.weather[now.set(hour: 10)!] = Weather(time: now.set(hour: 10)!, temperature:  10, weatherType:   .lightning, rainMillimeter:  0, isDay:  true)
+        self.weather[now.set(hour: 11)!] = Weather(time: now.set(hour: 11)!, temperature:  11, weatherType:        .wind, rainMillimeter:  10, isDay:  true)
+        self.weather[now.set(hour: 12)!] = Weather(time: now.set(hour: 12)!, temperature:  12, weatherType:       .clear, rainMillimeter:  10, isDay:  true)
+        self.weather[now.set(hour: 13)!] = Weather(time: now.set(hour: 13)!, temperature:  13, weatherType:   .lightning, rainMillimeter:  10, isDay:  true)
+        self.weather[now.set(hour: 14)!] = Weather(time: now.set(hour: 14)!, temperature:  14, weatherType:       .clear, rainMillimeter:  10, isDay:  true)
+        self.weather[now.set(hour: 15)!] = Weather(time: now.set(hour: 15)!, temperature:  16, weatherType:       .cloud, rainMillimeter:  0, isDay:  true)
+        self.weather[now.set(hour: 16)!] = Weather(time: now.set(hour: 16)!, temperature: -23, weatherType:        .wind, rainMillimeter:  10, isDay:  true)
+        self.weather[now.set(hour: 17)!] = Weather(time: now.set(hour: 17)!, temperature: -12, weatherType:        .rain, rainMillimeter:  0, isDay:  true)
+        self.weather[now.set(hour: 18)!] = Weather(time: now.set(hour: 18)!, temperature:  17, weatherType:        .wind, rainMillimeter:  10, isDay:  true)
+        self.weather[now.set(hour: 19)!] = Weather(time: now.set(hour: 19)!, temperature:  24, weatherType:       .cloud, rainMillimeter: 0, isDay: false)
+        self.weather[now.set(hour: 20)!] = Weather(time: now.set(hour: 20)!, temperature:  35, weatherType:   .lightning, rainMillimeter: 10, isDay: false)
+        self.weather[now.set(hour: 21)!] = Weather(time: now.set(hour: 21)!, temperature:   1, weatherType:        .wind, rainMillimeter: 0, isDay: false)
+        self.weather[now.set(hour: 22)!] = Weather(time: now.set(hour: 22)!, temperature:  10, weatherType:       .clear, rainMillimeter: 90, isDay: false)
+        self.weather[now.set(hour: 23)!] = Weather(time: now.set(hour: 23)!, temperature:  13, weatherType:   .lightning, rainMillimeter: 80, isDay: false)
+        self.weather[now.set(hour: 24)!] = Weather(time: now.set(hour: 24)!, temperature:  14, weatherType:       .clear, rainMillimeter:   10, isDay: false)
+        self.weather[now.set(hour: 25)!] = Weather(time: now.set(hour: 25)!, temperature:  16, weatherType:       .cloud, rainMillimeter:   0, isDay: false)
+        self.weather[now.set(hour: 26)!] = Weather(time: now.set(hour: 26)!, temperature: -23, weatherType:        .wind, rainMillimeter:   8, isDay: false)
+        self.weather[now.set(hour: 27)!] = Weather(time: now.set(hour: 27)!, temperature: -12, weatherType:        .rain, rainMillimeter:   0, isDay: false)
+        self.weather[now.set(hour: 28)!] = Weather(time: now.set(hour: 28)!, temperature:  17, weatherType:        .wind, rainMillimeter:  10, isDay: false)
+        self.weather[now.set(hour: 29)!] = Weather(time: now.set(hour: 29)!, temperature:  24, weatherType:       .cloud, rainMillimeter:  0, isDay: false)
+        self.weather[now.set(hour: 30)!] = Weather(time: now.set(hour: 30)!, temperature:  35, weatherType:   .lightning, rainMillimeter:  40, isDay: false)
+        self.weather[now.set(hour: 31)!] = Weather(time: now.set(hour: 31)!, temperature:   1, weatherType:        .wind, rainMillimeter:   0, isDay: true)
+        self.weather[now.set(hour: 32)!] = Weather(time: now.set(hour: 32)!, temperature:  10, weatherType:       .clear, rainMillimeter:   2, isDay:  true)
+        self.weather[now.set(hour: 33)!] = Weather(time: now.set(hour: 33)!, temperature:  13, weatherType:   .lightning, rainMillimeter:   0, isDay:  true)
+        self.weather[now.set(hour: 34)!] = Weather(time: now.set(hour: 34)!, temperature:  14, weatherType:       .clear, rainMillimeter:   5, isDay:  true)
+        self.weather[now.set(hour: 35)!] = Weather(time: now.set(hour: 35)!, temperature:  16, weatherType:       .cloud, rainMillimeter:   0, isDay:  true)
+        self.weather[now.set(hour: 36)!] = Weather(time: now.set(hour: 36)!, temperature: -23, weatherType:        .wind, rainMillimeter:   8, isDay:  true)
+        self.weather[now.set(hour: 37)!] = Weather(time: now.set(hour: 37)!, temperature: -12, weatherType:        .rain, rainMillimeter:   0, isDay:  true)
+        self.weather[now.set(hour: 38)!] = Weather(time: now.set(hour: 38)!, temperature:  17, weatherType:        .wind, rainMillimeter:  10, isDay:  true)
+        self.weather[now.set(hour: 39)!] = Weather(time: now.set(hour: 39)!, temperature:  24, weatherType:       .cloud, rainMillimeter:  1, isDay:  true)
     }
     
     func startLocationTracking() {
@@ -723,5 +818,11 @@ struct FrejView: View {
                 task.resume()
             }
         }
+    }
+}
+
+struct Previews_FrejView_Previews: PreviewProvider {
+    static var previews: some View {
+        FrejView(fake: true)
     }
 }

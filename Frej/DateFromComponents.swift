@@ -1,15 +1,20 @@
 import Foundation
 
 extension Date {
-    func setHour(_ hour: Int) -> Date? {
+    func set(hour: Int? = nil, minute: Int? = nil) -> Date? {
         var dc = Calendar.current.dateComponents([.year, .month, .day, .hour], from: self)
-        dc.hour = hour
+        if let hour = hour {
+            dc.hour = hour
+        }
+        if let minute = minute {
+            dc.minute = minute
+        }
         guard let result = Calendar.current.date(from: dc) else {
             return nil
         }
         return result
     }
-    
+
     func hour() -> Int {
         return Calendar.current.dateComponents([.hour], from: self).hour!
     }

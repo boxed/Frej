@@ -34,6 +34,13 @@
 		AE7FE2C6272D3B9300104E4F /* DateFromComponents.swift in Sources */ = {isa = PBXBuildFile; fileRef = AE7344D526FF37D50048EABF /* DateFromComponents.swift */; };
 		AE7FE2C8272D3C1E00104E4F /* FrejView.swift in Sources */ = {isa = PBXBuildFile; fileRef = AE7FE2C7272D3C1E00104E4F /* FrejView.swift */; };
 		AE7FE2C9272D3C7D00104E4F /* FrejView.swift in Sources */ = {isa = PBXBuildFile; fileRef = AE7FE2C7272D3C1E00104E4F /* FrejView.swift */; };
+		AE88C70428D20ADA00D33D60 /* WidgetKit.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = AE88C70328D20ADA00D33D60 /* WidgetKit.framework */; };
+		AE88C70628D20ADA00D33D60 /* SwiftUI.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = AE88C70528D20ADA00D33D60 /* SwiftUI.framework */; };
+		AE88C70928D20ADA00D33D60 /* Widget.swift in Sources */ = {isa = PBXBuildFile; fileRef = AE88C70828D20ADA00D33D60 /* Widget.swift */; };
+		AE88C70C28D20ADD00D33D60 /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = AE88C70B28D20ADD00D33D60 /* Assets.xcassets */; };
+		AE88C70E28D20ADD00D33D60 /* Widget.intentdefinition in Sources */ = {isa = PBXBuildFile; fileRef = AE88C70A28D20ADA00D33D60 /* Widget.intentdefinition */; };
+		AE88C70F28D20ADD00D33D60 /* Widget.intentdefinition in Sources */ = {isa = PBXBuildFile; fileRef = AE88C70A28D20ADA00D33D60 /* Widget.intentdefinition */; };
+		AE88C71328D20ADD00D33D60 /* WidgetExtension.appex in Embed App Extensions */ = {isa = PBXBuildFile; fileRef = AE88C70128D20ADA00D33D60 /* WidgetExtension.appex */; settings = {ATTRIBUTES = (RemoveHeadersOnCopy, ); }; };
 		AEBD6CE42711818D007B9772 /* NaiveDate.swift in Sources */ = {isa = PBXBuildFile; fileRef = AEBD6CE32711818D007B9772 /* NaiveDate.swift */; };
 /* End PBXBuildFile section */
 
@@ -66,6 +73,13 @@
 			remoteGlobalIDString = AE7FE2A4272D355200104E4F;
 			remoteInfo = "FrejWatch WatchKit Extension";
 		};
+		AE88C71028D20ADD00D33D60 /* PBXContainerItemProxy */ = {
+			isa = PBXContainerItemProxy;
+			containerPortal = AE713E812649FFFC00A712A7 /* Project object */;
+			proxyType = 1;
+			remoteGlobalIDString = AE88C70028D20ADA00D33D60;
+			remoteInfo = WidgetExtension;
+		};
 /* End PBXContainerItemProxy section */
 
 /* Begin PBXCopyFilesBuildPhase section */
@@ -87,6 +101,17 @@
 			dstSubfolderSpec = 13;
 			files = (
 				AE7FE2A6272D355200104E4F /* FrejWatch WatchKit Extension.appex in Embed App Extensions */,
+			);
+			name = "Embed App Extensions";
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		AE88C71228D20ADD00D33D60 /* Embed App Extensions */ = {
+			isa = PBXCopyFilesBuildPhase;
+			buildActionMask = 2147483647;
+			dstPath = "";
+			dstSubfolderSpec = 13;
+			files = (
+				AE88C71328D20ADD00D33D60 /* WidgetExtension.appex in Embed App Extensions */,
 			);
 			name = "Embed App Extensions";
 			runOnlyForDeploymentPostprocessing = 0;
@@ -123,6 +148,14 @@
 		AE7FE2B3272D355300104E4F /* Preview Assets.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = "Preview Assets.xcassets"; sourceTree = "<group>"; };
 		AE7FE2B5272D355300104E4F /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist.xml; path = Info.plist; sourceTree = "<group>"; };
 		AE7FE2C7272D3C1E00104E4F /* FrejView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FrejView.swift; sourceTree = "<group>"; };
+		AE88C70128D20ADA00D33D60 /* WidgetExtension.appex */ = {isa = PBXFileReference; explicitFileType = "wrapper.app-extension"; includeInIndex = 0; path = WidgetExtension.appex; sourceTree = BUILT_PRODUCTS_DIR; };
+		AE88C70328D20ADA00D33D60 /* WidgetKit.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = WidgetKit.framework; path = System/Library/Frameworks/WidgetKit.framework; sourceTree = SDKROOT; };
+		AE88C70528D20ADA00D33D60 /* SwiftUI.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = SwiftUI.framework; path = System/Library/Frameworks/SwiftUI.framework; sourceTree = SDKROOT; };
+		AE88C70828D20ADA00D33D60 /* Widget.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Widget.swift; sourceTree = "<group>"; };
+		AE88C70A28D20ADA00D33D60 /* Widget.intentdefinition */ = {isa = PBXFileReference; lastKnownFileType = file.intentdefinition; path = Widget.intentdefinition; sourceTree = "<group>"; };
+		AE88C70B28D20ADD00D33D60 /* Assets.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = Assets.xcassets; sourceTree = "<group>"; };
+		AE88C70D28D20ADD00D33D60 /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist.xml; path = Info.plist; sourceTree = "<group>"; };
+		AE88C71428D20ADD00D33D60 /* WidgetExtension.entitlements */ = {isa = PBXFileReference; lastKnownFileType = text.plist.entitlements; path = WidgetExtension.entitlements; sourceTree = "<group>"; };
 		AEBD6CE32711818D007B9772 /* NaiveDate.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = NaiveDate.swift; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
@@ -155,17 +188,29 @@
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
+		AE88C6FE28D20ADA00D33D60 /* Frameworks */ = {
+			isa = PBXFrameworksBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				AE88C70628D20ADA00D33D60 /* SwiftUI.framework in Frameworks */,
+				AE88C70428D20ADA00D33D60 /* WidgetKit.framework in Frameworks */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
 /* End PBXFrameworksBuildPhase section */
 
 /* Begin PBXGroup section */
 		AE713E802649FFFC00A712A7 = {
 			isa = PBXGroup;
 			children = (
+				AE88C71428D20ADD00D33D60 /* WidgetExtension.entitlements */,
 				AE713E8B2649FFFC00A712A7 /* Frej */,
 				AE713E9D2649FFFD00A712A7 /* FrejTests */,
 				AE713EA82649FFFD00A712A7 /* FrejUITests */,
 				AE7FE29E272D355100104E4F /* FrejWatch WatchKit App */,
 				AE7FE2A9272D355200104E4F /* FrejWatch WatchKit Extension */,
+				AE88C70728D20ADA00D33D60 /* Widget */,
+				AE88C70228D20ADA00D33D60 /* Frameworks */,
 				AE713E8A2649FFFC00A712A7 /* Products */,
 			);
 			sourceTree = "<group>";
@@ -179,6 +224,7 @@
 				AE7FE297272D355100104E4F /* FrejWatch.app */,
 				AE7FE29A272D355100104E4F /* FrejWatch WatchKit App.app */,
 				AE7FE2A5272D355200104E4F /* FrejWatch WatchKit Extension.appex */,
+				AE88C70128D20ADA00D33D60 /* WidgetExtension.appex */,
 			);
 			name = Products;
 			sourceTree = "<group>";
@@ -258,6 +304,26 @@
 			path = "Preview Content";
 			sourceTree = "<group>";
 		};
+		AE88C70228D20ADA00D33D60 /* Frameworks */ = {
+			isa = PBXGroup;
+			children = (
+				AE88C70328D20ADA00D33D60 /* WidgetKit.framework */,
+				AE88C70528D20ADA00D33D60 /* SwiftUI.framework */,
+			);
+			name = Frameworks;
+			sourceTree = "<group>";
+		};
+		AE88C70728D20ADA00D33D60 /* Widget */ = {
+			isa = PBXGroup;
+			children = (
+				AE88C70828D20ADA00D33D60 /* Widget.swift */,
+				AE88C70A28D20ADA00D33D60 /* Widget.intentdefinition */,
+				AE88C70B28D20ADD00D33D60 /* Assets.xcassets */,
+				AE88C70D28D20ADD00D33D60 /* Info.plist */,
+			);
+			path = Widget;
+			sourceTree = "<group>";
+		};
 /* End PBXGroup section */
 
 /* Begin PBXNativeTarget section */
@@ -268,10 +334,12 @@
 				AE713E852649FFFC00A712A7 /* Sources */,
 				AE713E862649FFFC00A712A7 /* Frameworks */,
 				AE713E872649FFFC00A712A7 /* Resources */,
+				AE88C71228D20ADD00D33D60 /* Embed App Extensions */,
 			);
 			buildRules = (
 			);
 			dependencies = (
+				AE88C71128D20ADD00D33D60 /* PBXTargetDependency */,
 			);
 			name = Frej;
 			productName = Frej;
@@ -365,13 +433,30 @@
 			productReference = AE7FE2A5272D355200104E4F /* FrejWatch WatchKit Extension.appex */;
 			productType = "com.apple.product-type.watchkit2-extension";
 		};
+		AE88C70028D20ADA00D33D60 /* WidgetExtension */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = AE88C71728D20ADD00D33D60 /* Build configuration list for PBXNativeTarget "WidgetExtension" */;
+			buildPhases = (
+				AE88C6FD28D20ADA00D33D60 /* Sources */,
+				AE88C6FE28D20ADA00D33D60 /* Frameworks */,
+				AE88C6FF28D20ADA00D33D60 /* Resources */,
+			);
+			buildRules = (
+			);
+			dependencies = (
+			);
+			name = WidgetExtension;
+			productName = WidgetExtension;
+			productReference = AE88C70128D20ADA00D33D60 /* WidgetExtension.appex */;
+			productType = "com.apple.product-type.app-extension";
+		};
 /* End PBXNativeTarget section */
 
 /* Begin PBXProject section */
 		AE713E812649FFFC00A712A7 /* Project object */ = {
 			isa = PBXProject;
 			attributes = {
-				LastSwiftUpdateCheck = 1310;
+				LastSwiftUpdateCheck = 1340;
 				LastUpgradeCheck = 1250;
 				TargetAttributes = {
 					AE713E882649FFFC00A712A7 = {
@@ -394,6 +479,9 @@
 					AE7FE2A4272D355200104E4F = {
 						CreatedOnToolsVersion = 13.1;
 					};
+					AE88C70028D20ADA00D33D60 = {
+						CreatedOnToolsVersion = 13.4.1;
+					};
 				};
 			};
 			buildConfigurationList = AE713E842649FFFC00A712A7 /* Build configuration list for PBXProject "Frej" */;
@@ -415,6 +503,7 @@
 				AE7FE296272D355100104E4F /* FrejWatch */,
 				AE7FE299272D355100104E4F /* FrejWatch WatchKit App */,
 				AE7FE2A4272D355200104E4F /* FrejWatch WatchKit Extension */,
+				AE88C70028D20ADA00D33D60 /* WidgetExtension */,
 			);
 		};
 /* End PBXProject section */
@@ -467,6 +556,14 @@
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
+		AE88C6FF28D20ADA00D33D60 /* Resources */ = {
+			isa = PBXResourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				AE88C70C28D20ADD00D33D60 /* Assets.xcassets in Resources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
 /* End PBXResourcesBuildPhase section */
 
 /* Begin PBXSourcesBuildPhase section */
@@ -478,6 +575,7 @@
 				AE7344D426FF03500048EABF /* ColorHex.swift in Sources */,
 				AE713E8F2649FFFC00A712A7 /* ContentView.swift in Sources */,
 				AEBD6CE42711818D007B9772 /* NaiveDate.swift in Sources */,
+				AE88C70F28D20ADD00D33D60 /* Widget.intentdefinition in Sources */,
 				AE713EBA264DB79B00A712A7 /* Weather.swift in Sources */,
 				AE7FE2C8272D3C1E00104E4F /* FrejView.swift in Sources */,
 				AE7344D226FE261A0048EABF /* Icons.swift in Sources */,
@@ -519,6 +617,15 @@
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
+		AE88C6FD28D20ADA00D33D60 /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				AE88C70E28D20ADD00D33D60 /* Widget.intentdefinition in Sources */,
+				AE88C70928D20ADA00D33D60 /* Widget.swift in Sources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
 /* End PBXSourcesBuildPhase section */
 
 /* Begin PBXTargetDependency section */
@@ -541,6 +648,11 @@
 			isa = PBXTargetDependency;
 			target = AE7FE2A4272D355200104E4F /* FrejWatch WatchKit Extension */;
 			targetProxy = AE7FE2A7272D355200104E4F /* PBXContainerItemProxy */;
+		};
+		AE88C71128D20ADD00D33D60 /* PBXTargetDependency */ = {
+			isa = PBXTargetDependency;
+			target = AE88C70028D20ADA00D33D60 /* WidgetExtension */;
+			targetProxy = AE88C71028D20ADD00D33D60 /* PBXContainerItemProxy */;
 		};
 /* End PBXTargetDependency section */
 
@@ -664,6 +776,7 @@
 		AE713EAF2649FFFD00A712A7 /* Debug */ = {
 			isa = XCBuildConfiguration;
 			buildSettings = {
+				ALWAYS_EMBED_SWIFT_STANDARD_LIBRARIES = YES;
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
 				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
 				ASSETCATALOG_COMPILER_INCLUDE_ALL_APPICON_ASSETS = NO;
@@ -691,6 +804,7 @@
 		AE713EB02649FFFD00A712A7 /* Release */ = {
 			isa = XCBuildConfiguration;
 			buildSettings = {
+				ALWAYS_EMBED_SWIFT_STANDARD_LIBRARIES = YES;
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
 				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
 				ASSETCATALOG_COMPILER_INCLUDE_ALL_APPICON_ASSETS = NO;
@@ -945,6 +1059,68 @@
 			};
 			name = Release;
 		};
+		AE88C71528D20ADD00D33D60 /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
+				ASSETCATALOG_COMPILER_WIDGET_BACKGROUND_COLOR_NAME = WidgetBackground;
+				CLANG_CXX_LANGUAGE_STANDARD = "gnu++17";
+				CODE_SIGN_ENTITLEMENTS = WidgetExtension.entitlements;
+				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = 1;
+				DEVELOPMENT_TEAM = B6FVY827P9;
+				GENERATE_INFOPLIST_FILE = YES;
+				INFOPLIST_FILE = Widget/Info.plist;
+				INFOPLIST_KEY_CFBundleDisplayName = Widget;
+				INFOPLIST_KEY_NSHumanReadableCopyright = "";
+				IPHONEOS_DEPLOYMENT_TARGET = 15.5;
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/Frameworks",
+					"@executable_path/../../Frameworks",
+				);
+				MARKETING_VERSION = 1.0;
+				PRODUCT_BUNDLE_IDENTIFIER = net.kodare.sunhail.Widget;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SKIP_INSTALL = YES;
+				SUPPORTS_MACCATALYST = YES;
+				SWIFT_EMIT_LOC_STRINGS = YES;
+				SWIFT_VERSION = 5.0;
+				TARGETED_DEVICE_FAMILY = "1,2";
+			};
+			name = Debug;
+		};
+		AE88C71628D20ADD00D33D60 /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
+				ASSETCATALOG_COMPILER_WIDGET_BACKGROUND_COLOR_NAME = WidgetBackground;
+				CLANG_CXX_LANGUAGE_STANDARD = "gnu++17";
+				CODE_SIGN_ENTITLEMENTS = WidgetExtension.entitlements;
+				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = 1;
+				DEVELOPMENT_TEAM = B6FVY827P9;
+				GENERATE_INFOPLIST_FILE = YES;
+				INFOPLIST_FILE = Widget/Info.plist;
+				INFOPLIST_KEY_CFBundleDisplayName = Widget;
+				INFOPLIST_KEY_NSHumanReadableCopyright = "";
+				IPHONEOS_DEPLOYMENT_TARGET = 15.5;
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/Frameworks",
+					"@executable_path/../../Frameworks",
+				);
+				MARKETING_VERSION = 1.0;
+				PRODUCT_BUNDLE_IDENTIFIER = net.kodare.sunhail.Widget;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SKIP_INSTALL = YES;
+				SUPPORTS_MACCATALYST = YES;
+				SWIFT_EMIT_LOC_STRINGS = YES;
+				SWIFT_VERSION = 5.0;
+				TARGETED_DEVICE_FAMILY = "1,2";
+			};
+			name = Release;
+		};
 /* End XCBuildConfiguration section */
 
 /* Begin XCConfigurationList section */
@@ -1007,6 +1183,15 @@
 			buildConfigurations = (
 				AE7FE2B6272D355300104E4F /* Debug */,
 				AE7FE2B7272D355300104E4F /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
+		};
+		AE88C71728D20ADD00D33D60 /* Build configuration list for PBXNativeTarget "WidgetExtension" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				AE88C71528D20ADD00D33D60 /* Debug */,
+				AE88C71628D20ADD00D33D60 /* Release */,
 			);
 			defaultConfigurationIsVisible = 0;
 			defaultConfigurationName = Release;

@@ -107,7 +107,7 @@ private func _rainIntensity(rainMillimeter : Float) -> RainIntensity {
 }
 
 
-let rainColor = Color.init(hex: 0x4F95CD)
+let rainColor = Color.init(hex: 0x0080FF)
 let sunColor = Color.init(hex: 0xF9E231)
 
 struct Weather {
