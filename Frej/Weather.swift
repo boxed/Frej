@@ -2,7 +2,6 @@ import Foundation
 import SwiftUI
 
 enum WeatherType {
-    // TODO: Snow!!
     case clear
     case mainlyClear
     case lightCloud

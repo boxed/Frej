@@ -14,6 +14,18 @@ extension Date {
         }
         return result
     }
+    
+    static func from(year: Int, month: Int, day: Int) -> Date {
+         let gregorianCalendar = NSCalendar(calendarIdentifier: .gregorian)!
+
+         var dateComponents = DateComponents()
+         dateComponents.year = year
+         dateComponents.month = month
+         dateComponents.day = day
+
+         let date = gregorianCalendar.date(from: dateComponents)!
+         return date
+     }
 
     func hour() -> Int {
         return Calendar.current.dateComponents([.hour], from: self).hour!
@@ -27,5 +39,14 @@ extension Date {
     func getNaiveDate() -> NaiveDate {
         let dc = Calendar.current.dateComponents([.year, .month, .day, .hour], from: self)
         return NaiveDate(year: dc.year!, month: dc.month!, day: dc.day!)
+    }
+    
+    var jd: Double {
+        let julianEpoch = 2440587.542
+        return julianEpoch + timeIntervalSince1970 / (24 * 60 * 60)
+    }
+    
+    var moonPhase: Double {
+        return (jd - Date.from(year: 2000, month: 1, day: 6).jd).truncatingRemainder(dividingBy: 29.530588853)
     }
 }

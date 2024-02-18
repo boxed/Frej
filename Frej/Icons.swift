@@ -703,3 +703,18 @@ struct SnowClouds: Shape {
         return path
     }
 }
+
+struct Previews_Icons_Previews: PreviewProvider {
+    static var previews: some View {
+        VStack {
+            Cloud()
+            ClearNight()
+            Lightning()
+            Wind()
+            Sun()
+            Rain(mm: 10)
+            Fog()
+            SnowClouds()
+        }.frame(width: 100)
+    }
+}
