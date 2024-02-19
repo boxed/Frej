@@ -460,6 +460,7 @@ struct Foo : View {
     var sunrise : [NaiveDate: Date]
     var sunset : [NaiveDate: Date]
     let unit: String
+    let coordinate: CLLocationCoordinate2D?
     
     var body: some View {
         let fractionalHour: Double = now.fractionalHour()
@@ -482,7 +483,7 @@ struct Foo : View {
             ForEach(0..<6, id: \.self) { day in
                 ZStack {
                     HStack {
-                        Moon(date: now.addingTimeInterval(TimeInterval(day * 24 * 60 * 60))).frame(width: 50, height: 50).padding(20)
+                        Moon(date: now.addingTimeInterval(TimeInterval(day * 24 * 60 * 60))).frame(width: 50, height: 50).rotationEffect(Angle(degrees: (coordinate?.latitude ?? 0) - 90)).padding(20)
                         Spacer()
                     }
                     
@@ -544,6 +545,7 @@ class UserSettings: ObservableObject {
 struct FrejView: View {
     @State var now: Date = Date()
     @StateObject var locationProvider = LocationProvider()
+    @State var coordinate: CLLocationCoordinate2D?
     @State var weather : [Date: Weather] = [:]
     @State var sunrise : [NaiveDate: Date] = [:]
     @State var sunset : [NaiveDate: Date] = [:]
@@ -595,7 +597,7 @@ struct FrejView: View {
                 GeometryReader { (geometry) in
                     let size = geometry.size
                     let height = min(size.width * 0.9, abs(size.height / 2 - 25))
-                    Foo(weather: weather, height: height, hour: hour, now: now, size: size, sunrise: sunrise, sunset: sunset, unit: userSettings.unit)
+                    Foo(weather: weather, height: height, hour: hour, now: now, size: size, sunrise: sunrise, sunset: sunset, unit: userSettings.unit, coordinate: coordinate)
                 }
 #if os(iOS)
                 .ignoresSafeArea(.all, edges: .bottom)
@@ -699,6 +701,7 @@ struct FrejView: View {
     func weatherFromOpenMeteo() {
         cancellableLocation = locationProvider.locationWillChange.sink { loc in
             let geocoder = CLGeocoder()
+            coordinate = loc.coordinate
             geocoder.reverseGeocodeLocation(loc) { (placemarks, error) in
                 if error == nil {
                     let firstLocation = placemarks?[0]
@@ -838,6 +841,7 @@ struct FrejView: View {
         cancellableLocation = locationProvider.locationWillChange.sink { loc in
             // handleLocation(loc)
             DispatchQueue.main.async {
+                coordinate = loc.coordinate
                 let s = "https://opendata-download-metfcst.smhi.se/api/category/pmp3g/version/2/geotype/point/lon/\(loc.coordinate.longitude)/lat/\(loc.coordinate.latitude)/data.json"
                 guard s != loadedURL && timeOfData.distance(to: Date()) > 60*60 else {
                     return

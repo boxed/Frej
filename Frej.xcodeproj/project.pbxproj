@@ -18,6 +18,9 @@
 		AE7344D226FE261A0048EABF /* Icons.swift in Sources */ = {isa = PBXBuildFile; fileRef = AE7344D126FE261A0048EABF /* Icons.swift */; };
 		AE7344D426FF03500048EABF /* ColorHex.swift in Sources */ = {isa = PBXBuildFile; fileRef = AE7344D326FF034F0048EABF /* ColorHex.swift */; };
 		AE7344D626FF37D50048EABF /* DateFromComponents.swift in Sources */ = {isa = PBXBuildFile; fileRef = AE7344D526FF37D50048EABF /* DateFromComponents.swift */; };
+		AE77F8532B7A85C6009FC286 /* Icon.swift in Sources */ = {isa = PBXBuildFile; fileRef = AE77F8522B7A85C6009FC286 /* Icon.swift */; };
+		AE77F8552B7FD34E009FC286 /* Moon.swift in Sources */ = {isa = PBXBuildFile; fileRef = AE77F8542B7FD34E009FC286 /* Moon.swift */; };
+		AE77F85A2B823119009FC286 /* Stars.swift in Sources */ = {isa = PBXBuildFile; fileRef = AE77F8592B823119009FC286 /* Stars.swift */; };
 		AE7FE29B272D355100104E4F /* FrejWatch WatchKit App.app in Embed Watch Content */ = {isa = PBXBuildFile; fileRef = AE7FE29A272D355100104E4F /* FrejWatch WatchKit App.app */; settings = {ATTRIBUTES = (RemoveHeadersOnCopy, ); }; };
 		AE7FE2A0272D355200104E4F /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = AE7FE29F272D355200104E4F /* Assets.xcassets */; };
 		AE7FE2A6272D355200104E4F /* FrejWatch WatchKit Extension.appex in Embed App Extensions */ = {isa = PBXBuildFile; fileRef = AE7FE2A5272D355200104E4F /* FrejWatch WatchKit Extension.appex */; settings = {ATTRIBUTES = (RemoveHeadersOnCopy, ); }; };
@@ -137,6 +140,9 @@
 		AE7344D126FE261A0048EABF /* Icons.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Icons.swift; sourceTree = "<group>"; };
 		AE7344D326FF034F0048EABF /* ColorHex.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ColorHex.swift; sourceTree = "<group>"; };
 		AE7344D526FF37D50048EABF /* DateFromComponents.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DateFromComponents.swift; sourceTree = "<group>"; };
+		AE77F8522B7A85C6009FC286 /* Icon.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Icon.swift; sourceTree = "<group>"; };
+		AE77F8542B7FD34E009FC286 /* Moon.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Moon.swift; sourceTree = "<group>"; };
+		AE77F8592B823119009FC286 /* Stars.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Stars.swift; sourceTree = "<group>"; };
 		AE7FE297272D355100104E4F /* FrejWatch.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = FrejWatch.app; sourceTree = BUILT_PRODUCTS_DIR; };
 		AE7FE29A272D355100104E4F /* FrejWatch WatchKit App.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = "FrejWatch WatchKit App.app"; sourceTree = BUILT_PRODUCTS_DIR; };
 		AE7FE29F272D355200104E4F /* Assets.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = Assets.xcassets; sourceTree = "<group>"; };
@@ -245,6 +251,9 @@
 				AE7344D126FE261A0048EABF /* Icons.swift */,
 				AE7344D326FF034F0048EABF /* ColorHex.swift */,
 				AEBD6CE32711818D007B9772 /* NaiveDate.swift */,
+				AE77F8522B7A85C6009FC286 /* Icon.swift */,
+				AE77F8542B7FD34E009FC286 /* Moon.swift */,
+				AE77F8592B823119009FC286 /* Stars.swift */,
 			);
 			path = Frej;
 			sourceTree = "<group>";
@@ -342,6 +351,8 @@
 				AE88C71128D20ADD00D33D60 /* PBXTargetDependency */,
 			);
 			name = Frej;
+			packageProductDependencies = (
+			);
 			productName = Frej;
 			productReference = AE713E892649FFFC00A712A7 /* Frej.app */;
 			productType = "com.apple.product-type.application";
@@ -493,6 +504,8 @@
 				Base,
 			);
 			mainGroup = AE713E802649FFFC00A712A7;
+			packageReferences = (
+			);
 			productRefGroup = AE713E8A2649FFFC00A712A7 /* Products */;
 			projectDirPath = "";
 			projectRoot = "";
@@ -580,7 +593,10 @@
 				AE7FE2C8272D3C1E00104E4F /* FrejView.swift in Sources */,
 				AE7344D226FE261A0048EABF /* Icons.swift in Sources */,
 				AE7344D626FF37D50048EABF /* DateFromComponents.swift in Sources */,
+				AE77F85A2B823119009FC286 /* Stars.swift in Sources */,
 				AE713E8D2649FFFC00A712A7 /* FrejApp.swift in Sources */,
+				AE77F8552B7FD34E009FC286 /* Moon.swift in Sources */,
+				AE77F8532B7A85C6009FC286 /* Icon.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -787,7 +803,7 @@
 				DEVELOPMENT_TEAM = B6FVY827P9;
 				ENABLE_PREVIEWS = YES;
 				INFOPLIST_FILE = Frej/Info.plist;
-				IPHONEOS_DEPLOYMENT_TARGET = 14.0;
+				IPHONEOS_DEPLOYMENT_TARGET = 17.0;
 				LD_RUNPATH_SEARCH_PATHS = (
 					"$(inherited)",
 					"@executable_path/Frameworks",
@@ -815,7 +831,7 @@
 				DEVELOPMENT_TEAM = B6FVY827P9;
 				ENABLE_PREVIEWS = YES;
 				INFOPLIST_FILE = Frej/Info.plist;
-				IPHONEOS_DEPLOYMENT_TARGET = 14.0;
+				IPHONEOS_DEPLOYMENT_TARGET = 17.0;
 				LD_RUNPATH_SEARCH_PATHS = (
 					"$(inherited)",
 					"@executable_path/Frameworks",
@@ -837,7 +853,7 @@
 				CODE_SIGN_STYLE = Automatic;
 				DEVELOPMENT_TEAM = B6FVY827P9;
 				INFOPLIST_FILE = FrejTests/Info.plist;
-				IPHONEOS_DEPLOYMENT_TARGET = 15.0;
+				IPHONEOS_DEPLOYMENT_TARGET = 17.0;
 				LD_RUNPATH_SEARCH_PATHS = (
 					"$(inherited)",
 					"@executable_path/Frameworks",
@@ -859,7 +875,7 @@
 				CODE_SIGN_STYLE = Automatic;
 				DEVELOPMENT_TEAM = B6FVY827P9;
 				INFOPLIST_FILE = FrejTests/Info.plist;
-				IPHONEOS_DEPLOYMENT_TARGET = 15.0;
+				IPHONEOS_DEPLOYMENT_TARGET = 17.0;
 				LD_RUNPATH_SEARCH_PATHS = (
 					"$(inherited)",
 					"@executable_path/Frameworks",
@@ -880,6 +896,7 @@
 				CODE_SIGN_STYLE = Automatic;
 				DEVELOPMENT_TEAM = B6FVY827P9;
 				INFOPLIST_FILE = FrejUITests/Info.plist;
+				IPHONEOS_DEPLOYMENT_TARGET = 17.0;
 				LD_RUNPATH_SEARCH_PATHS = (
 					"$(inherited)",
 					"@executable_path/Frameworks",
@@ -900,6 +917,7 @@
 				CODE_SIGN_STYLE = Automatic;
 				DEVELOPMENT_TEAM = B6FVY827P9;
 				INFOPLIST_FILE = FrejUITests/Info.plist;
+				IPHONEOS_DEPLOYMENT_TARGET = 17.0;
 				LD_RUNPATH_SEARCH_PATHS = (
 					"$(inherited)",
 					"@executable_path/Frameworks",
@@ -920,6 +938,7 @@
 				CODE_SIGN_STYLE = Automatic;
 				CURRENT_PROJECT_VERSION = 1;
 				DEVELOPMENT_TEAM = B6FVY827P9;
+				IPHONEOS_DEPLOYMENT_TARGET = 17.0;
 				MARKETING_VERSION = 1.0;
 				PRODUCT_BUNDLE_IDENTIFIER = net.kodare.FrejWatch;
 				PRODUCT_NAME = "$(TARGET_NAME)";
@@ -934,6 +953,7 @@
 				CODE_SIGN_STYLE = Automatic;
 				CURRENT_PROJECT_VERSION = 1;
 				DEVELOPMENT_TEAM = B6FVY827P9;
+				IPHONEOS_DEPLOYMENT_TARGET = 17.0;
 				MARKETING_VERSION = 1.0;
 				PRODUCT_BUNDLE_IDENTIFIER = net.kodare.FrejWatch;
 				PRODUCT_NAME = "$(TARGET_NAME)";
@@ -1073,7 +1093,7 @@
 				INFOPLIST_FILE = Widget/Info.plist;
 				INFOPLIST_KEY_CFBundleDisplayName = Widget;
 				INFOPLIST_KEY_NSHumanReadableCopyright = "";
-				IPHONEOS_DEPLOYMENT_TARGET = 15.5;
+				IPHONEOS_DEPLOYMENT_TARGET = 17.0;
 				LD_RUNPATH_SEARCH_PATHS = (
 					"$(inherited)",
 					"@executable_path/Frameworks",
@@ -1104,7 +1124,7 @@
 				INFOPLIST_FILE = Widget/Info.plist;
 				INFOPLIST_KEY_CFBundleDisplayName = Widget;
 				INFOPLIST_KEY_NSHumanReadableCopyright = "";
-				IPHONEOS_DEPLOYMENT_TARGET = 15.5;
+				IPHONEOS_DEPLOYMENT_TARGET = 17.0;
 				LD_RUNPATH_SEARCH_PATHS = (
 					"$(inherited)",
 					"@executable_path/Frameworks",

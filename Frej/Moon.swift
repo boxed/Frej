@@ -1,5 +1,6 @@
 import Foundation
 import SwiftUI
+import CoreLocation
 
 private let moon_bg_color = Color(#colorLiteral(red: 0.1407150751, green: 0.1515393104, blue: 0.1666932398, alpha: 1))
 private let moon_slice_color = Color(#colorLiteral(red: 1, green: 1, blue: 1, alpha: 1))
@@ -25,7 +26,7 @@ struct MoonPhase : Shape {
         let radius = CGFloat(diameter / 2)
         var p = Path()
         let center = CGPoint(x: radius, y: radius)
-        
+
         let foo = 1.35
         let tanLength: CGFloat
         p.move(to: CGPoint(x: center.x, y: center.y + radius))
@@ -87,10 +88,11 @@ struct MoonPhase : Shape {
 
 struct Moon: View {
     let date: Date
+    
     var body: some View {
         ZStack {
             MoonBackground().fill(moon_bg_color)
-            MoonPhase(date: date).fill(moon_slice_color)//.stroke(.red, lineWidth: 1)
+            MoonPhase(date: date).fill(moon_slice_color)
         }
     }
 }
@@ -98,15 +100,23 @@ struct Moon: View {
 
 struct Previews_Moon_Previews: PreviewProvider {
     static var previews: some View {
+        // north pole
+//        let coordinate = CLLocationCoordinate2D(latitude: 90, longitude: 0)
+        // Sollentuna
+//        let coordinate = CLLocationCoordinate2D(latitude: 59.41769, longitude: 0)
+//         equator
+//        let coordinate = CLLocationCoordinate2D(latitude: 0, longitude: 0)
+        // south pole
+        let coordinate = CLLocationCoordinate2D(latitude: -90, longitude: 0)
+
 //                Text("\(Date.from(year: 1900, month: 3, day: 4).jd) == 2415082.5")
 //                Text("\(Date.from(year: 2021, month: 3, day: 4).jd) == 2459277.5")
 //                Text("\(Date.from(year: 2024, month: 3, day: 4).jd) == 2460373.5")
         VStack {
-            ForEach(1..<10) { i in
-                        let date = Date.from(year: 2024, month: 1, day: i+5)
-//                        Text("2024-01-\(i)")
-                        Moon(date: date)
-                    }
+            ForEach(1..<4) { i in
+                let date = Date.from(year: 2024, month: 1, day: i+5)
+                Moon(date: date).frame(width: 100, height: 100).rotationEffect(Angle(degrees: coordinate.latitude - 90))
+            }
         }.preferredColorScheme(.dark)
     }
 }
