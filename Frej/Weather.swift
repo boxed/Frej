@@ -86,11 +86,11 @@ private func _rainIntensity(rainMillimeter : Float) -> RainIntensity {
     switch rainMillimeter {
     case 0...0.01:
         return .none
-    case 0...2.5:
+    case 0...4.5:
         return .light
-    case 2.5...7.5:
+    case 4.5...8.5:
         return .moderate
-    case 7.5...50:
+    case 8.5...50:
         return .heavy
     default:
         if rainMillimeter < 0 {
