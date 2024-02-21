@@ -9,7 +9,7 @@ import Foundation
 import SwiftUI
 
 
-private let sun_ray_density = 0.07
+private let sun_ray_density = 0.3
 private let cloud_ray_density = 0.16
 private let rain_density = 0.108
 private let circle_inner_diameter = 6.9
@@ -26,7 +26,7 @@ struct DaylightIcon : View {
     var body : some View {
         if let sunrise = sunrise, let sunset = sunset {
             let (from, to) = datetime_to_degrees(sunrise: sunrise, sunset: sunset, start: start)
-            Rays(a: 2.4, b: circle_inner_diameter, ray_density: sun_ray_density, wiggle_a: true, start_degree: from, end_degree: to, wiggle_size: 1.03)
+            Rays(a: sun_ray_density, b: circle_inner_diameter, ray_density: sun_ray_density, wiggle_a: true, start_degree: from, end_degree: to, wiggle_size: 1.03)
                 .stroke(Color.yellow, style: StrokeStyle(lineWidth: 8, lineCap: .butt))
         }
         else {
@@ -151,28 +151,40 @@ struct Icon : View {
     var body: some View {
         let calendar = Calendar.current
         let components = calendar.dateComponents([Calendar.Component.hour], from: now)
-        let hour = components.hour!
-        
-        VStack {
-            #if !os(watchOS)
-            Spacer()
-            Text(currentLocation).font(.system(size: 25))
-            Link("Weather data by Open-Meteo.com", destination: URL(string: "https://open-meteo.com/")!).font(Font.system(size: 12)).foregroundColor(.gray)
-            #endif
-            GeometryReader { (geometry) in
-                let size = geometry.size
-                let height = min(size.width * 0.9, abs(size.height / 2 - 25))
-                FooIcon(weather: weather, height: height, hour: hour, now: now, size: size, sunrise: sunrise, sunset: sunset, unit: userSettings.unit)
-            }
-            #if os(iOS)
-            .ignoresSafeArea(.all, edges: .bottom)
-            #endif
-            .preferredColorScheme(.dark)
-            .onAppear {
-                fakeWeather()
-            }
+//        let hour = components.hour!
+//        
+//        VStack {
+//            #if !os(watchOS)
+//            Spacer()
+//            Text(currentLocation).font(.system(size: 25))
+//            Link("Weather data by Open-Meteo.com", destination: URL(string: "https://open-meteo.com/")!).font(Font.system(size: 12)).foregroundColor(.gray)
+//            #endif
+//            GeometryReader { (geometry) in
+//                let size = geometry.size
+//                let height = min(size.width * 0.9, abs(size.height / 2 - 25))
+//                FooIcon(weather: weather, height: height, hour: hour, now: now, size: size, sunrise: sunrise, sunset: sunset, unit: userSettings.unit)
+//            }
+//            #if os(iOS)
+//            .ignoresSafeArea(.all, edges: .bottom)
+//            #endif
+//            .preferredColorScheme(.dark)
+//            .onAppear {
+//                fakeWeather()
+//            }
+//        }
+        ZStack {
+            DaylightIcon(
+                start: 12,
+                sunrise: Date.from(year: 2024, month: 1, day: 1).set(hour: 15),
+                sunset: Date.from(year: 2024, month: 1, day: 1).set(hour: 20)
+            )
+            .scaleEffect(0.4)
+            .position(x: 120, y: 285)
+            .mask(Text("F").font(.system(size: 130, weight: .bold, design: .rounded)))
+            
+            Moon(date: Date.from(year: 2024, month: 1, day: 14).set(hour: 15)!).scaleEffect(0.08).position(x: 240, y: 430)
         }
-        
+        .preferredColorScheme(.dark)
     }
     
     func getWeather(hour: Int) -> Weather? {

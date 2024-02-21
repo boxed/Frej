@@ -3,6 +3,7 @@ import CoreLocation
 import Combine
 
 private let sun_ray_density = 0.6
+private let star_density = 0.3
 private let rain_density = 0.5
 private let fog_density = 1.26
 private let circle_inner_diameter = 3.7
@@ -76,6 +77,7 @@ let wiggle_c_set: Set = [
     1, 3, 6, 7,
 ]
 
+
 struct Rays: Shape {
     let a: CGFloat
     let b: CGFloat
@@ -117,6 +119,54 @@ struct Rays: Shape {
             let y2 = cos(radians) * size_b + rect.height / 2
             p.move(to: CGPoint(x: x, y: y))
             p.addLine(to: CGPoint(x: x2, y: y2))
+        }
+        return p
+    }
+}
+
+struct StarRays: Shape {
+    let generator: RandomNumberGeneratorWithSeed
+    let ray_density: Double
+    var start_degree = 0.0
+    var end_degree = 360.0
+    
+    func path(in rect: CGRect) -> Path {
+        let a = 2.5
+        let b = 3.5
+
+        var p = Path()
+        let degrees = end_degree - start_degree
+
+        let number_of_rays = Int(Double(degrees) * ray_density)
+        
+        if number_of_rays < 0 {
+            return p
+        }
+        
+        for i in 0..<number_of_rays {
+            let degree = start_degree + CGFloat(i) / ray_density
+            let size_a : CGFloat = rect.height/a
+            let size_b : CGFloat = rect.height/b
+            
+            let radians = .pi - degree.degreesToRadians
+            let x = sin(radians) * size_a + rect.width / 2
+            let y = cos(radians) * size_a + rect.height / 2
+            let x2 = sin(radians) * size_b + rect.width / 2
+            let y2 = cos(radians) * size_b + rect.height / 2
+            
+            let r = Double(generator.next()) / Double(UInt64.max)
+            let s = Double(generator.next()) / Double(UInt64.max)
+            assert(r >= 0 && r <= 1.0)
+            
+            let sx = x2 + (x - x2) * r
+            let sy = y2 + (y - y2) * r
+
+//            p.move(to: CGPoint(x: x, y: y))
+//            p.addLine(to: CGPoint(x: x2, y: y2))
+
+            addStar(p: &p, s: 70.0 * s, x: sx, y: sy)
+            
+//            p.addLine(to: CGPoint(x: x2, y: y2))
         }
         return p
     }
@@ -237,6 +287,33 @@ struct Daylight : View {
     }
 }
 
+struct Night : View {
+    var start : Int
+    var sunrise: Date?
+    var sunset: Date?
+
+    var body : some View {
+        let generator = RandomNumberGeneratorWithSeed(seed: 8927686389246)
+
+        if let sunrise = sunrise, let sunset = sunset {
+            let (from, to) = datetime_to_degrees(sunrise: sunrise, sunset: sunset, start: start)
+            if start % 24 == 0 {
+                StarRays(generator: generator, ray_density: star_density, start_degree: -15, end_degree: from)
+                //.stroke(.white, style: StrokeStyle(lineWidth: 1, lineCap: .butt))
+                .fill(.white)
+            }
+            else {
+                StarRays(generator: generator, ray_density: star_density, start_degree: to, end_degree: 360 - 15)
+                //.stroke(.white, style: StrokeStyle(lineWidth: 1, lineCap: .butt))
+                .fill(.white)
+            }
+        }
+        else {
+            Text("")
+        }
+    }
+}
+
 func color_from_temperature(_ temp: Float) -> Color {
     if temp < 0 {
         return Color(cold)
@@ -340,9 +417,10 @@ struct Clock : View {
     //        let seconds = Double(components.second!) + Double(components.nanosecond!) / 1_000_000_000.0
             let strokeWidth = frame.height / 70
             let weekday = calendar.dateComponents([.weekday], from: startTime).weekday!
-            let weekdayStr = start == 0 ? "Today" : start % 24 == 0 ? weekday_number_to_string[weekday]! : ""
+            let weekdayStr: String = start == 0 ? "Today" : start % 24 == 0 ? weekday_number_to_string[weekday]! : ""
             
             ZStack {
+                Night(start: start, sunrise: sunrise[startTime.getNaiveDate()], sunset: sunset[startTime.getNaiveDate()])
                 Daylight(start: start, sunrise: sunrise[startTime.getNaiveDate()], sunset: sunset[startTime.getNaiveDate()])
                 #if !os(watchOS)
                 VStack {
@@ -356,8 +434,21 @@ struct Clock : View {
                 ForEach(0..<12, id: \.self) { id in
                     let startDatetime = startOfToday.addingTimeInterval(TimeInterval((id + start) * 60 * 60))
                     if let weather = weather[startDatetime] {
-                        // Rain
                         let (from, to) = rainDegrees(date: startDatetime)
+
+                        let isNightTime = true
+                        // Bool = (
+//                        middleOfHour < sunrise[startTime.getNaiveDate()] ?? true
+//                        ||
+//                        middleOfHour > sunset[startTime.getNaiveDate()] ?? true
+//                        middleOfHour > sunset[startTime.getNaiveDate()] ?? true
+//                    )
+                        
+                        if weather.weatherType == .clear && isNightTime {
+                            
+                        }
+                        
+                        // Rain
                         
                         let rain  = weather.rainMillimeter > 0 || weather.weatherType == .rain
                         
@@ -426,7 +517,7 @@ struct Clock : View {
                     let time = datetimeToday(hour: id + start)
                     let hour = Calendar.current.dateComponents([.hour], from: time).hour!
                     let radians : CGFloat = CGFloat.pi - 2.0 * CGFloat.pi / 12.0 * CGFloat(id)
-                    let size : CGFloat = frame.height * 0.23
+                    let size : CGFloat = frame.height * 0.225
                     let x = sin(radians) * size + frame.width / 2
                     let y = cos(radians) * size + frame.height / 2
                     Text("\(hour)").position(x: x, y: y)
@@ -821,132 +912,6 @@ struct FrejView: View {
                         }
                         catch let error {
                             print("Error parsing (\(error))")
-                        }
-                    }
-                }
-                task.resume()
-            }
-        }
-    }
-    
-    func weatherFromSMI() {
-        do {
-            try locationProvider.start()
-        }
-        catch {
-            print("No location access.")
-            locationProvider.requestAuthorization()
-        }
-        
-        cancellableLocation = locationProvider.locationWillChange.sink { loc in
-            // handleLocation(loc)
-            DispatchQueue.main.async {
-                coordinate = loc.coordinate
-                let s = "https://opendata-download-metfcst.smhi.se/api/category/pmp3g/version/2/geotype/point/lon/\(loc.coordinate.longitude)/lat/\(loc.coordinate.latitude)/data.json"
-                guard s != loadedURL && timeOfData.distance(to: Date()) > 60*60 else {
-                    return
-                }
-                guard let url = URL(string: s) else {
-                    return
-                }
-                loadedURL = s
-                
-                print("getting: \(url)")
-                let request = URLRequest(url: url)
-                let task = URLSession.shared.dataTask(with: request) { (data, response, error) in
-                    if let response = response as? HTTPURLResponse {
-                        
-                        if response.statusCode == 503 {
-                            return
-                        }
-                        
-                       if error != nil {
-                            return
-                        }
-                        
-                        do {
-                            if let data = data {
-//                                let string1 = String(data: data, encoding: String.Encoding.utf8) ?? "Data could not be printed"
-//                                print(string1)
-                                let decoder = JSONDecoder()
-                                decoder.dateDecodingStrategy = .iso8601
-                                let result = try decoder.decode(SMHIWeatherData.self, from: data)
-//                                print("Parsed!")
-                                
-                                for timeslot in result.timeSeries {
-                                    var temperature : Float?
-                                    var weatherSymbol : Int?
-                                    var rainMillimeter : Float?
-                                    
-                                    for param in timeslot.parameters {
-                                        switch param.name {
-                                        case "t":
-                                            temperature = param.values[0]
-                                        case "Wsymb2":
-                                            weatherSymbol = Int(param.values[0])
-                                        case "pmin":
-                                            rainMillimeter = param.values[0]
-                                        default:
-                                            ()
-                                        }
-                                    }
-                                    
-                                    guard let temperature = temperature,
-                                          let weatherSymbol = weatherSymbol,
-                                          let rainMillimeter = rainMillimeter
-                                    else {
-                                        continue
-                                    }
-                                    
-                                    //      Wsymb2: Weather symbol
-                                    //            1    Clear sky
-                                    //            2    Nearly clear sky
-                                    //            3    Variable cloudiness
-                                    //            4    Halfclear sky
-                                    //            5    Cloudy sky
-                                    //            6    Overcast
-                                    //            7    Fog
-                                    //            8    Light rain showers
-                                    //            9    Moderate rain showers
-                                    //           10    Heavy rain showers
-                                    //           11    Thunderstorm
-                                    //           12    Light sleet showers
-                                    //           13    Moderate sleet showers
-                                    //           14    Heavy sleet showers
-                                    //           15    Light snow showers
-                                    //           16    Moderate snow showers
-                                    //           17    Heavy snow showers
-                                    //           18    Light rain
-                                    //           19    Moderate rain
-                                    //           20    Heavy rain
-                                    //           21    Thunder
-                                    //           22    Light sleet
-                                    //           23    Moderate sleet
-                                    //           24    Heavy sleet
-                                    //           25    Light snowfall
-                                    //           26    Moderate snowfall
-                                    //           27    Heavy snowfall
-                                    let weatherType : WeatherType
-                                    switch weatherSymbol {
-                                    case 1...4:
-                                        weatherType = .clear
-                                    case 6...7:
-                                        weatherType = .cloud
-                                        
-                                    case 8...21:
-                                        weatherType = .rain
-                                    case 21:
-                                        weatherType = .lightning
-                                    default:
-                                        weatherType = .unknown
-                                    }
-
-                                    self.weather[timeslot.validTime] = Weather(time: timeslot.validTime, temperature: temperature, weatherType: weatherType, rainMillimeter: rainMillimeter, isDay: true)
-                                }
-                            }
-                        }
-                        catch {
-                            print("Error parsing")
                         }
                     }
                 }

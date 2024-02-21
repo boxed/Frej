@@ -7,22 +7,21 @@ struct RandomNumberGeneratorWithSeed: RandomNumberGenerator {
     func next() -> UInt64 { return UInt64(drand48() * Double(UInt64.max)) }
 }
 
+func addStar(p: inout Path, s: CGFloat, x: CGFloat, y: CGFloat) {
+    p.move(to:    CGPoint(x: x + (-0.35 + 0.32965) * s, y: y + (-0.15 + 0.10699)*s))
+    p.addLine(to: CGPoint(x: x + (-0.35 + 0.32252) * s, y: y + (-0.15 + 0.12787)*s))
+    p.addLine(to: CGPoint(x: x + (-0.35 + 0.2995 ) * s, y: y + (-0.15 + 0.12789)*s))
+    p.addLine(to: CGPoint(x: x + (-0.35 + 0.31811) * s, y: y + (-0.15 + 0.14081)*s))
+    p.addLine(to: CGPoint(x: x + (-0.35 + 0.31102) * s, y: y + (-0.15 + 0.16171)*s))
+    p.addLine(to: CGPoint(x: x + (-0.35 + 0.32965) * s, y: y + (-0.15 + 0.14882)*s))
+    p.addLine(to: CGPoint(x: x + (-0.35 + 0.34829) * s, y: y + (-0.15 + 0.16171)*s))
+    p.addLine(to: CGPoint(x: x + (-0.35 + 0.3412 ) * s, y: y + (-0.15 + 0.14081)*s))
+    p.addLine(to: CGPoint(x: x + (-0.35 + 0.35981) * s, y: y + (-0.15 + 0.12789)*s))
+    p.addLine(to: CGPoint(x: x + (-0.35 + 0.33679) * s, y: y + (-0.15 + 0.12787)*s))
+    p.closeSubpath()
+}
 
 struct Stars: Shape {
-    
-    func addStar(p: inout Path, s: CGFloat, x: CGFloat, y: CGFloat) {
-        p.move(to:    CGPoint(x: x + (-0.35 + 0.32965) * s, y: y + (-0.15 + 0.10699)*s))
-        p.addLine(to: CGPoint(x: x + (-0.35 + 0.32252) * s, y: y + (-0.15 + 0.12787)*s))
-        p.addLine(to: CGPoint(x: x + (-0.35 + 0.2995 ) * s, y: y + (-0.15 + 0.12789)*s))
-        p.addLine(to: CGPoint(x: x + (-0.35 + 0.31811) * s, y: y + (-0.15 + 0.14081)*s))
-        p.addLine(to: CGPoint(x: x + (-0.35 + 0.31102) * s, y: y + (-0.15 + 0.16171)*s))
-        p.addLine(to: CGPoint(x: x + (-0.35 + 0.32965) * s, y: y + (-0.15 + 0.14882)*s))
-        p.addLine(to: CGPoint(x: x + (-0.35 + 0.34829) * s, y: y + (-0.15 + 0.16171)*s))
-        p.addLine(to: CGPoint(x: x + (-0.35 + 0.3412 ) * s, y: y + (-0.15 + 0.14081)*s))
-        p.addLine(to: CGPoint(x: x + (-0.35 + 0.35981) * s, y: y + (-0.15 + 0.12789)*s))
-        p.addLine(to: CGPoint(x: x + (-0.35 + 0.33679) * s, y: y + (-0.15 + 0.12787)*s))
-        p.closeSubpath()
-    }
     
     func path(in rect: CGRect) -> Path {
         var p = Path()
