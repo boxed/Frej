@@ -3,7 +3,7 @@ import SwiftUI
 import CoreLocation
 
 private let moon_bg_color = Color(#colorLiteral(red: 0.1407150751, green: 0.1515393104, blue: 0.1666932398, alpha: 1))
-private let moon_slice_color = Color(#colorLiteral(red: 1, green: 1, blue: 1, alpha: 1))
+private let moon_slice_color = Color(#colorLiteral(red: 0.8521471088, green: 0.8521471088, blue: 0.8521471088, alpha: 1))
 
 
 struct MoonBackground : Shape {

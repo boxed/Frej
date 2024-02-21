@@ -574,8 +574,8 @@ struct Foo : View {
             ForEach(0..<6, id: \.self) { day in
                 ZStack {
                     HStack {
-                        Moon(date: now.addingTimeInterval(TimeInterval(day * 24 * 60 * 60))).frame(width: 50, height: 50).rotationEffect(Angle(degrees: (coordinate?.latitude ?? 0) - 90)).padding(20)
                         Spacer()
+                        Moon(date: now.addingTimeInterval(TimeInterval(day * 24 * 60 * 60))).frame(width: 50, height: 50).rotationEffect(Angle(degrees: (coordinate?.latitude ?? 0) - 90)).padding(20)
                     }
                     
                     VStack {
