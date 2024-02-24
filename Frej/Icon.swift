@@ -9,7 +9,7 @@ import Foundation
 import SwiftUI
 
 
-private let sun_ray_density = 0.3
+private let sun_ray_density = 0.2
 private let cloud_ray_density = 0.16
 private let rain_density = 0.108
 private let circle_inner_diameter = 6.9
@@ -27,7 +27,7 @@ struct DaylightIcon : View {
         if let sunrise = sunrise, let sunset = sunset {
             let (from, to) = datetime_to_degrees(sunrise: sunrise, sunset: sunset, start: start)
             Rays(a: sun_ray_density, b: circle_inner_diameter, ray_density: sun_ray_density, wiggle_a: true, start_degree: from, end_degree: to, wiggle_size: 1.03)
-                .stroke(Color.yellow, style: StrokeStyle(lineWidth: 8, lineCap: .butt))
+                .stroke(Color.yellow, style: StrokeStyle(lineWidth: 15, lineCap: .butt))
         }
         else {
             Text("")
@@ -137,6 +137,19 @@ struct FooIcon : View {
     }
 }
 
+struct Darkness : Shape {
+    func path(in rect: CGRect) -> Path {
+        var p = Path()
+        p.move(to: CGPoint(x: 10, y: 50))
+        p.addLine(to: CGPoint(x: 240, y: 50))
+        p.addLine(to: CGPoint(x: 500, y: 300))
+        p.addLine(to: CGPoint(x: 450, y: 650))
+        p.addLine(to: CGPoint(x: 140, y: 600))
+        return p
+    }
+}
+
+
 struct Icon : View {
     @State var now: Date = Date()
     @State var weather : [Date: Weather] = [:]
@@ -149,29 +162,8 @@ struct Icon : View {
     @ObservedObject var userSettings = UserSettings()
 
     var body: some View {
-        let calendar = Calendar.current
-        let components = calendar.dateComponents([Calendar.Component.hour], from: now)
-//        let hour = components.hour!
-//        
-//        VStack {
-//            #if !os(watchOS)
-//            Spacer()
-//            Text(currentLocation).font(.system(size: 25))
-//            Link("Weather data by Open-Meteo.com", destination: URL(string: "https://open-meteo.com/")!).font(Font.system(size: 12)).foregroundColor(.gray)
-//            #endif
-//            GeometryReader { (geometry) in
-//                let size = geometry.size
-//                let height = min(size.width * 0.9, abs(size.height / 2 - 25))
-//                FooIcon(weather: weather, height: height, hour: hour, now: now, size: size, sunrise: sunrise, sunset: sunset, unit: userSettings.unit)
-//            }
-//            #if os(iOS)
-//            .ignoresSafeArea(.all, edges: .bottom)
-//            #endif
-//            .preferredColorScheme(.dark)
-//            .onAppear {
-//                fakeWeather()
-//            }
-//        }
+        let chunkiness = 15.0
+        
         ZStack {
             DaylightIcon(
                 start: 12,
@@ -179,10 +171,54 @@ struct Icon : View {
                 sunset: Date.from(year: 2024, month: 1, day: 1).set(hour: 20)
             )
             .scaleEffect(0.4)
-            .position(x: 120, y: 285)
-            .mask(Text("F").font(.system(size: 130, weight: .bold, design: .rounded)))
+            .position(x: 110, y: 265)
+//            .mask(Text("F").font(.system(size: 130, weight: .bold, design: .rounded)))
+//            Text("F").font(.system(size: 130, weight: .bold, design: .rounded)).foregroundColor(.black)
+            ZStack() {
+                Darkness().fill(.black).frame(width: 400, height: 700).position(x: 270, y: 805)
+
+                Rays(a: sun_ray_density, b: 3, ray_density: sun_ray_density, wiggle_a: true, start_degree: 134, end_degree: 170, wiggle_size: 1.03)
+                    .stroke(.blue, style: StrokeStyle(lineWidth: 15, lineCap: .butt, dash: [35]))
+                    .position(x: 40, y: 285)
+
+                Circle()
+                    .fill(.black)
+                    .frame(width: 100, height: 120)
+                    .position(x: 270, y: 500 - chunkiness)
+                Circle()
+                    .fill(.white)
+                    .frame(width: 100, height: 100)
+                    .position(x: 270, y: 500)
+
+                
+                Circle()
+                    .fill(.black)
+                    .frame(width: 120, height: 120)
+                    .position(x: 220, y: 495 - chunkiness)
+                Circle()
+                    .fill(.white)
+                    .frame(width: 120, height: 120)
+                    .position(x: 220, y: 495)
+
+                Circle()
+                    .fill(.black)
+                    .frame(width: 130, height: 130)
+                    .position(x: 170, y: 490 - chunkiness)
+                Circle()
+                    .fill(.white)
+                    .frame(width: 130, height: 130)
+                    .position(x: 170, y: 490)
+
+                
+                Circle().fill(.black).frame(width: 100, height: 100).position(x: 115, y: 495)
+                Circle().fill(.white).frame(width: 100, height: 100).position(x: 120, y: 505)
+
+                
+
+            }.position(x: 250, y: 400).scaleEffect(0.7)
             
-            Moon(date: Date.from(year: 2024, month: 1, day: 14).set(hour: 15)!).scaleEffect(0.08).position(x: 240, y: 430)
+
+//            Moon(date: Date.from(year: 2024, month: 1, day: 14).set(hour: 15)!).scaleEffect(0.08).position(x: 240, y: 430)
         }
         .preferredColorScheme(.dark)
     }

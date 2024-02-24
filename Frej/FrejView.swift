@@ -5,7 +5,7 @@ import Combine
 private let sun_ray_density = 0.6
 private let star_density = 0.3
 private let rain_density = 0.5
-private let fog_density = 1.26
+private let fog_density = 1.27
 private let circle_inner_diameter = 3.7
 private let cloud_ray_density = 0.20
 private let cloud_diameter = 3.0
@@ -28,6 +28,11 @@ let hot = #colorLiteral(red: 0.8078431487, green: 0.02745098062, blue: 0.3333333
 let warm = #colorLiteral(red: 0.9372549057, green: 0.7610096826, blue: 0.4300234694, alpha: 1)
 let warmer = #colorLiteral(red: 0.9372549057, green: 0.5117781247, blue: 0.1694676863, alpha: 1)
 let nice = #colorLiteral(red: 1, green: 1, blue: 1, alpha: 1)
+
+
+let generator = RandomNumberGeneratorWithSeed(seed: 8927686396)
+let star_field_random_numbers = (0...500).map {_ in Double(generator.next()) / Double(UInt64.max)}
+let star_field_random_numbers2 = (0...500).map {_ in Double(generator.next()) / Double(UInt64.max)}
 
 
 func clockPathInner(path: inout Path, bounds: CGRect, progress: TimeInterval, extraSize: CGFloat = 1) {
@@ -125,7 +130,6 @@ struct Rays: Shape {
 }
 
 struct StarRays: Shape {
-    let generator: RandomNumberGeneratorWithSeed
     let ray_density: Double
     var start_degree = 0.0
     var end_degree = 360.0
@@ -154,8 +158,8 @@ struct StarRays: Shape {
             let x2 = sin(radians) * size_b + rect.width / 2
             let y2 = cos(radians) * size_b + rect.height / 2
             
-            let r = Double(generator.next()) / Double(UInt64.max)
-            let s = Double(generator.next()) / Double(UInt64.max)
+            let r = star_field_random_numbers[i]
+            let s = star_field_random_numbers2[i]
             assert(r >= 0 && r <= 1.0)
             
             let sx = x2 + (x - x2) * r
@@ -293,17 +297,15 @@ struct Night : View {
     var sunset: Date?
 
     var body : some View {
-        let generator = RandomNumberGeneratorWithSeed(seed: 8927686389246)
-
         if let sunrise = sunrise, let sunset = sunset {
             let (from, to) = datetime_to_degrees(sunrise: sunrise, sunset: sunset, start: start)
             if start % 24 == 0 {
-                StarRays(generator: generator, ray_density: star_density, start_degree: -15, end_degree: from)
+                StarRays(ray_density: star_density, start_degree: -15, end_degree: from)
                 //.stroke(.white, style: StrokeStyle(lineWidth: 1, lineCap: .butt))
                 .fill(.white)
             }
             else {
-                StarRays(generator: generator, ray_density: star_density, start_degree: to, end_degree: 360 - 15)
+                StarRays(ray_density: star_density, start_degree: to, end_degree: 360 - 15)
                 //.stroke(.white, style: StrokeStyle(lineWidth: 1, lineCap: .butt))
                 .fill(.white)
             }
@@ -452,15 +454,15 @@ struct Clock : View {
                         
                         let rain  = weather.rainMillimeter > 0 || weather.weatherType == .rain
                         
-                        let darkClouds = rain || weather.weatherType == .lightning
+                        let darkClouds = rain || weather.weatherType == .lightning || weather.weatherType == .cloud
                     
                         if weather.weatherType == .fog {
-                            Rays(a: cloud_diameter, b: circle_inner_diameter, ray_density: fog_density - 0.5, wiggle_a: true, wiggle_b: true, start_degree: from, end_degree: to, wiggle_size: 1.02)
-                                .stroke(.black.opacity(0.7), style: StrokeStyle(lineWidth: 3, lineCap: .butt, dash: [2, ]))
-                            Rays(a: cloud_diameter, b: circle_inner_diameter, ray_density: fog_density - 0.5, wiggle_a: true, wiggle_b: true, start_degree: from, end_degree: to)
-                                .stroke(fog_color.opacity(0.5), style: StrokeStyle(lineWidth: 4, lineCap: .butt, dash: [2,]))
-                            Rays(a: cloud_diameter, b: circle_inner_diameter, ray_density: fog_density, wiggle_a: true, wiggle_b: true, start_degree: from, end_degree: to)
-                                .stroke(fog_color, style: StrokeStyle(lineWidth: 1, lineCap: .butt, dash: [1, 1]))
+                            Rays(a: cloud_diameter, b: circle_inner_diameter, ray_density: fog_density - 0.5, wiggle_a: true, wiggle_b: true, start_degree: from-1, end_degree: to+1, wiggle_size: 1.02)
+                                .stroke(.black.opacity(0.7), style: StrokeStyle(lineWidth: 3, lineCap: .butt, dash: [2, ])).blur(radius: 3)
+                            Rays(a: cloud_diameter, b: circle_inner_diameter + 1.5, ray_density: fog_density - 0.5, wiggle_a: true, wiggle_b: true, start_degree: from-1, end_degree: to+1)
+                                .stroke(fog_color.opacity(0.5), style: StrokeStyle(lineWidth: 4, lineCap: .butt, dash: [2,])).blur(radius: 3)
+                            Rays(a: cloud_diameter, b: circle_inner_diameter, ray_density: fog_density, wiggle_a: true, wiggle_b: true, start_degree: from-1, end_degree: to)
+                                .stroke(fog_color, style: StrokeStyle(lineWidth: 1, lineCap: .butt, dash: [1, 1])).blur(radius: 3)
                         }
 
                         if darkClouds {
@@ -633,6 +635,12 @@ class UserSettings: ObservableObject {
     }
 }
 
+enum WeatherSource {
+    case real
+    case fake
+    case demo
+}
+
 struct FrejView: View {
     @State var now: Date = Date()
     @StateObject var locationProvider = LocationProvider()
@@ -646,7 +654,7 @@ struct FrejView: View {
     @State var currentLocation : String = ""
     @State var showUnitChooser = false
     @ObservedObject var userSettings = UserSettings()
-    @State var fake = false
+    @State var weatherSource: WeatherSource = .real
 
     let timer = Timer.publish(
         // seconds
@@ -719,11 +727,13 @@ struct FrejView: View {
     
     func fetchWeather() {
         // weatherFromSMI()
-        if (fake) {
+        switch self.weatherSource {
+        case .fake:
             fakeWeather()
-        }
-        else {
+        case .real:
             weatherFromOpenMeteo()
+        case .demo:
+            demoWeather()
         }
     }
     
@@ -731,6 +741,7 @@ struct FrejView: View {
         let now = Date()
         self.sunrise[now.getNaiveDate()] = now.set(hour: 6, minute: 20)
         self.sunset[now.getNaiveDate()] = now.set(hour: 20, minute: 10)
+        // AM
         self.weather[now.set(hour:  0)!] = Weather(time: now.set(hour:  0)!, temperature:   1, weatherType:        .snow, rainMillimeter:  1, isDay: false)
         self.weather[now.set(hour:  1)!] = Weather(time: now.set(hour:  1)!, temperature: -11, weatherType: .mainlyClear, rainMillimeter:  0, isDay: false)
         self.weather[now.set(hour:  2)!] = Weather(time: now.set(hour:  2)!, temperature:  10, weatherType:       .clear, rainMillimeter:  1, isDay: false)
@@ -742,7 +753,8 @@ struct FrejView: View {
         self.weather[now.set(hour:  8)!] = Weather(time: now.set(hour:  8)!, temperature:   8, weatherType:        .wind, rainMillimeter: 10, isDay:  true)
         self.weather[now.set(hour:  9)!] = Weather(time: now.set(hour:  9)!, temperature:   9, weatherType:       .cloud, rainMillimeter:  0, isDay:  true)
         self.weather[now.set(hour: 10)!] = Weather(time: now.set(hour: 10)!, temperature:  10, weatherType:   .lightning, rainMillimeter:  0, isDay:  true)
-        self.weather[now.set(hour: 11)!] = Weather(time: now.set(hour: 11)!, temperature:  11, weatherType:        .wind, rainMillimeter: 10, isDay:  true)
+        self.weather[now.set(hour: 11)!] = Weather(time: now.set(hour: 11)!, temperature:  11, weatherType:         .fog, rainMillimeter: 10, isDay:  true)
+        // PM
         self.weather[now.set(hour: 12)!] = Weather(time: now.set(hour: 12)!, temperature:  12, weatherType:         .fog, rainMillimeter:  0, isDay:  true)
         self.weather[now.set(hour: 13)!] = Weather(time: now.set(hour: 13)!, temperature:  13, weatherType:   .lightning, rainMillimeter: 10, isDay:  true)
         self.weather[now.set(hour: 14)!] = Weather(time: now.set(hour: 14)!, temperature:  14, weatherType:       .clear, rainMillimeter: 10, isDay:  true)
@@ -752,27 +764,42 @@ struct FrejView: View {
         self.weather[now.set(hour: 18)!] = Weather(time: now.set(hour: 18)!, temperature:  17, weatherType:        .wind, rainMillimeter: 10, isDay:  true)
         self.weather[now.set(hour: 19)!] = Weather(time: now.set(hour: 19)!, temperature:  24, weatherType:       .cloud, rainMillimeter:  0, isDay: false)
         self.weather[now.set(hour: 20)!] = Weather(time: now.set(hour: 20)!, temperature:  35, weatherType:   .lightning, rainMillimeter:  1, isDay: false)
-        self.weather[now.set(hour: 21)!] = Weather(time: now.set(hour: 21)!, temperature:   1, weatherType:        .wind, rainMillimeter:  0, isDay: false)
-        self.weather[now.set(hour: 22)!] = Weather(time: now.set(hour: 22)!, temperature:  10, weatherType:       .clear, rainMillimeter: 90, isDay: false)
+        self.weather[now.set(hour: 21)!] = Weather(time: now.set(hour: 21)!, temperature:   1, weatherType:          .fog, rainMillimeter:  0, isDay: false)
+        self.weather[now.set(hour: 22)!] = Weather(time: now.set(hour: 22)!, temperature:  10, weatherType:         .fog, rainMillimeter:  0, isDay: false)
         self.weather[now.set(hour: 23)!] = Weather(time: now.set(hour: 23)!, temperature:  13, weatherType:         .fog, rainMillimeter:  0, isDay: false)
-        self.weather[now.set(hour: 24)!] = Weather(time: now.set(hour: 24)!, temperature:  14, weatherType:       .clear, rainMillimeter: 10, isDay: false)
-        self.weather[now.set(hour: 25)!] = Weather(time: now.set(hour: 25)!, temperature:  16, weatherType:       .cloud, rainMillimeter:  0, isDay: false)
-        self.weather[now.set(hour: 26)!] = Weather(time: now.set(hour: 26)!, temperature: -23, weatherType:        .wind, rainMillimeter:  8, isDay: false)
-        self.weather[now.set(hour: 27)!] = Weather(time: now.set(hour: 27)!, temperature: -12, weatherType:        .rain, rainMillimeter:  0, isDay: false)
-        self.weather[now.set(hour: 28)!] = Weather(time: now.set(hour: 28)!, temperature:  17, weatherType:        .wind, rainMillimeter: 10, isDay: false)
-        self.weather[now.set(hour: 29)!] = Weather(time: now.set(hour: 29)!, temperature:  24, weatherType:       .cloud, rainMillimeter:  0, isDay: false)
-        self.weather[now.set(hour: 30)!] = Weather(time: now.set(hour: 30)!, temperature:  35, weatherType:   .lightning, rainMillimeter: 40, isDay: false)
-        self.weather[now.set(hour: 31)!] = Weather(time: now.set(hour: 31)!, temperature:   1, weatherType:        .wind, rainMillimeter:  0, isDay:  true)
-        self.weather[now.set(hour: 32)!] = Weather(time: now.set(hour: 32)!, temperature:  10, weatherType:       .clear, rainMillimeter:  2, isDay:  true)
-        self.weather[now.set(hour: 33)!] = Weather(time: now.set(hour: 33)!, temperature:  13, weatherType:   .lightning, rainMillimeter:  0, isDay:  true)
-        self.weather[now.set(hour: 34)!] = Weather(time: now.set(hour: 34)!, temperature:  14, weatherType:       .clear, rainMillimeter:  5, isDay:  true)
-        self.weather[now.set(hour: 35)!] = Weather(time: now.set(hour: 35)!, temperature:  16, weatherType:       .cloud, rainMillimeter:  0, isDay:  true)
-        self.weather[now.set(hour: 36)!] = Weather(time: now.set(hour: 36)!, temperature: -23, weatherType:        .wind, rainMillimeter:  8, isDay:  true)
-        self.weather[now.set(hour: 37)!] = Weather(time: now.set(hour: 37)!, temperature: -12, weatherType:        .rain, rainMillimeter:  0, isDay:  true)
-        self.weather[now.set(hour: 38)!] = Weather(time: now.set(hour: 38)!, temperature:  17, weatherType:        .wind, rainMillimeter: 10, isDay:  true)
-        self.weather[now.set(hour: 39)!] = Weather(time: now.set(hour: 39)!, temperature:  24, weatherType:       .cloud, rainMillimeter:  1, isDay:  true)
     }
     
+    func demoWeather() {
+        let now = Date()
+        self.sunrise[now.getNaiveDate()] = now.set(hour: 6, minute: 20)
+        self.sunset[now.getNaiveDate()] = now.set(hour: 19, minute: 30)
+        // AM
+        self.weather[now.set(hour:  0)!] = Weather(time: now.set(hour:  0)!, temperature:   1, weatherType:        .clear, rainMillimeter:  0, isDay: false)
+        self.weather[now.set(hour:  1)!] = Weather(time: now.set(hour:  1)!, temperature:  -1, weatherType: .mainlyClear, rainMillimeter:  0, isDay: false)
+        self.weather[now.set(hour:  2)!] = Weather(time: now.set(hour:  2)!, temperature:  3, weatherType:       .clear, rainMillimeter:  0, isDay: false)
+        self.weather[now.set(hour:  3)!] = Weather(time: now.set(hour:  3)!, temperature:  7, weatherType:   .clear, rainMillimeter:  0, isDay: false)
+        self.weather[now.set(hour:  4)!] = Weather(time: now.set(hour:  4)!, temperature:  14, weatherType:   .lightCloud, rainMillimeter:  0, isDay: false)
+        self.weather[now.set(hour:  5)!] = Weather(time: now.set(hour:  5)!, temperature:  18, weatherType:   .lightCloud, rainMillimeter:  0, isDay: false)
+        self.weather[now.set(hour:  6)!] = Weather(time: now.set(hour:  6)!, temperature:  20, weatherType:.  lightCloud, rainMillimeter:  1, isDay: false)
+        self.weather[now.set(hour:  7)!] = Weather(time: now.set(hour:  7)!, temperature:  20, weatherType:        .rain, rainMillimeter:  5, isDay:  true)
+        self.weather[now.set(hour:  8)!] = Weather(time: now.set(hour:  8)!, temperature:  19, weatherType:        .rain, rainMillimeter: 10, isDay:  true)
+        self.weather[now.set(hour:  9)!] = Weather(time: now.set(hour:  9)!, temperature:  20, weatherType:       .rain, rainMillimeter:  1, isDay:  true)
+        self.weather[now.set(hour: 10)!] = Weather(time: now.set(hour: 10)!, temperature:  19, weatherType:   .lightCloud, rainMillimeter:  0, isDay:  true)
+        self.weather[now.set(hour: 11)!] = Weather(time: now.set(hour: 11)!, temperature:  17, weatherType:         .lightCloud, rainMillimeter: 0, isDay:  true)
+        // PM
+        self.weather[now.set(hour: 12)!] = Weather(time: now.set(hour: 12)!, temperature:  23, weatherType:         .clear, rainMillimeter:  0, isDay:  true)
+        self.weather[now.set(hour: 13)!] = Weather(time: now.set(hour: 13)!, temperature:  25, weatherType:   .clear, rainMillimeter: 0, isDay:  true)
+        self.weather[now.set(hour: 14)!] = Weather(time: now.set(hour: 14)!, temperature:  24, weatherType:       .clear, rainMillimeter: 0, isDay:  true)
+        self.weather[now.set(hour: 15)!] = Weather(time: now.set(hour: 15)!, temperature:  27, weatherType:  .lightCloud, rainMillimeter:  0, isDay:  true)
+        self.weather[now.set(hour: 16)!] = Weather(time: now.set(hour: 16)!, temperature:  26, weatherType:  .lightCloud, rainMillimeter: 0, isDay:  true)
+        self.weather[now.set(hour: 17)!] = Weather(time: now.set(hour: 17)!, temperature:  32, weatherType:  .lightCloud, rainMillimeter:  0, isDay:  true)
+        self.weather[now.set(hour: 18)!] = Weather(time: now.set(hour: 18)!, temperature:  30, weatherType:        .wind, rainMillimeter: 0, isDay:  true)
+        self.weather[now.set(hour: 19)!] = Weather(time: now.set(hour: 19)!, temperature:  28, weatherType:       .clear, rainMillimeter:  0, isDay: false)
+        self.weather[now.set(hour: 20)!] = Weather(time: now.set(hour: 20)!, temperature:  23, weatherType:   .clear, rainMillimeter:  0, isDay: false)
+        self.weather[now.set(hour: 21)!] = Weather(time: now.set(hour: 21)!, temperature:  20, weatherType:          .clear, rainMillimeter:  0, isDay: false)
+        self.weather[now.set(hour: 22)!] = Weather(time: now.set(hour: 22)!, temperature:  16, weatherType:         .clear, rainMillimeter:  0, isDay: false)
+        self.weather[now.set(hour: 23)!] = Weather(time: now.set(hour: 23)!, temperature:  18, weatherType:         .clear, rainMillimeter:  0, isDay: false)
+    }
     func startLocationTracking() {
         do {
             locationProvider.lm.allowsBackgroundLocationUpdates = false
@@ -924,6 +951,6 @@ struct FrejView: View {
 
 struct Previews_FrejView_Previews: PreviewProvider {
     static var previews: some View {
-        FrejView(fake: true)
+        FrejView(weatherSource: .fake)
     }
 }
