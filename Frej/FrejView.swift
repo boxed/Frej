@@ -10,7 +10,6 @@ private let circle_inner_diameter = 3.7
 private let cloud_ray_density = 0.20
 private let cloud_diameter = 3.0
 private let cloud_diameter2 = 2.98
-private let cloud_size: CGFloat = 15
 private let cloud_wiggle_size = 1.02
 private let bolt_diameter = 3.1
 private let bolt_diameter2 = 3.7
@@ -421,6 +420,9 @@ struct Clock : View {
             let weekday = calendar.dateComponents([.weekday], from: startTime).weekday!
             let weekdayStr: String = start == 0 ? "Today" : start % 24 == 0 ? weekday_number_to_string[weekday]! : ""
             
+            let cloud_size: CGFloat = geometry.size.height / 25
+
+            
             ZStack {
                 Night(start: start, sunrise: sunrise[startTime.getNaiveDate()], sunset: sunset[startTime.getNaiveDate()])
                 Daylight(start: start, sunrise: sunrise[startTime.getNaiveDate()], sunset: sunset[startTime.getNaiveDate()])
@@ -502,6 +504,16 @@ struct Clock : View {
                             Rays(a: cloud_diameter, b: cloud_diameter2, ray_density: cloud_ray_density, wiggle_c: true, start_degree: from + 0.5, end_degree: to + 0.5, wiggle_size: cloud_wiggle_size)
                                 .stroke(dark_cloud_color, style: StrokeStyle(lineWidth: cloud_size, lineCap: .round))
                         }
+                        
+//                        if weather.weatherType == .wind {
+//                            let time = datetimeToday(hour: id + start)
+//                            let hour = Calendar.current.dateComponents([.hour], from: time).hour!
+//                            let radians : CGFloat = CGFloat.pi - 2.0 * CGFloat.pi / 12.0 * CGFloat(id)
+//                            let size : CGFloat = frame.height * 0.31
+//                            let x = sin(radians) * size + frame.width / 2
+//                            let y = cos(radians) * size + frame.height / 2
+//                            Wind().stroke(.black, lineWidth: 44).fill(.gray).rotationEffect(Angle.degrees(Double(hour) * 30.0)).scaleEffect(0.07).position(x: x, y: y)
+//                        }
 
                         Temperature(weather: weather, start: start, frame: frame, id: id, unit: unit)
                     }
@@ -750,7 +762,7 @@ struct FrejView: View {
         self.weather[now.set(hour:  5)!] = Weather(time: now.set(hour:  5)!, temperature:  26, weatherType:       .cloud, rainMillimeter:100, isDay: false)
         self.weather[now.set(hour:  6)!] = Weather(time: now.set(hour:  6)!, temperature:  27, weatherType:.  lightCloud, rainMillimeter:  1, isDay: false)
         self.weather[now.set(hour:  7)!] = Weather(time: now.set(hour:  7)!, temperature:  32, weatherType:        .rain, rainMillimeter:  0, isDay:  true)
-        self.weather[now.set(hour:  8)!] = Weather(time: now.set(hour:  8)!, temperature:   8, weatherType:        .wind, rainMillimeter: 10, isDay:  true)
+        self.weather[now.set(hour:  8)!] = Weather(time: now.set(hour:  8)!, temperature:   8, weatherType:        .wind, rainMillimeter: 0, isDay:  true)
         self.weather[now.set(hour:  9)!] = Weather(time: now.set(hour:  9)!, temperature:   9, weatherType:       .cloud, rainMillimeter:  0, isDay:  true)
         self.weather[now.set(hour: 10)!] = Weather(time: now.set(hour: 10)!, temperature:  10, weatherType:   .lightning, rainMillimeter:  0, isDay:  true)
         self.weather[now.set(hour: 11)!] = Weather(time: now.set(hour: 11)!, temperature:  11, weatherType:         .fog, rainMillimeter: 10, isDay:  true)

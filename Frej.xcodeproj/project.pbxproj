@@ -21,29 +21,7 @@
 		AE77F8532B7A85C6009FC286 /* Icon.swift in Sources */ = {isa = PBXBuildFile; fileRef = AE77F8522B7A85C6009FC286 /* Icon.swift */; };
 		AE77F8552B7FD34E009FC286 /* Moon.swift in Sources */ = {isa = PBXBuildFile; fileRef = AE77F8542B7FD34E009FC286 /* Moon.swift */; };
 		AE77F85A2B823119009FC286 /* Stars.swift in Sources */ = {isa = PBXBuildFile; fileRef = AE77F8592B823119009FC286 /* Stars.swift */; };
-		AE7FE29B272D355100104E4F /* FrejWatch WatchKit App.app in Embed Watch Content */ = {isa = PBXBuildFile; fileRef = AE7FE29A272D355100104E4F /* FrejWatch WatchKit App.app */; settings = {ATTRIBUTES = (RemoveHeadersOnCopy, ); }; };
-		AE7FE2A0272D355200104E4F /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = AE7FE29F272D355200104E4F /* Assets.xcassets */; };
-		AE7FE2A6272D355200104E4F /* FrejWatch WatchKit Extension.appex in Embed App Extensions */ = {isa = PBXBuildFile; fileRef = AE7FE2A5272D355200104E4F /* FrejWatch WatchKit Extension.appex */; settings = {ATTRIBUTES = (RemoveHeadersOnCopy, ); }; };
-		AE7FE2AB272D355200104E4F /* ContentView.swift in Sources */ = {isa = PBXBuildFile; fileRef = AE7FE2AA272D355200104E4F /* ContentView.swift */; };
-		AE7FE2AD272D355200104E4F /* FrejApp.swift in Sources */ = {isa = PBXBuildFile; fileRef = AE7FE2AC272D355200104E4F /* FrejApp.swift */; };
-		AE7FE2AF272D355200104E4F /* ComplicationController.swift in Sources */ = {isa = PBXBuildFile; fileRef = AE7FE2AE272D355200104E4F /* ComplicationController.swift */; };
-		AE7FE2B1272D355300104E4F /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = AE7FE2B0272D355300104E4F /* Assets.xcassets */; };
-		AE7FE2B4272D355300104E4F /* Preview Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = AE7FE2B3272D355300104E4F /* Preview Assets.xcassets */; };
-		AE7FE2C1272D3B7F00104E4F /* Icons.swift in Sources */ = {isa = PBXBuildFile; fileRef = AE7344D126FE261A0048EABF /* Icons.swift */; };
-		AE7FE2C2272D3B8600104E4F /* ColorHex.swift in Sources */ = {isa = PBXBuildFile; fileRef = AE7344D326FF034F0048EABF /* ColorHex.swift */; };
-		AE7FE2C3272D3B8900104E4F /* NaiveDate.swift in Sources */ = {isa = PBXBuildFile; fileRef = AEBD6CE32711818D007B9772 /* NaiveDate.swift */; };
-		AE7FE2C4272D3B8D00104E4F /* Weather.swift in Sources */ = {isa = PBXBuildFile; fileRef = AE713EB9264DB79B00A712A7 /* Weather.swift */; };
-		AE7FE2C5272D3B9000104E4F /* LocationProvider.swift in Sources */ = {isa = PBXBuildFile; fileRef = AE713EB7264DACC100A712A7 /* LocationProvider.swift */; };
-		AE7FE2C6272D3B9300104E4F /* DateFromComponents.swift in Sources */ = {isa = PBXBuildFile; fileRef = AE7344D526FF37D50048EABF /* DateFromComponents.swift */; };
 		AE7FE2C8272D3C1E00104E4F /* FrejView.swift in Sources */ = {isa = PBXBuildFile; fileRef = AE7FE2C7272D3C1E00104E4F /* FrejView.swift */; };
-		AE7FE2C9272D3C7D00104E4F /* FrejView.swift in Sources */ = {isa = PBXBuildFile; fileRef = AE7FE2C7272D3C1E00104E4F /* FrejView.swift */; };
-		AE88C70428D20ADA00D33D60 /* WidgetKit.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = AE88C70328D20ADA00D33D60 /* WidgetKit.framework */; };
-		AE88C70628D20ADA00D33D60 /* SwiftUI.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = AE88C70528D20ADA00D33D60 /* SwiftUI.framework */; };
-		AE88C70928D20ADA00D33D60 /* Widget.swift in Sources */ = {isa = PBXBuildFile; fileRef = AE88C70828D20ADA00D33D60 /* Widget.swift */; };
-		AE88C70C28D20ADD00D33D60 /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = AE88C70B28D20ADD00D33D60 /* Assets.xcassets */; };
-		AE88C70E28D20ADD00D33D60 /* Widget.intentdefinition in Sources */ = {isa = PBXBuildFile; fileRef = AE88C70A28D20ADA00D33D60 /* Widget.intentdefinition */; };
-		AE88C70F28D20ADD00D33D60 /* Widget.intentdefinition in Sources */ = {isa = PBXBuildFile; fileRef = AE88C70A28D20ADA00D33D60 /* Widget.intentdefinition */; };
-		AE88C71328D20ADD00D33D60 /* WidgetExtension.appex in Embed App Extensions */ = {isa = PBXBuildFile; fileRef = AE88C70128D20ADA00D33D60 /* WidgetExtension.appex */; settings = {ATTRIBUTES = (RemoveHeadersOnCopy, ); }; };
 		AEBD6CE42711818D007B9772 /* NaiveDate.swift in Sources */ = {isa = PBXBuildFile; fileRef = AEBD6CE32711818D007B9772 /* NaiveDate.swift */; };
 /* End PBXBuildFile section */
 
@@ -62,59 +40,15 @@
 			remoteGlobalIDString = AE713E882649FFFC00A712A7;
 			remoteInfo = Frej;
 		};
-		AE7FE29C272D355100104E4F /* PBXContainerItemProxy */ = {
-			isa = PBXContainerItemProxy;
-			containerPortal = AE713E812649FFFC00A712A7 /* Project object */;
-			proxyType = 1;
-			remoteGlobalIDString = AE7FE299272D355100104E4F;
-			remoteInfo = "FrejWatch WatchKit App";
-		};
-		AE7FE2A7272D355200104E4F /* PBXContainerItemProxy */ = {
-			isa = PBXContainerItemProxy;
-			containerPortal = AE713E812649FFFC00A712A7 /* Project object */;
-			proxyType = 1;
-			remoteGlobalIDString = AE7FE2A4272D355200104E4F;
-			remoteInfo = "FrejWatch WatchKit Extension";
-		};
-		AE88C71028D20ADD00D33D60 /* PBXContainerItemProxy */ = {
-			isa = PBXContainerItemProxy;
-			containerPortal = AE713E812649FFFC00A712A7 /* Project object */;
-			proxyType = 1;
-			remoteGlobalIDString = AE88C70028D20ADA00D33D60;
-			remoteInfo = WidgetExtension;
-		};
 /* End PBXContainerItemProxy section */
 
 /* Begin PBXCopyFilesBuildPhase section */
-		AE7FE2B8272D355300104E4F /* Embed Watch Content */ = {
-			isa = PBXCopyFilesBuildPhase;
-			buildActionMask = 2147483647;
-			dstPath = "$(CONTENTS_FOLDER_PATH)/Watch";
-			dstSubfolderSpec = 16;
-			files = (
-				AE7FE29B272D355100104E4F /* FrejWatch WatchKit App.app in Embed Watch Content */,
-			);
-			name = "Embed Watch Content";
-			runOnlyForDeploymentPostprocessing = 0;
-		};
-		AE7FE2BB272D355300104E4F /* Embed App Extensions */ = {
-			isa = PBXCopyFilesBuildPhase;
-			buildActionMask = 2147483647;
-			dstPath = "";
-			dstSubfolderSpec = 13;
-			files = (
-				AE7FE2A6272D355200104E4F /* FrejWatch WatchKit Extension.appex in Embed App Extensions */,
-			);
-			name = "Embed App Extensions";
-			runOnlyForDeploymentPostprocessing = 0;
-		};
 		AE88C71228D20ADD00D33D60 /* Embed App Extensions */ = {
 			isa = PBXCopyFilesBuildPhase;
 			buildActionMask = 2147483647;
 			dstPath = "";
 			dstSubfolderSpec = 13;
 			files = (
-				AE88C71328D20ADD00D33D60 /* WidgetExtension.appex in Embed App Extensions */,
 			);
 			name = "Embed App Extensions";
 			runOnlyForDeploymentPostprocessing = 0;
@@ -143,25 +77,9 @@
 		AE77F8522B7A85C6009FC286 /* Icon.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Icon.swift; sourceTree = "<group>"; };
 		AE77F8542B7FD34E009FC286 /* Moon.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Moon.swift; sourceTree = "<group>"; };
 		AE77F8592B823119009FC286 /* Stars.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Stars.swift; sourceTree = "<group>"; };
-		AE7FE297272D355100104E4F /* FrejWatch.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = FrejWatch.app; sourceTree = BUILT_PRODUCTS_DIR; };
-		AE7FE29A272D355100104E4F /* FrejWatch WatchKit App.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = "FrejWatch WatchKit App.app"; sourceTree = BUILT_PRODUCTS_DIR; };
-		AE7FE29F272D355200104E4F /* Assets.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = Assets.xcassets; sourceTree = "<group>"; };
-		AE7FE2A5272D355200104E4F /* FrejWatch WatchKit Extension.appex */ = {isa = PBXFileReference; explicitFileType = "wrapper.app-extension"; includeInIndex = 0; path = "FrejWatch WatchKit Extension.appex"; sourceTree = BUILT_PRODUCTS_DIR; };
-		AE7FE2AA272D355200104E4F /* ContentView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ContentView.swift; sourceTree = "<group>"; };
-		AE7FE2AC272D355200104E4F /* FrejApp.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FrejApp.swift; sourceTree = "<group>"; };
-		AE7FE2AE272D355200104E4F /* ComplicationController.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ComplicationController.swift; sourceTree = "<group>"; };
-		AE7FE2B0272D355300104E4F /* Assets.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = Assets.xcassets; sourceTree = "<group>"; };
-		AE7FE2B3272D355300104E4F /* Preview Assets.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = "Preview Assets.xcassets"; sourceTree = "<group>"; };
-		AE7FE2B5272D355300104E4F /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist.xml; path = Info.plist; sourceTree = "<group>"; };
 		AE7FE2C7272D3C1E00104E4F /* FrejView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FrejView.swift; sourceTree = "<group>"; };
-		AE88C70128D20ADA00D33D60 /* WidgetExtension.appex */ = {isa = PBXFileReference; explicitFileType = "wrapper.app-extension"; includeInIndex = 0; path = WidgetExtension.appex; sourceTree = BUILT_PRODUCTS_DIR; };
 		AE88C70328D20ADA00D33D60 /* WidgetKit.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = WidgetKit.framework; path = System/Library/Frameworks/WidgetKit.framework; sourceTree = SDKROOT; };
 		AE88C70528D20ADA00D33D60 /* SwiftUI.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = SwiftUI.framework; path = System/Library/Frameworks/SwiftUI.framework; sourceTree = SDKROOT; };
-		AE88C70828D20ADA00D33D60 /* Widget.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Widget.swift; sourceTree = "<group>"; };
-		AE88C70A28D20ADA00D33D60 /* Widget.intentdefinition */ = {isa = PBXFileReference; lastKnownFileType = file.intentdefinition; path = Widget.intentdefinition; sourceTree = "<group>"; };
-		AE88C70B28D20ADD00D33D60 /* Assets.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = Assets.xcassets; sourceTree = "<group>"; };
-		AE88C70D28D20ADD00D33D60 /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist.xml; path = Info.plist; sourceTree = "<group>"; };
-		AE88C71428D20ADD00D33D60 /* WidgetExtension.entitlements */ = {isa = PBXFileReference; lastKnownFileType = text.plist.entitlements; path = WidgetExtension.entitlements; sourceTree = "<group>"; };
 		AEBD6CE32711818D007B9772 /* NaiveDate.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = NaiveDate.swift; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
@@ -187,35 +105,15 @@
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
-		AE7FE2A2272D355200104E4F /* Frameworks */ = {
-			isa = PBXFrameworksBuildPhase;
-			buildActionMask = 2147483647;
-			files = (
-			);
-			runOnlyForDeploymentPostprocessing = 0;
-		};
-		AE88C6FE28D20ADA00D33D60 /* Frameworks */ = {
-			isa = PBXFrameworksBuildPhase;
-			buildActionMask = 2147483647;
-			files = (
-				AE88C70628D20ADA00D33D60 /* SwiftUI.framework in Frameworks */,
-				AE88C70428D20ADA00D33D60 /* WidgetKit.framework in Frameworks */,
-			);
-			runOnlyForDeploymentPostprocessing = 0;
-		};
 /* End PBXFrameworksBuildPhase section */
 
 /* Begin PBXGroup section */
 		AE713E802649FFFC00A712A7 = {
 			isa = PBXGroup;
 			children = (
-				AE88C71428D20ADD00D33D60 /* WidgetExtension.entitlements */,
 				AE713E8B2649FFFC00A712A7 /* Frej */,
 				AE713E9D2649FFFD00A712A7 /* FrejTests */,
 				AE713EA82649FFFD00A712A7 /* FrejUITests */,
-				AE7FE29E272D355100104E4F /* FrejWatch WatchKit App */,
-				AE7FE2A9272D355200104E4F /* FrejWatch WatchKit Extension */,
-				AE88C70728D20ADA00D33D60 /* Widget */,
 				AE88C70228D20ADA00D33D60 /* Frameworks */,
 				AE713E8A2649FFFC00A712A7 /* Products */,
 			);
@@ -227,10 +125,6 @@
 				AE713E892649FFFC00A712A7 /* Frej.app */,
 				AE713E9A2649FFFD00A712A7 /* FrejTests.xctest */,
 				AE713EA52649FFFD00A712A7 /* FrejUITests.xctest */,
-				AE7FE297272D355100104E4F /* FrejWatch.app */,
-				AE7FE29A272D355100104E4F /* FrejWatch WatchKit App.app */,
-				AE7FE2A5272D355200104E4F /* FrejWatch WatchKit Extension.appex */,
-				AE88C70128D20ADA00D33D60 /* WidgetExtension.appex */,
 			);
 			name = Products;
 			sourceTree = "<group>";
@@ -284,35 +178,6 @@
 			path = FrejUITests;
 			sourceTree = "<group>";
 		};
-		AE7FE29E272D355100104E4F /* FrejWatch WatchKit App */ = {
-			isa = PBXGroup;
-			children = (
-				AE7FE29F272D355200104E4F /* Assets.xcassets */,
-			);
-			path = "FrejWatch WatchKit App";
-			sourceTree = "<group>";
-		};
-		AE7FE2A9272D355200104E4F /* FrejWatch WatchKit Extension */ = {
-			isa = PBXGroup;
-			children = (
-				AE7FE2AA272D355200104E4F /* ContentView.swift */,
-				AE7FE2AC272D355200104E4F /* FrejApp.swift */,
-				AE7FE2AE272D355200104E4F /* ComplicationController.swift */,
-				AE7FE2B0272D355300104E4F /* Assets.xcassets */,
-				AE7FE2B5272D355300104E4F /* Info.plist */,
-				AE7FE2B2272D355300104E4F /* Preview Content */,
-			);
-			path = "FrejWatch WatchKit Extension";
-			sourceTree = "<group>";
-		};
-		AE7FE2B2272D355300104E4F /* Preview Content */ = {
-			isa = PBXGroup;
-			children = (
-				AE7FE2B3272D355300104E4F /* Preview Assets.xcassets */,
-			);
-			path = "Preview Content";
-			sourceTree = "<group>";
-		};
 		AE88C70228D20ADA00D33D60 /* Frameworks */ = {
 			isa = PBXGroup;
 			children = (
@@ -320,17 +185,6 @@
 				AE88C70528D20ADA00D33D60 /* SwiftUI.framework */,
 			);
 			name = Frameworks;
-			sourceTree = "<group>";
-		};
-		AE88C70728D20ADA00D33D60 /* Widget */ = {
-			isa = PBXGroup;
-			children = (
-				AE88C70828D20ADA00D33D60 /* Widget.swift */,
-				AE88C70A28D20ADA00D33D60 /* Widget.intentdefinition */,
-				AE88C70B28D20ADD00D33D60 /* Assets.xcassets */,
-				AE88C70D28D20ADD00D33D60 /* Info.plist */,
-			);
-			path = Widget;
 			sourceTree = "<group>";
 		};
 /* End PBXGroup section */
@@ -348,7 +202,6 @@
 			buildRules = (
 			);
 			dependencies = (
-				AE88C71128D20ADD00D33D60 /* PBXTargetDependency */,
 			);
 			name = Frej;
 			packageProductDependencies = (
@@ -393,74 +246,6 @@
 			productReference = AE713EA52649FFFD00A712A7 /* FrejUITests.xctest */;
 			productType = "com.apple.product-type.bundle.ui-testing";
 		};
-		AE7FE296272D355100104E4F /* FrejWatch */ = {
-			isa = PBXNativeTarget;
-			buildConfigurationList = AE7FE2C0272D355300104E4F /* Build configuration list for PBXNativeTarget "FrejWatch" */;
-			buildPhases = (
-				AE7FE295272D355100104E4F /* Resources */,
-				AE7FE2B8272D355300104E4F /* Embed Watch Content */,
-			);
-			buildRules = (
-			);
-			dependencies = (
-				AE7FE29D272D355100104E4F /* PBXTargetDependency */,
-			);
-			name = FrejWatch;
-			productName = FrejWatch;
-			productReference = AE7FE297272D355100104E4F /* FrejWatch.app */;
-			productType = "com.apple.product-type.application.watchapp2-container";
-		};
-		AE7FE299272D355100104E4F /* FrejWatch WatchKit App */ = {
-			isa = PBXNativeTarget;
-			buildConfigurationList = AE7FE2BF272D355300104E4F /* Build configuration list for PBXNativeTarget "FrejWatch WatchKit App" */;
-			buildPhases = (
-				AE7FE298272D355100104E4F /* Resources */,
-				AE7FE2BB272D355300104E4F /* Embed App Extensions */,
-			);
-			buildRules = (
-			);
-			dependencies = (
-				AE7FE2A8272D355200104E4F /* PBXTargetDependency */,
-			);
-			name = "FrejWatch WatchKit App";
-			productName = "FrejWatch WatchKit App";
-			productReference = AE7FE29A272D355100104E4F /* FrejWatch WatchKit App.app */;
-			productType = "com.apple.product-type.application.watchapp2";
-		};
-		AE7FE2A4272D355200104E4F /* FrejWatch WatchKit Extension */ = {
-			isa = PBXNativeTarget;
-			buildConfigurationList = AE7FE2BE272D355300104E4F /* Build configuration list for PBXNativeTarget "FrejWatch WatchKit Extension" */;
-			buildPhases = (
-				AE7FE2A1272D355200104E4F /* Sources */,
-				AE7FE2A2272D355200104E4F /* Frameworks */,
-				AE7FE2A3272D355200104E4F /* Resources */,
-			);
-			buildRules = (
-			);
-			dependencies = (
-			);
-			name = "FrejWatch WatchKit Extension";
-			productName = "FrejWatch WatchKit Extension";
-			productReference = AE7FE2A5272D355200104E4F /* FrejWatch WatchKit Extension.appex */;
-			productType = "com.apple.product-type.watchkit2-extension";
-		};
-		AE88C70028D20ADA00D33D60 /* WidgetExtension */ = {
-			isa = PBXNativeTarget;
-			buildConfigurationList = AE88C71728D20ADD00D33D60 /* Build configuration list for PBXNativeTarget "WidgetExtension" */;
-			buildPhases = (
-				AE88C6FD28D20ADA00D33D60 /* Sources */,
-				AE88C6FE28D20ADA00D33D60 /* Frameworks */,
-				AE88C6FF28D20ADA00D33D60 /* Resources */,
-			);
-			buildRules = (
-			);
-			dependencies = (
-			);
-			name = WidgetExtension;
-			productName = WidgetExtension;
-			productReference = AE88C70128D20ADA00D33D60 /* WidgetExtension.appex */;
-			productType = "com.apple.product-type.app-extension";
-		};
 /* End PBXNativeTarget section */
 
 /* Begin PBXProject section */
@@ -480,18 +265,6 @@
 					AE713EA42649FFFD00A712A7 = {
 						CreatedOnToolsVersion = 12.5;
 						TestTargetID = AE713E882649FFFC00A712A7;
-					};
-					AE7FE296272D355100104E4F = {
-						CreatedOnToolsVersion = 13.1;
-					};
-					AE7FE299272D355100104E4F = {
-						CreatedOnToolsVersion = 13.1;
-					};
-					AE7FE2A4272D355200104E4F = {
-						CreatedOnToolsVersion = 13.1;
-					};
-					AE88C70028D20ADA00D33D60 = {
-						CreatedOnToolsVersion = 13.4.1;
 					};
 				};
 			};
@@ -513,10 +286,6 @@
 				AE713E882649FFFC00A712A7 /* Frej */,
 				AE713E992649FFFD00A712A7 /* FrejTests */,
 				AE713EA42649FFFD00A712A7 /* FrejUITests */,
-				AE7FE296272D355100104E4F /* FrejWatch */,
-				AE7FE299272D355100104E4F /* FrejWatch WatchKit App */,
-				AE7FE2A4272D355200104E4F /* FrejWatch WatchKit Extension */,
-				AE88C70028D20ADA00D33D60 /* WidgetExtension */,
 			);
 		};
 /* End PBXProject section */
@@ -545,38 +314,6 @@
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
-		AE7FE295272D355100104E4F /* Resources */ = {
-			isa = PBXResourcesBuildPhase;
-			buildActionMask = 2147483647;
-			files = (
-			);
-			runOnlyForDeploymentPostprocessing = 0;
-		};
-		AE7FE298272D355100104E4F /* Resources */ = {
-			isa = PBXResourcesBuildPhase;
-			buildActionMask = 2147483647;
-			files = (
-				AE7FE2A0272D355200104E4F /* Assets.xcassets in Resources */,
-			);
-			runOnlyForDeploymentPostprocessing = 0;
-		};
-		AE7FE2A3272D355200104E4F /* Resources */ = {
-			isa = PBXResourcesBuildPhase;
-			buildActionMask = 2147483647;
-			files = (
-				AE7FE2B4272D355300104E4F /* Preview Assets.xcassets in Resources */,
-				AE7FE2B1272D355300104E4F /* Assets.xcassets in Resources */,
-			);
-			runOnlyForDeploymentPostprocessing = 0;
-		};
-		AE88C6FF28D20ADA00D33D60 /* Resources */ = {
-			isa = PBXResourcesBuildPhase;
-			buildActionMask = 2147483647;
-			files = (
-				AE88C70C28D20ADD00D33D60 /* Assets.xcassets in Resources */,
-			);
-			runOnlyForDeploymentPostprocessing = 0;
-		};
 /* End PBXResourcesBuildPhase section */
 
 /* Begin PBXSourcesBuildPhase section */
@@ -588,7 +325,6 @@
 				AE7344D426FF03500048EABF /* ColorHex.swift in Sources */,
 				AE713E8F2649FFFC00A712A7 /* ContentView.swift in Sources */,
 				AEBD6CE42711818D007B9772 /* NaiveDate.swift in Sources */,
-				AE88C70F28D20ADD00D33D60 /* Widget.intentdefinition in Sources */,
 				AE713EBA264DB79B00A712A7 /* Weather.swift in Sources */,
 				AE7FE2C8272D3C1E00104E4F /* FrejView.swift in Sources */,
 				AE7344D226FE261A0048EABF /* Icons.swift in Sources */,
@@ -616,32 +352,6 @@
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
-		AE7FE2A1272D355200104E4F /* Sources */ = {
-			isa = PBXSourcesBuildPhase;
-			buildActionMask = 2147483647;
-			files = (
-				AE7FE2C6272D3B9300104E4F /* DateFromComponents.swift in Sources */,
-				AE7FE2C9272D3C7D00104E4F /* FrejView.swift in Sources */,
-				AE7FE2AD272D355200104E4F /* FrejApp.swift in Sources */,
-				AE7FE2C2272D3B8600104E4F /* ColorHex.swift in Sources */,
-				AE7FE2AB272D355200104E4F /* ContentView.swift in Sources */,
-				AE7FE2C1272D3B7F00104E4F /* Icons.swift in Sources */,
-				AE7FE2AF272D355200104E4F /* ComplicationController.swift in Sources */,
-				AE7FE2C5272D3B9000104E4F /* LocationProvider.swift in Sources */,
-				AE7FE2C3272D3B8900104E4F /* NaiveDate.swift in Sources */,
-				AE7FE2C4272D3B8D00104E4F /* Weather.swift in Sources */,
-			);
-			runOnlyForDeploymentPostprocessing = 0;
-		};
-		AE88C6FD28D20ADA00D33D60 /* Sources */ = {
-			isa = PBXSourcesBuildPhase;
-			buildActionMask = 2147483647;
-			files = (
-				AE88C70E28D20ADD00D33D60 /* Widget.intentdefinition in Sources */,
-				AE88C70928D20ADA00D33D60 /* Widget.swift in Sources */,
-			);
-			runOnlyForDeploymentPostprocessing = 0;
-		};
 /* End PBXSourcesBuildPhase section */
 
 /* Begin PBXTargetDependency section */
@@ -654,21 +364,6 @@
 			isa = PBXTargetDependency;
 			target = AE713E882649FFFC00A712A7 /* Frej */;
 			targetProxy = AE713EA62649FFFD00A712A7 /* PBXContainerItemProxy */;
-		};
-		AE7FE29D272D355100104E4F /* PBXTargetDependency */ = {
-			isa = PBXTargetDependency;
-			target = AE7FE299272D355100104E4F /* FrejWatch WatchKit App */;
-			targetProxy = AE7FE29C272D355100104E4F /* PBXContainerItemProxy */;
-		};
-		AE7FE2A8272D355200104E4F /* PBXTargetDependency */ = {
-			isa = PBXTargetDependency;
-			target = AE7FE2A4272D355200104E4F /* FrejWatch WatchKit Extension */;
-			targetProxy = AE7FE2A7272D355200104E4F /* PBXContainerItemProxy */;
-		};
-		AE88C71128D20ADD00D33D60 /* PBXTargetDependency */ = {
-			isa = PBXTargetDependency;
-			target = AE88C70028D20ADA00D33D60 /* WidgetExtension */;
-			targetProxy = AE88C71028D20ADD00D33D60 /* PBXContainerItemProxy */;
 		};
 /* End PBXTargetDependency section */
 
@@ -724,7 +419,7 @@
 				GCC_WARN_UNINITIALIZED_AUTOS = YES_AGGRESSIVE;
 				GCC_WARN_UNUSED_FUNCTION = YES;
 				GCC_WARN_UNUSED_VARIABLE = YES;
-				IPHONEOS_DEPLOYMENT_TARGET = 14.5;
+				IPHONEOS_DEPLOYMENT_TARGET = 17;
 				MTL_ENABLE_DEBUG_INFO = INCLUDE_SOURCE;
 				MTL_FAST_MATH = YES;
 				ONLY_ACTIVE_ARCH = YES;
@@ -779,7 +474,7 @@
 				GCC_WARN_UNINITIALIZED_AUTOS = YES_AGGRESSIVE;
 				GCC_WARN_UNUSED_FUNCTION = YES;
 				GCC_WARN_UNUSED_VARIABLE = YES;
-				IPHONEOS_DEPLOYMENT_TARGET = 14.5;
+				IPHONEOS_DEPLOYMENT_TARGET = 17;
 				MTL_ENABLE_DEBUG_INFO = NO;
 				MTL_FAST_MATH = YES;
 				SDKROOT = iphoneos;
@@ -792,23 +487,22 @@
 		AE713EAF2649FFFD00A712A7 /* Debug */ = {
 			isa = XCBuildConfiguration;
 			buildSettings = {
-				ALWAYS_EMBED_SWIFT_STANDARD_LIBRARIES = YES;
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
 				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
 				ASSETCATALOG_COMPILER_INCLUDE_ALL_APPICON_ASSETS = NO;
 				CODE_SIGN_ENTITLEMENTS = Frej/Frej.entitlements;
 				CODE_SIGN_STYLE = Automatic;
-				CURRENT_PROJECT_VERSION = 4;
+				CURRENT_PROJECT_VERSION = 5;
 				DEVELOPMENT_ASSET_PATHS = "\"Frej/Preview Content\"";
 				DEVELOPMENT_TEAM = B6FVY827P9;
 				ENABLE_PREVIEWS = YES;
 				INFOPLIST_FILE = Frej/Info.plist;
-				IPHONEOS_DEPLOYMENT_TARGET = 17.0;
+				IPHONEOS_DEPLOYMENT_TARGET = 17;
 				LD_RUNPATH_SEARCH_PATHS = (
 					"$(inherited)",
 					"@executable_path/Frameworks",
 				);
-				MARKETING_VERSION = 4.0;
+				MARKETING_VERSION = 5.0;
 				PRODUCT_BUNDLE_IDENTIFIER = net.kodare.sunhail;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				SUPPORTS_MACCATALYST = YES;
@@ -820,23 +514,22 @@
 		AE713EB02649FFFD00A712A7 /* Release */ = {
 			isa = XCBuildConfiguration;
 			buildSettings = {
-				ALWAYS_EMBED_SWIFT_STANDARD_LIBRARIES = YES;
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
 				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
 				ASSETCATALOG_COMPILER_INCLUDE_ALL_APPICON_ASSETS = NO;
 				CODE_SIGN_ENTITLEMENTS = Frej/Frej.entitlements;
 				CODE_SIGN_STYLE = Automatic;
-				CURRENT_PROJECT_VERSION = 4;
+				CURRENT_PROJECT_VERSION = 5;
 				DEVELOPMENT_ASSET_PATHS = "\"Frej/Preview Content\"";
 				DEVELOPMENT_TEAM = B6FVY827P9;
 				ENABLE_PREVIEWS = YES;
 				INFOPLIST_FILE = Frej/Info.plist;
-				IPHONEOS_DEPLOYMENT_TARGET = 17.0;
+				IPHONEOS_DEPLOYMENT_TARGET = 17;
 				LD_RUNPATH_SEARCH_PATHS = (
 					"$(inherited)",
 					"@executable_path/Frameworks",
 				);
-				MARKETING_VERSION = 4.0;
+				MARKETING_VERSION = 5.0;
 				PRODUCT_BUNDLE_IDENTIFIER = net.kodare.sunhail;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				SUPPORTS_MACCATALYST = YES;
@@ -931,216 +624,6 @@
 			};
 			name = Release;
 		};
-		AE7FE2B6272D355300104E4F /* Debug */ = {
-			isa = XCBuildConfiguration;
-			buildSettings = {
-				CLANG_CXX_LANGUAGE_STANDARD = "gnu++17";
-				CODE_SIGN_STYLE = Automatic;
-				CURRENT_PROJECT_VERSION = 1;
-				DEVELOPMENT_TEAM = B6FVY827P9;
-				IPHONEOS_DEPLOYMENT_TARGET = 17.0;
-				MARKETING_VERSION = 1.0;
-				PRODUCT_BUNDLE_IDENTIFIER = net.kodare.FrejWatch;
-				PRODUCT_NAME = "$(TARGET_NAME)";
-				SWIFT_VERSION = 5.0;
-			};
-			name = Debug;
-		};
-		AE7FE2B7272D355300104E4F /* Release */ = {
-			isa = XCBuildConfiguration;
-			buildSettings = {
-				CLANG_CXX_LANGUAGE_STANDARD = "gnu++17";
-				CODE_SIGN_STYLE = Automatic;
-				CURRENT_PROJECT_VERSION = 1;
-				DEVELOPMENT_TEAM = B6FVY827P9;
-				IPHONEOS_DEPLOYMENT_TARGET = 17.0;
-				MARKETING_VERSION = 1.0;
-				PRODUCT_BUNDLE_IDENTIFIER = net.kodare.FrejWatch;
-				PRODUCT_NAME = "$(TARGET_NAME)";
-				SWIFT_VERSION = 5.0;
-			};
-			name = Release;
-		};
-		AE7FE2B9272D355300104E4F /* Debug */ = {
-			isa = XCBuildConfiguration;
-			buildSettings = {
-				ALWAYS_EMBED_SWIFT_STANDARD_LIBRARIES = YES;
-				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
-				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
-				CLANG_CXX_LANGUAGE_STANDARD = "gnu++17";
-				CODE_SIGN_STYLE = Automatic;
-				CURRENT_PROJECT_VERSION = 1;
-				DEVELOPMENT_TEAM = B6FVY827P9;
-				GENERATE_INFOPLIST_FILE = YES;
-				IBSC_MODULE = FrejWatch_WatchKit_Extension;
-				INFOPLIST_KEY_CFBundleDisplayName = "FrejWatch WatchKit App";
-				INFOPLIST_KEY_UISupportedInterfaceOrientations = "UIInterfaceOrientationPortrait UIInterfaceOrientationPortraitUpsideDown";
-				MARKETING_VERSION = 1.0;
-				PRODUCT_BUNDLE_IDENTIFIER = net.kodare.FrejWatch.watchkitapp;
-				PRODUCT_NAME = "$(TARGET_NAME)";
-				SDKROOT = watchos;
-				SKIP_INSTALL = YES;
-				SWIFT_EMIT_LOC_STRINGS = YES;
-				SWIFT_VERSION = 5.0;
-				TARGETED_DEVICE_FAMILY = 4;
-				WATCHOS_DEPLOYMENT_TARGET = 8.0;
-			};
-			name = Debug;
-		};
-		AE7FE2BA272D355300104E4F /* Release */ = {
-			isa = XCBuildConfiguration;
-			buildSettings = {
-				ALWAYS_EMBED_SWIFT_STANDARD_LIBRARIES = YES;
-				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
-				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
-				CLANG_CXX_LANGUAGE_STANDARD = "gnu++17";
-				CODE_SIGN_STYLE = Automatic;
-				CURRENT_PROJECT_VERSION = 1;
-				DEVELOPMENT_TEAM = B6FVY827P9;
-				GENERATE_INFOPLIST_FILE = YES;
-				IBSC_MODULE = FrejWatch_WatchKit_Extension;
-				INFOPLIST_KEY_CFBundleDisplayName = "FrejWatch WatchKit App";
-				INFOPLIST_KEY_UISupportedInterfaceOrientations = "UIInterfaceOrientationPortrait UIInterfaceOrientationPortraitUpsideDown";
-				MARKETING_VERSION = 1.0;
-				PRODUCT_BUNDLE_IDENTIFIER = net.kodare.FrejWatch.watchkitapp;
-				PRODUCT_NAME = "$(TARGET_NAME)";
-				SDKROOT = watchos;
-				SKIP_INSTALL = YES;
-				SWIFT_EMIT_LOC_STRINGS = YES;
-				SWIFT_VERSION = 5.0;
-				TARGETED_DEVICE_FAMILY = 4;
-				WATCHOS_DEPLOYMENT_TARGET = 8.0;
-			};
-			name = Release;
-		};
-		AE7FE2BC272D355300104E4F /* Debug */ = {
-			isa = XCBuildConfiguration;
-			buildSettings = {
-				ASSETCATALOG_COMPILER_COMPLICATION_NAME = Complication;
-				CLANG_CXX_LANGUAGE_STANDARD = "gnu++17";
-				CODE_SIGN_STYLE = Automatic;
-				CURRENT_PROJECT_VERSION = 1;
-				DEVELOPMENT_ASSET_PATHS = "\"FrejWatch WatchKit Extension/Preview Content\"";
-				DEVELOPMENT_TEAM = B6FVY827P9;
-				ENABLE_PREVIEWS = YES;
-				GENERATE_INFOPLIST_FILE = YES;
-				INFOPLIST_FILE = "FrejWatch WatchKit Extension/Info.plist";
-				INFOPLIST_KEY_CFBundleDisplayName = "FrejWatch WatchKit Extension";
-				INFOPLIST_KEY_CLKComplicationPrincipalClass = "$(PRODUCT_MODULE_NAME).ComplicationController";
-				INFOPLIST_KEY_NSHumanReadableCopyright = "";
-				INFOPLIST_KEY_WKWatchOnly = YES;
-				LD_RUNPATH_SEARCH_PATHS = (
-					"$(inherited)",
-					"@executable_path/Frameworks",
-					"@executable_path/../../Frameworks",
-				);
-				MARKETING_VERSION = 1.0;
-				PRODUCT_BUNDLE_IDENTIFIER = net.kodare.FrejWatch.watchkitapp.watchkitextension;
-				PRODUCT_NAME = "${TARGET_NAME}";
-				SDKROOT = watchos;
-				SKIP_INSTALL = YES;
-				SWIFT_EMIT_LOC_STRINGS = YES;
-				SWIFT_VERSION = 5.0;
-				TARGETED_DEVICE_FAMILY = 4;
-				WATCHOS_DEPLOYMENT_TARGET = 8.0;
-			};
-			name = Debug;
-		};
-		AE7FE2BD272D355300104E4F /* Release */ = {
-			isa = XCBuildConfiguration;
-			buildSettings = {
-				ASSETCATALOG_COMPILER_COMPLICATION_NAME = Complication;
-				CLANG_CXX_LANGUAGE_STANDARD = "gnu++17";
-				CODE_SIGN_STYLE = Automatic;
-				CURRENT_PROJECT_VERSION = 1;
-				DEVELOPMENT_ASSET_PATHS = "\"FrejWatch WatchKit Extension/Preview Content\"";
-				DEVELOPMENT_TEAM = B6FVY827P9;
-				ENABLE_PREVIEWS = YES;
-				GENERATE_INFOPLIST_FILE = YES;
-				INFOPLIST_FILE = "FrejWatch WatchKit Extension/Info.plist";
-				INFOPLIST_KEY_CFBundleDisplayName = "FrejWatch WatchKit Extension";
-				INFOPLIST_KEY_CLKComplicationPrincipalClass = "$(PRODUCT_MODULE_NAME).ComplicationController";
-				INFOPLIST_KEY_NSHumanReadableCopyright = "";
-				INFOPLIST_KEY_WKWatchOnly = YES;
-				LD_RUNPATH_SEARCH_PATHS = (
-					"$(inherited)",
-					"@executable_path/Frameworks",
-					"@executable_path/../../Frameworks",
-				);
-				MARKETING_VERSION = 1.0;
-				PRODUCT_BUNDLE_IDENTIFIER = net.kodare.FrejWatch.watchkitapp.watchkitextension;
-				PRODUCT_NAME = "${TARGET_NAME}";
-				SDKROOT = watchos;
-				SKIP_INSTALL = YES;
-				SWIFT_EMIT_LOC_STRINGS = YES;
-				SWIFT_VERSION = 5.0;
-				TARGETED_DEVICE_FAMILY = 4;
-				WATCHOS_DEPLOYMENT_TARGET = 8.0;
-			};
-			name = Release;
-		};
-		AE88C71528D20ADD00D33D60 /* Debug */ = {
-			isa = XCBuildConfiguration;
-			buildSettings = {
-				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
-				ASSETCATALOG_COMPILER_WIDGET_BACKGROUND_COLOR_NAME = WidgetBackground;
-				CLANG_CXX_LANGUAGE_STANDARD = "gnu++17";
-				CODE_SIGN_ENTITLEMENTS = WidgetExtension.entitlements;
-				CODE_SIGN_STYLE = Automatic;
-				CURRENT_PROJECT_VERSION = 1;
-				DEVELOPMENT_TEAM = B6FVY827P9;
-				GENERATE_INFOPLIST_FILE = YES;
-				INFOPLIST_FILE = Widget/Info.plist;
-				INFOPLIST_KEY_CFBundleDisplayName = Widget;
-				INFOPLIST_KEY_NSHumanReadableCopyright = "";
-				IPHONEOS_DEPLOYMENT_TARGET = 17.0;
-				LD_RUNPATH_SEARCH_PATHS = (
-					"$(inherited)",
-					"@executable_path/Frameworks",
-					"@executable_path/../../Frameworks",
-				);
-				MARKETING_VERSION = 1.0;
-				PRODUCT_BUNDLE_IDENTIFIER = net.kodare.sunhail.Widget;
-				PRODUCT_NAME = "$(TARGET_NAME)";
-				SKIP_INSTALL = YES;
-				SUPPORTS_MACCATALYST = YES;
-				SWIFT_EMIT_LOC_STRINGS = YES;
-				SWIFT_VERSION = 5.0;
-				TARGETED_DEVICE_FAMILY = "1,2";
-			};
-			name = Debug;
-		};
-		AE88C71628D20ADD00D33D60 /* Release */ = {
-			isa = XCBuildConfiguration;
-			buildSettings = {
-				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
-				ASSETCATALOG_COMPILER_WIDGET_BACKGROUND_COLOR_NAME = WidgetBackground;
-				CLANG_CXX_LANGUAGE_STANDARD = "gnu++17";
-				CODE_SIGN_ENTITLEMENTS = WidgetExtension.entitlements;
-				CODE_SIGN_STYLE = Automatic;
-				CURRENT_PROJECT_VERSION = 1;
-				DEVELOPMENT_TEAM = B6FVY827P9;
-				GENERATE_INFOPLIST_FILE = YES;
-				INFOPLIST_FILE = Widget/Info.plist;
-				INFOPLIST_KEY_CFBundleDisplayName = Widget;
-				INFOPLIST_KEY_NSHumanReadableCopyright = "";
-				IPHONEOS_DEPLOYMENT_TARGET = 17.0;
-				LD_RUNPATH_SEARCH_PATHS = (
-					"$(inherited)",
-					"@executable_path/Frameworks",
-					"@executable_path/../../Frameworks",
-				);
-				MARKETING_VERSION = 1.0;
-				PRODUCT_BUNDLE_IDENTIFIER = net.kodare.sunhail.Widget;
-				PRODUCT_NAME = "$(TARGET_NAME)";
-				SKIP_INSTALL = YES;
-				SUPPORTS_MACCATALYST = YES;
-				SWIFT_EMIT_LOC_STRINGS = YES;
-				SWIFT_VERSION = 5.0;
-				TARGETED_DEVICE_FAMILY = "1,2";
-			};
-			name = Release;
-		};
 /* End XCBuildConfiguration section */
 
 /* Begin XCConfigurationList section */
@@ -1176,42 +659,6 @@
 			buildConfigurations = (
 				AE713EB52649FFFD00A712A7 /* Debug */,
 				AE713EB62649FFFD00A712A7 /* Release */,
-			);
-			defaultConfigurationIsVisible = 0;
-			defaultConfigurationName = Release;
-		};
-		AE7FE2BE272D355300104E4F /* Build configuration list for PBXNativeTarget "FrejWatch WatchKit Extension" */ = {
-			isa = XCConfigurationList;
-			buildConfigurations = (
-				AE7FE2BC272D355300104E4F /* Debug */,
-				AE7FE2BD272D355300104E4F /* Release */,
-			);
-			defaultConfigurationIsVisible = 0;
-			defaultConfigurationName = Release;
-		};
-		AE7FE2BF272D355300104E4F /* Build configuration list for PBXNativeTarget "FrejWatch WatchKit App" */ = {
-			isa = XCConfigurationList;
-			buildConfigurations = (
-				AE7FE2B9272D355300104E4F /* Debug */,
-				AE7FE2BA272D355300104E4F /* Release */,
-			);
-			defaultConfigurationIsVisible = 0;
-			defaultConfigurationName = Release;
-		};
-		AE7FE2C0272D355300104E4F /* Build configuration list for PBXNativeTarget "FrejWatch" */ = {
-			isa = XCConfigurationList;
-			buildConfigurations = (
-				AE7FE2B6272D355300104E4F /* Debug */,
-				AE7FE2B7272D355300104E4F /* Release */,
-			);
-			defaultConfigurationIsVisible = 0;
-			defaultConfigurationName = Release;
-		};
-		AE88C71728D20ADD00D33D60 /* Build configuration list for PBXNativeTarget "WidgetExtension" */ = {
-			isa = XCConfigurationList;
-			buildConfigurations = (
-				AE88C71528D20ADD00D33D60 /* Debug */,
-				AE88C71628D20ADD00D33D60 /* Release */,
 			);
 			defaultConfigurationIsVisible = 0;
 			defaultConfigurationName = Release;
