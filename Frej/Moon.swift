@@ -2,8 +2,8 @@ import Foundation
 import SwiftUI
 import CoreLocation
 
-private let moon_bg_color = Color(#colorLiteral(red: 0.1407150751, green: 0.1515393104, blue: 0.1666932398, alpha: 1))
-private let moon_slice_color = Color(#colorLiteral(red: 0.8521471088, green: 0.8521471088, blue: 0.8521471088, alpha: 1))
+private let moon_bg_color = Color(#colorLiteral(red: 0.2549019754, green: 0.2745098174, blue: 0.3019607961, alpha: 1))
+private let moon_slice_color = Color(#colorLiteral(red: 0.7179528061, green: 0.7179528061, blue: 0.7179528061, alpha: 1))
 
 
 struct MoonBackground : Shape {
@@ -113,8 +113,8 @@ struct Previews_Moon_Previews: PreviewProvider {
 //                Text("\(Date.from(year: 2021, month: 3, day: 4).jd) == 2459277.5")
 //                Text("\(Date.from(year: 2024, month: 3, day: 4).jd) == 2460373.5")
         VStack {
-            ForEach(1..<4) { i in
-                let date = Date.from(year: 2024, month: 1, day: i+5)
+            ForEach(1..<8) { i in
+                let date = Date.from(year: 2024, month: 1, day: i)
                 Moon(date: date).frame(width: 100, height: 100).rotationEffect(Angle(degrees: coordinate.latitude - 90))
             }
         }.preferredColorScheme(.dark)

@@ -420,7 +420,7 @@ struct Clock : View {
             let weekday = calendar.dateComponents([.weekday], from: startTime).weekday!
             let weekdayStr: String = start == 0 ? "Today" : start % 24 == 0 ? weekday_number_to_string[weekday]! : ""
             
-            let cloud_size: CGFloat = geometry.size.height / 25
+            let cloud_size: CGFloat = geometry.size.height / 23
 
             
             ZStack {
@@ -459,18 +459,19 @@ struct Clock : View {
                         let darkClouds = rain || weather.weatherType == .lightning || weather.weatherType == .cloud
                     
                         if weather.weatherType == .fog {
+                            let blur_radius = frame.height / 60
                             Rays(a: cloud_diameter, b: circle_inner_diameter, ray_density: fog_density - 0.5, wiggle_a: true, wiggle_b: true, start_degree: from-1, end_degree: to+1, wiggle_size: 1.02)
-                                .stroke(.black.opacity(0.7), style: StrokeStyle(lineWidth: 3, lineCap: .butt, dash: [2, ])).blur(radius: 3)
+                                .stroke(.black.opacity(0.7), style: StrokeStyle(lineWidth: 3, lineCap: .butt, dash: [2, ])).blur(radius: blur_radius)
                             Rays(a: cloud_diameter, b: circle_inner_diameter + 1.5, ray_density: fog_density - 0.5, wiggle_a: true, wiggle_b: true, start_degree: from-1, end_degree: to+1)
-                                .stroke(fog_color.opacity(0.5), style: StrokeStyle(lineWidth: 4, lineCap: .butt, dash: [2,])).blur(radius: 3)
+                                .stroke(fog_color.opacity(0.5), style: StrokeStyle(lineWidth: 4, lineCap: .butt, dash: [2,])).blur(radius: blur_radius)
                             Rays(a: cloud_diameter, b: circle_inner_diameter, ray_density: fog_density, wiggle_a: true, wiggle_b: true, start_degree: from-1, end_degree: to)
-                                .stroke(fog_color, style: StrokeStyle(lineWidth: 1, lineCap: .butt, dash: [1, 1])).blur(radius: 3)
+                                .stroke(fog_color, style: StrokeStyle(lineWidth: 1, lineCap: .butt, dash: [1, 1])).blur(radius: blur_radius)
                         }
 
                         if darkClouds {
                             // black anti-rays
                             Rays(a: cloud_diameter, b: circle_inner_diameter, ray_density: sun_ray_density, start_degree: from, end_degree: to )
-                                .stroke(.black, style: StrokeStyle(lineWidth: 3, lineCap: .round))
+                                .stroke(.black, style: StrokeStyle(lineWidth: min(geometry.size.height/2, geometry.size.width) / 80, lineCap: .round))
                         }
                         if rain {
                             if weather.weatherType == .snow {
@@ -526,6 +527,7 @@ struct Clock : View {
                     .stroke(Color.init(white: 0.3), lineWidth: 1)
                     .padding(frame.height * 0.2)
                     .scaleEffect(0.9)
+                
                 // Hours strings
                 ForEach(0..<12, id: \.self) { id in
                     let time = datetimeToday(hour: id + start)
@@ -536,9 +538,7 @@ struct Clock : View {
                     let y = cos(radians) * size + frame.height / 2
                     Text("\(hour)").position(x: x, y: y)
                     .foregroundColor(Color.init(white: 0.4))
-                    #if os(watchOS)
-                    .font(.system(size: 9))
-                    #endif
+                    .font(.system(size: frame.height / 25.0))
                 }
                 // Hour and minute dials
                 if showDials {
@@ -570,61 +570,65 @@ struct Foo : View {
     var body: some View {
         let fractionalHour: Double = now.fractionalHour()
         let startOfToday = now.set(hour: 0, minute: 0)!
-        TabView {
-            #if os(watchOS)
-            ForEach(0..<12, id: \.self) { id in
-                let start1 = 12*id
-                Clock(
-                    now: now,
-                    showDials: fractionalHour > (start1 - 0.5) && fractionalHour < (start1 + 12 - 0.5),
-                    start: start1,
-                    weather: weather,
-                    sunrise: sunrise,
-                    sunset: sunset,
-                    unit: unit
-                )
-            }
-            #else
-            ForEach(0..<6, id: \.self) { day in
-                ZStack {
-                    HStack {
-                        Spacer()
-                        Moon(date: now.addingTimeInterval(TimeInterval(day * 24 * 60 * 60))).frame(width: 50, height: 50).rotationEffect(Angle(degrees: (coordinate?.latitude ?? 0) - 90)).padding(20)
-                    }
-                    
-                    VStack {
-                        let i: Int = day * 2
-                        let start1: Int = 12*i
-                        let start2: Int = 12*(i + 1)
-                        let start1_d = Double(start1)
-                        let start2_d = Double(start2)
-                        Clock(
-                            now: now,
-                            startOfToday: startOfToday,
-                            showDials: fractionalHour > (start1_d - 0.5) && fractionalHour < (start1_d + 12 - 0.5),
-                            start: start1,
-                            weather: weather,
-                            sunrise: sunrise,
-                            sunset: sunset,
-                            unit: unit
-                        ).frame(height: height)
-                        Clock(
-                            now: now,
-                            startOfToday: startOfToday,
-                            showDials: fractionalHour > (start2_d - 0.5) && fractionalHour < (start2_d + 12 - 0.5),
-                            start: start2,
-                            weather: weather,
-                            sunrise: sunrise,
-                            sunset: sunset,
-                            unit: unit
-                        ).frame(height: height)
+        GeometryReader { (geometry) in
+            TabView {
+#if os(watchOS)
+                ForEach(0..<12, id: \.self) { id in
+                    let start1 = 12*id
+                    Clock(
+                        now: now,
+                        showDials: fractionalHour > (start1 - 0.5) && fractionalHour < (start1 + 12 - 0.5),
+                        start: start1,
+                        weather: weather,
+                        sunrise: sunrise,
+                        sunset: sunset,
+                        unit: unit
+                    )
+                }
+#else
+                ForEach(0..<6, id: \.self) { day in
+                    ZStack {
+                        HStack {
+                            Spacer()
+                            let moon_size = min(geometry.size.height/2, geometry.size.width) / 6.0
+                            
+                            Moon(date: now.addingTimeInterval(TimeInterval(day * 24 * 60 * 60))).frame(width: moon_size, height: moon_size).rotationEffect(Angle(degrees: (coordinate?.latitude ?? 0) - 90)).padding(20)
+                        }
+                        
+                        VStack {
+                            let i: Int = day * 2
+                            let start1: Int = 12*i
+                            let start2: Int = 12*(i + 1)
+                            let start1_d = Double(start1)
+                            let start2_d = Double(start2)
+                            Clock(
+                                now: now,
+                                startOfToday: startOfToday,
+                                showDials: fractionalHour > (start1_d - 0.5) && fractionalHour < (start1_d + 12 - 0.5),
+                                start: start1,
+                                weather: weather,
+                                sunrise: sunrise,
+                                sunset: sunset,
+                                unit: unit
+                            ).frame(height: height)
+                            Clock(
+                                now: now,
+                                startOfToday: startOfToday,
+                                showDials: fractionalHour > (start2_d - 0.5) && fractionalHour < (start2_d + 12 - 0.5),
+                                start: start2,
+                                weather: weather,
+                                sunrise: sunrise,
+                                sunset: sunset,
+                                unit: unit
+                            ).frame(height: height)
+                        }
                     }
                 }
+#endif
             }
-            #endif
+            .tabViewStyle(PageTabViewStyle(indexDisplayMode: .never))
+            .frame(width: size.width, height: size.height)
         }
-        .tabViewStyle(PageTabViewStyle(indexDisplayMode: .never))
-        .frame(width: size.width, height: size.height)
     }
 }
 
@@ -674,7 +678,7 @@ struct FrejView: View {
         on: .main,
         in: .common
     ).autoconnect()
-
+        // .background(Rectangle().fill(.black))
     var body: some View {
         if showUnitChooser {
             VStack {
@@ -770,7 +774,7 @@ struct FrejView: View {
         self.weather[now.set(hour: 12)!] = Weather(time: now.set(hour: 12)!, temperature:  12, weatherType:         .fog, rainMillimeter:  0, isDay:  true)
         self.weather[now.set(hour: 13)!] = Weather(time: now.set(hour: 13)!, temperature:  13, weatherType:   .lightning, rainMillimeter: 10, isDay:  true)
         self.weather[now.set(hour: 14)!] = Weather(time: now.set(hour: 14)!, temperature:  14, weatherType:       .clear, rainMillimeter: 10, isDay:  true)
-        self.weather[now.set(hour: 15)!] = Weather(time: now.set(hour: 15)!, temperature:  16, weatherType:  .lightCloud, rainMillimeter:  0, isDay:  true)
+        self.weather[now.set(hour: 15)!] = Weather(time: now.set(hour: 15)!, temperature:  16, weatherType:  .lightCloud, rainMillimeter:  10, isDay:  true)
         self.weather[now.set(hour: 16)!] = Weather(time: now.set(hour: 16)!, temperature: -23, weatherType:  .lightCloud, rainMillimeter: 10, isDay:  true)
         self.weather[now.set(hour: 17)!] = Weather(time: now.set(hour: 17)!, temperature: -12, weatherType:  .lightCloud, rainMillimeter:  0, isDay:  true)
         self.weather[now.set(hour: 18)!] = Weather(time: now.set(hour: 18)!, temperature:  17, weatherType:        .wind, rainMillimeter: 10, isDay:  true)
