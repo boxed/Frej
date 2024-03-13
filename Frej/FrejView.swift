@@ -471,7 +471,7 @@ struct Clock : View {
                         if darkClouds {
                             // black anti-rays
                             Rays(a: cloud_diameter, b: circle_inner_diameter, ray_density: sun_ray_density, start_degree: from, end_degree: to )
-                                .stroke(.black, style: StrokeStyle(lineWidth: min(geometry.size.height/2, geometry.size.width) / 80, lineCap: .round))
+                                .stroke(.black, style: StrokeStyle(lineWidth: min(geometry.size.height/2, geometry.size.width) / 50, lineCap: .round))
                         }
                         if rain {
                             if weather.weatherType == .snow {
@@ -626,7 +626,11 @@ struct Foo : View {
                 }
 #endif
             }
+            #if targetEnvironment(macCatalyst)
+            .tabViewStyle(PageTabViewStyle(indexDisplayMode: .always))
+            #else
             .tabViewStyle(PageTabViewStyle(indexDisplayMode: .never))
+            #endif
             .frame(width: size.width, height: size.height)
         }
     }
