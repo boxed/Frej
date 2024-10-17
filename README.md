@@ -2,4 +2,6 @@
 
 A weather app for iOS.
 
-https://apps.apple.com/se/app/frej/id1566974295?l=en
+![Screenshot](explanation_graphic.png)
+
+https://apps.apple.com/se/app/frej/id1566974295
