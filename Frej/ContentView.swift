@@ -4,7 +4,7 @@ import SwiftUI
 
 struct ContentView: View {
     var body: some View {
-        FrejView().background(Rectangle().fill(.black))
+        FrejView().background(Rectangle().fill(Color.black))
     }
 }
 

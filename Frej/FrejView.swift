@@ -300,13 +300,13 @@ struct Night : View {
             let (from, to) = datetime_to_degrees(sunrise: sunrise, sunset: sunset, start: start)
             if start % 24 == 0 {
                 StarRays(ray_density: star_density, start_degree: -15, end_degree: from)
-                //.stroke(.white, style: StrokeStyle(lineWidth: 1, lineCap: .butt))
-                .fill(.white)
+                //.stroke(Color.white, style: StrokeStyle(lineWidth: 1, lineCap: .butt))
+                .fill(Color.white)
             }
             else {
                 StarRays(ray_density: star_density, start_degree: to, end_degree: 360 - 15)
-                //.stroke(.white, style: StrokeStyle(lineWidth: 1, lineCap: .butt))
-                .fill(.white)
+                //.stroke(Color.white, style: StrokeStyle(lineWidth: 1, lineCap: .butt))
+                .fill(Color.white)
             }
         }
         else {
@@ -429,7 +429,7 @@ struct Clock : View {
                 #if !os(watchOS)
                 VStack {
                     Text("\(weekdayStr)").frame(maxWidth: .infinity, alignment: .leading)
-                    .font(.system(size: 10))
+                    .font(Font.system(size: 10))
                     .padding()
                     Spacer()
                 }
@@ -461,7 +461,7 @@ struct Clock : View {
                         if weather.weatherType == .fog {
                             let blur_radius = frame.height / 60
                             Rays(a: cloud_diameter, b: circle_inner_diameter, ray_density: fog_density - 0.5, wiggle_a: true, wiggle_b: true, start_degree: from-1, end_degree: to+1, wiggle_size: 1.02)
-                                .stroke(.black.opacity(0.7), style: StrokeStyle(lineWidth: 3, lineCap: .butt, dash: [2, ])).blur(radius: blur_radius)
+                                .stroke(Color.black.opacity(0.7), style: StrokeStyle(lineWidth: 3, lineCap: .butt, dash: [2, ])).blur(radius: blur_radius)
                             Rays(a: cloud_diameter, b: circle_inner_diameter + 1.5, ray_density: fog_density - 0.5, wiggle_a: true, wiggle_b: true, start_degree: from-1, end_degree: to+1)
                                 .stroke(fog_color.opacity(0.5), style: StrokeStyle(lineWidth: 4, lineCap: .butt, dash: [2,])).blur(radius: blur_radius)
                             Rays(a: cloud_diameter, b: circle_inner_diameter, ray_density: fog_density, wiggle_a: true, wiggle_b: true, start_degree: from-1, end_degree: to)
@@ -471,7 +471,7 @@ struct Clock : View {
                         if darkClouds {
                             // black anti-rays
                             Rays(a: cloud_diameter, b: circle_inner_diameter, ray_density: sun_ray_density, start_degree: from, end_degree: to )
-                                .stroke(.black, style: StrokeStyle(lineWidth: min(geometry.size.height/2, geometry.size.width) / 50, lineCap: .round))
+                                .stroke(Color.black, style: StrokeStyle(lineWidth: min(geometry.size.height/2, geometry.size.width) / 50, lineCap: .round))
                         }
                         if rain {
                             if weather.weatherType == .snow {
@@ -491,7 +491,7 @@ struct Clock : View {
                         
                         if !rain && weather.weatherType == .lightCloud  {
                             Rays(a: cloud_diameter - dark_cloud_border_offset, b: cloud_diameter2 - dark_cloud_border_offset, ray_density: cloud_ray_density, wiggle_c: true, start_degree: from + 0.5, end_degree: to + 0.5, wiggle_size: cloud_wiggle_size)
-                                .stroke(.black, style: StrokeStyle(lineWidth: cloud_size, lineCap: .round))
+                                .stroke(Color.black, style: StrokeStyle(lineWidth: cloud_size, lineCap: .round))
 
                             // white clouds
                             Rays(a: cloud_diameter, b: cloud_diameter2, ray_density: cloud_ray_density, wiggle_a: false, wiggle_b: true, start_degree: from + 0.5, end_degree: to + 0.5, wiggle_size: cloud_wiggle_size)
@@ -499,7 +499,7 @@ struct Clock : View {
                         }
                         if darkClouds {
                             Rays(a: cloud_diameter - dark_cloud_border_offset, b: cloud_diameter2 - dark_cloud_border_offset, ray_density: cloud_ray_density, wiggle_c: true, start_degree: from + 0.5, end_degree: to + 0.5, wiggle_size: cloud_wiggle_size)
-                                .stroke(.black, style: StrokeStyle(lineWidth: cloud_size, lineCap: .round))
+                                .stroke(Color.black, style: StrokeStyle(lineWidth: cloud_size, lineCap: .round))
 
                             // dark clouds
                             Rays(a: cloud_diameter, b: cloud_diameter2, ray_density: cloud_ray_density, wiggle_c: true, start_degree: from + 0.5, end_degree: to + 0.5, wiggle_size: cloud_wiggle_size)
@@ -513,7 +513,7 @@ struct Clock : View {
 //                            let size : CGFloat = frame.height * 0.31
 //                            let x = sin(radians) * size + frame.width / 2
 //                            let y = cos(radians) * size + frame.height / 2
-//                            Wind().stroke(.black, lineWidth: 44).fill(.gray).rotationEffect(Angle.degrees(Double(hour) * 30.0)).scaleEffect(0.07).position(x: x, y: y)
+//                            Wind().stroke(Color.black, lineWidth: 44).fill(Color.gray).rotationEffect(Angle.degrees(Double(hour) * 30.0)).scaleEffect(0.07).position(x: x, y: y)
 //                        }
 
                         Temperature(weather: weather, start: start, frame: frame, id: id, unit: unit)
@@ -522,8 +522,8 @@ struct Clock : View {
                 // ground, or circle showing the break in the timeline
                 Circle()
                     .trim(from: 0.0, to: 0.99)
-                    .rotation(.degrees(-105))
-                    .fill(.black)
+                    .rotation(Angle.degrees(-105))
+                    .fill(Color.black)
                     .stroke(Color.init(white: 0.3), lineWidth: 1)
                     .padding(frame.height * 0.2)
                     .scaleEffect(0.9)
@@ -538,7 +538,7 @@ struct Clock : View {
                     let y = cos(radians) * size + frame.height / 2
                     Text("\(hour)").position(x: x, y: y)
                     .foregroundColor(Color.init(white: 0.4))
-                    .font(.system(size: frame.height / 25.0))
+                    .font(Font.system(size: frame.height / 25.0))
                 }
                 // Hour and minute dials
                 if showDials {
@@ -682,7 +682,7 @@ struct FrejView: View {
         on: .main,
         in: .common
     ).autoconnect()
-        // .background(Rectangle().fill(.black))
+        // .background(Rectangle().fill(Color.black))
     var body: some View {
         if showUnitChooser {
             VStack {
@@ -691,16 +691,16 @@ struct FrejView: View {
                     userSettings.hasChosenUnit = true
                     showUnitChooser = false
                 }) {
-                    Text("Celsius").font(.system(size: 40)).padding()
+                    Text("Celsius").font(Font.system(size: 40)).padding()
                 }
                 Button(action: {
                     userSettings.unit = "F"
                     userSettings.hasChosenUnit = true
                     showUnitChooser = false
                 }) {
-                    Text("Fahrenheit").font(.system(size: 40))
+                    Text("Fahrenheit").font(Font.system(size: 40))
                 }
-            }.preferredColorScheme(.dark)
+            }.preferredColorScheme(ColorScheme.dark)
         }
         else {
             let calendar = Calendar.current
@@ -710,8 +710,8 @@ struct FrejView: View {
             VStack {
 #if !os(watchOS)
                 Spacer()
-                Text(currentLocation).font(.system(size: 25))
-                Link("Weather data by Open-Meteo.com", destination: URL(string: "https://open-meteo.com/")!).font(Font.system(size: 12)).foregroundColor(.gray)
+                Text(currentLocation).font(Font.system(size: 25))
+                Link("Weather data by Open-Meteo.com", destination: URL(string: "https://open-meteo.com/")!).font(Font.system(size: 12)).foregroundColor(Color.gray)
 #endif
                 GeometryReader { (geometry) in
                     let size = geometry.size
@@ -719,9 +719,9 @@ struct FrejView: View {
                     Foo(weather: weather, height: height, hour: hour, now: now, size: size, sunrise: sunrise, sunset: sunset, unit: userSettings.unit, coordinate: coordinate)
                 }
 #if os(iOS)
-                .ignoresSafeArea(.all, edges: .bottom)
+                .ignoresSafeArea(SafeAreaRegions.all, edges: .bottom)
 #endif
-                .preferredColorScheme(.dark)
+                .preferredColorScheme(ColorScheme.dark)
                 .onAppear {
                     startLocationTracking()
                     fetchWeather()

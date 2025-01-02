@@ -67,7 +67,7 @@ struct ClockIcon : View {
                         if darkClouds {
                             // black anti-rays
                             Rays(a: cloud_diameter, b: circle_inner_diameter, ray_density: sun_ray_density, start_degree: from, end_degree: to )
-                                .stroke(.black, style: StrokeStyle(lineWidth: 4, lineCap: .round))
+                                .stroke(Color.black, style: StrokeStyle(lineWidth: 4, lineCap: .round))
 
                             // rain
                             Rays(a: cloud_diameter, b: circle_inner_diameter, ray_density: rain_density, wiggle_a: true, wiggle_b: true, start_degree: from, end_degree: to, wiggle_size: 1.05)
@@ -88,7 +88,7 @@ struct ClockIcon : View {
                 // ground, or circle showing the break in the timeline
                 Circle()
                     .trim(from: 0.0, to: 0.99)
-                    .rotation(.degrees(-105))
+                    .rotation(Angle.degrees(-105))
                     .stroke(Color.init(white: 0.3), lineWidth: 7)
                     .padding(frame.height * 0.2)
                     .scaleEffect(0.5)
@@ -172,46 +172,46 @@ struct Icon : View {
             )
             .scaleEffect(0.4)
             .position(x: 110, y: 265)
-//            .mask(Text("F").font(.system(size: 130, weight: .bold, design: .rounded)))
-//            Text("F").font(.system(size: 130, weight: .bold, design: .rounded)).foregroundColor(.black)
+//            .mask(Text("F").font(Font.system(size: 130, weight: .bold, design: .rounded)))
+//            Text("F").font(Font.system(size: 130, weight: .bold, design: .rounded)).foregroundColor(Color.black)
             ZStack() {
-                Darkness().fill(.black).frame(width: 400, height: 700).position(x: 270, y: 805)
+                Darkness().fill(Color.black).frame(width: 400, height: 700).position(x: 270, y: 805)
 
                 Rays(a: sun_ray_density, b: 3, ray_density: sun_ray_density, wiggle_a: true, start_degree: 134, end_degree: 170, wiggle_size: 1.03)
-                    .stroke(.blue, style: StrokeStyle(lineWidth: 15, lineCap: .butt, dash: [35]))
+                    .stroke(Color.blue, style: StrokeStyle(lineWidth: 15, lineCap: .butt, dash: [35]))
                     .position(x: 40, y: 285)
 
                 Circle()
-                    .fill(.black)
+                    .fill(Color.black)
                     .frame(width: 100, height: 120)
                     .position(x: 270, y: 500 - chunkiness)
                 Circle()
-                    .fill(.white)
+                    .fill(Color.white)
                     .frame(width: 100, height: 100)
                     .position(x: 270, y: 500)
 
                 
                 Circle()
-                    .fill(.black)
+                    .fill(Color.black)
                     .frame(width: 120, height: 120)
                     .position(x: 220, y: 495 - chunkiness)
                 Circle()
-                    .fill(.white)
+                    .fill(Color.white)
                     .frame(width: 120, height: 120)
                     .position(x: 220, y: 495)
 
                 Circle()
-                    .fill(.black)
+                    .fill(Color.black)
                     .frame(width: 130, height: 130)
                     .position(x: 170, y: 490 - chunkiness)
                 Circle()
-                    .fill(.white)
+                    .fill(Color.white)
                     .frame(width: 130, height: 130)
                     .position(x: 170, y: 490)
 
                 
-                Circle().fill(.black).frame(width: 100, height: 100).position(x: 115, y: 495)
-                Circle().fill(.white).frame(width: 100, height: 100).position(x: 120, y: 505)
+                Circle().fill(Color.black).frame(width: 100, height: 100).position(x: 115, y: 495)
+                Circle().fill(Color.white).frame(width: 100, height: 100).position(x: 120, y: 505)
 
                 
 
@@ -220,7 +220,7 @@ struct Icon : View {
 
 //            Moon(date: Date.from(year: 2024, month: 1, day: 14).set(hour: 15)!).scaleEffect(0.08).position(x: 240, y: 430)
         }
-        .preferredColorScheme(.dark)
+        .preferredColorScheme(ColorScheme.dark)
     }
     
     func getWeather(hour: Int) -> Weather? {

@@ -117,6 +117,6 @@ struct Previews_Moon_Previews: PreviewProvider {
                 let date = Date.from(year: 2024, month: 1, day: i)
                 Moon(date: date).frame(width: 100, height: 100).rotationEffect(Angle(degrees: coordinate.latitude - 90))
             }
-        }.preferredColorScheme(.dark)
+        }.preferredColorScheme(ColorScheme.dark)
     }
 }

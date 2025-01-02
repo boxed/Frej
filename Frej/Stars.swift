@@ -49,6 +49,6 @@ struct Stars: Shape {
 
 struct Previews_Stars_Previews: PreviewProvider {
     static var previews: some View {
-        Stars().fill(.white).preferredColorScheme(.dark)
+        Stars().fill(Color.white).preferredColorScheme(ColorScheme.dark)
     }
 }

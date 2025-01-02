@@ -175,10 +175,10 @@ struct Weather {
                         .foregroundColor(self.iconColor)
                 }
                 Cloud()
-                    .foregroundColor(.white)
+                    .foregroundColor(Color.white)
                 Cloud()
                     .stroke(lineWidth: 1)
-                    .foregroundColor(.black)
+                    .foregroundColor(Color.black)
             }
         case .lightCloud:
             Cloud().foregroundColor(self.iconColor)
