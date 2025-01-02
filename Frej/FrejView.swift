@@ -937,6 +937,8 @@ struct FrejView: View {
                                         weatherType = .lightCloud
                                     case 3:
                                         weatherType = .cloud
+                                    case 71...75:
+                                        weatherType = .snow
                                     case 51...67:
                                         weatherType = .rain
                                     case 80...86:
