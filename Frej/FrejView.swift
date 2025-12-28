@@ -142,12 +142,16 @@ struct ColoredRays: View {
     var start_degree = 0.0
     var end_degree = 360.0
     var wiggle_size = 1.01
-    var lineWidth: CGFloat = 1
 
     // Three colors: before (start edge), center, after (end edge)
     var colorBefore: Color = .yellow
     var colorCenter: Color = .yellow
     var colorAfter: Color = .yellow
+
+    // Three line widths: before (start edge), center, after (end edge)
+    var lineWidthBefore: CGFloat = 1
+    var lineWidthCenter: CGFloat = 1
+    var lineWidthAfter: CGFloat = 1
 
     var body: some View {
         Canvas { context, size in
@@ -170,15 +174,20 @@ struct ColoredRays: View {
                 let x2 = sin(radians) * size_b + rect.width / 2
                 let y2 = cos(radians) * size_b + rect.height / 2
 
-                // Calculate color based on position (0 = start, 0.5 = center, 1 = end)
+                // Calculate color and line width based on position (0 = start, 0.5 = center, 1 = end)
                 let progress = Double(i) / Double(max(1, number_of_rays - 1))
                 let color: Color
+                let lineWidth: CGFloat
                 if progress < 0.5 {
-                    // Blend from colorBefore to colorCenter
-                    color = blendColors(colorBefore, colorCenter, ratio: progress * 2)
+                    // Blend from before to center
+                    let ratio = progress * 2
+                    color = blendColors(colorBefore, colorCenter, ratio: ratio)
+                    lineWidth = lineWidthBefore + (lineWidthCenter - lineWidthBefore) * CGFloat(ratio)
                 } else {
-                    // Blend from colorCenter to colorAfter
-                    color = blendColors(colorCenter, colorAfter, ratio: (progress - 0.5) * 2)
+                    // Blend from center to after
+                    let ratio = (progress - 0.5) * 2
+                    color = blendColors(colorCenter, colorAfter, ratio: ratio)
+                    lineWidth = lineWidthCenter + (lineWidthAfter - lineWidthCenter) * CGFloat(ratio)
                 }
 
                 var path = Path()
@@ -347,14 +356,11 @@ func uvToColor(_ uvIndex: Float) -> Color {
     // UV index color scale:
     // 0-5: Yellow (low/moderate)
     // 6-7: Orange (high)
-    // 8-10: Blue (very high)
-    // 11+: Purple (extreme)
+    // 8+: Purple (very high/extreme)
     if uvIndex < 6 {
         return Color.yellow
     } else if uvIndex < 8 {
         return Color.orange
-    } else if uvIndex < 11 {
-        return Color.blue
     } else {
         return Color.purple
     }
@@ -413,10 +419,10 @@ struct Daylight : View {
 
                     if let hourWeather = weather[startDatetime], hourWeather.isDay {
                         let (hourFrom, hourTo) = rainDegrees(date: startDatetime)
-                        let lineWidth = uvToLineWidth(hourWeather.uvIndex)
+                        let centerLineWidth = uvToLineWidth(hourWeather.uvIndex)
                         let centerColor = uvToColor(hourWeather.uvIndex)
 
-                        // Get colors from adjacent hours
+                        // Get data from adjacent hours
                         let prevWeather = weather[prevDatetime]
                         let nextWeather = weather[nextDatetime]
 
@@ -427,9 +433,18 @@ struct Daylight : View {
                             ? uvToColor(nextWeather!.uvIndex)
                             : centerColor
 
-                        // Edge colors are the midpoint blend between this hour and adjacent hours
+                        let prevLineWidth = prevWeather != nil && prevWeather!.isDay
+                            ? uvToLineWidth(prevWeather!.uvIndex)
+                            : centerLineWidth
+                        let nextLineWidth = nextWeather != nil && nextWeather!.isDay
+                            ? uvToLineWidth(nextWeather!.uvIndex)
+                            : centerLineWidth
+
+                        // Edge values are the midpoint between this hour and adjacent hours
                         let beforeColor = blendColors(prevColor, centerColor, ratio: 0.5)
                         let afterColor = blendColors(centerColor, nextColor, ratio: 0.5)
+                        let beforeLineWidth = (prevLineWidth + centerLineWidth) / 2
+                        let afterLineWidth = (centerLineWidth + nextLineWidth) / 2
 
                         ColoredRays(
                             a: 2.6,
@@ -438,10 +453,12 @@ struct Daylight : View {
                             wiggle_a: true,
                             start_degree: hourFrom,
                             end_degree: hourTo,
-                            lineWidth: lineWidth,
                             colorBefore: beforeColor,
                             colorCenter: centerColor,
-                            colorAfter: afterColor
+                            colorAfter: afterColor,
+                            lineWidthBefore: beforeLineWidth,
+                            lineWidthCenter: centerLineWidth,
+                            lineWidthAfter: afterLineWidth
                         )
                     }
                 }
