@@ -97,6 +97,7 @@ struct AddLocationView: View {
     @State private var searchText = ""
     @State private var searchResults: [CLPlacemark] = []
     @State private var isSearching = false
+    @State private var searchTask: Task<Void, Never>?
     @FocusState private var isSearchFieldFocused: Bool
 
     private let geocoder = CLGeocoder()
@@ -113,6 +114,20 @@ struct AddLocationView: View {
                         .textInputAutocapitalization(.words)
                         #endif
                         .onSubmit { performSearch() }
+                        .onChange(of: searchText) {
+                            searchTask?.cancel()
+                            guard !searchText.isEmpty else {
+                                searchResults = []
+                                return
+                            }
+                            searchTask = Task {
+                                try? await Task.sleep(nanoseconds: 400_000_000)
+                                guard !Task.isCancelled else { return }
+                                await MainActor.run {
+                                    performSearch()
+                                }
+                            }
+                        }
 
                     if !searchText.isEmpty {
                         Button(action: { searchText = "" }) {
