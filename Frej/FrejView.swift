@@ -2,6 +2,12 @@ import SwiftUI
 import CoreLocation
 import Combine
 
+extension Collection {
+    subscript(safe index: Index) -> Element? {
+        indices.contains(index) ? self[index] : nil
+    }
+}
+
 private let sun_ray_density = 0.6
 private let star_density = 0.3
 private let rain_density = 0.5
@@ -642,16 +648,38 @@ class UserSettings: ObservableObject {
             UserDefaults.standard.set(hasChosenUnit, forKey: "hasChosenUnit")
         }
     }
-    
+
     @Published var unit: String {
         didSet {
             UserDefaults.standard.set(unit, forKey: "unit")
         }
     }
-    
+
+    @Published var savedLocations: [SavedLocation] {
+        didSet {
+            if let encoded = try? JSONEncoder().encode(savedLocations) {
+                UserDefaults.standard.set(encoded, forKey: "savedLocations")
+            }
+        }
+    }
+
+    @Published var selectedLocationIndex: Int {
+        didSet {
+            UserDefaults.standard.set(selectedLocationIndex, forKey: "selectedLocationIndex")
+        }
+    }
+
     init() {
         self.hasChosenUnit = UserDefaults.standard.bool(forKey: "hasChosenUnit")
         self.unit = UserDefaults.standard.string(forKey: "unit") ?? "C"
+        self.selectedLocationIndex = UserDefaults.standard.integer(forKey: "selectedLocationIndex")
+
+        if let data = UserDefaults.standard.data(forKey: "savedLocations"),
+           let decoded = try? JSONDecoder().decode([SavedLocation].self, from: data) {
+            self.savedLocations = decoded
+        } else {
+            self.savedLocations = []
+        }
     }
 }
 
@@ -665,16 +693,47 @@ struct FrejView: View {
     @State var now: Date = Date()
     @StateObject var locationProvider = LocationProvider()
     @State var coordinate: CLLocationCoordinate2D?
-    @State var weather : [Date: Weather] = [:]
-    @State var sunrise : [NaiveDate: Date] = [:]
-    @State var sunset : [NaiveDate: Date] = [:]
-    @State var cancellableLocation : AnyCancellable?
-    @State var loadedURL : String = ""
-    @State var timeOfData : Date = Date.init(timeIntervalSince1970: 0)
-    @State var currentLocation : String = ""
+    @State var weatherByLocation: [UUID: [Date: Weather]] = [:]
+    @State var sunriseByLocation: [UUID: [NaiveDate: Date]] = [:]
+    @State var sunsetByLocation: [UUID: [NaiveDate: Date]] = [:]
+    @State var lastFetchedByLocation: [UUID: Date] = [:]
+    @State var cancellableLocation: AnyCancellable?
+    @State var loadedURL: String = ""
+    @State var timeOfData: Date = Date.init(timeIntervalSince1970: 0)
+    @State var currentLocation: String = ""
     @State var showUnitChooser = false
+    @State var showSettings = false
+    @State var gpsLocation: SavedLocation?
+    @State var dragOffset: CGFloat = 0
     @ObservedObject var userSettings = UserSettings()
     @State var weatherSource: WeatherSource = .real
+
+    var allLocations: [SavedLocation] {
+        if let gps = gpsLocation {
+            return [gps] + userSettings.savedLocations
+        }
+        return userSettings.savedLocations
+    }
+
+    var currentLocationData: SavedLocation? {
+        let index = userSettings.selectedLocationIndex
+        guard index >= 0 && index < allLocations.count else {
+            return allLocations.first
+        }
+        return allLocations[index]
+    }
+
+    func weatherForLocation(_ id: UUID) -> [Date: Weather] {
+        weatherByLocation[id] ?? [:]
+    }
+
+    func sunriseForLocation(_ id: UUID) -> [NaiveDate: Date] {
+        sunriseByLocation[id] ?? [:]
+    }
+
+    func sunsetForLocation(_ id: UUID) -> [NaiveDate: Date] {
+        sunsetByLocation[id] ?? [:]
+    }
 
     let timer = Timer.publish(
         // seconds
@@ -706,26 +765,166 @@ struct FrejView: View {
             let calendar = Calendar.current
             let components = calendar.dateComponents([Calendar.Component.hour], from: now)
             let hour = components.hour!
-            
-            VStack {
+            let displayLocationName = currentLocationData?.name ?? currentLocation
+
+            ZStack {
+                VStack {
 #if !os(watchOS)
-                Spacer()
-                Text(currentLocation).font(Font.system(size: 25))
-                Link("Weather data by Open-Meteo.com", destination: URL(string: "https://open-meteo.com/")!).font(Font.system(size: 12)).foregroundColor(Color.gray)
+                    Spacer()
+                    Text(displayLocationName).font(Font.system(size: 25))
+                    Link("Weather data by Open-Meteo.com", destination: URL(string: "https://open-meteo.com/")!).font(Font.system(size: 12)).foregroundColor(Color.gray)
 #endif
-                GeometryReader { (geometry) in
-                    let size = geometry.size
-                    let height = min(size.width * 0.9, abs(size.height / 2 - 25))
-                    Foo(weather: weather, height: height, hour: hour, now: now, size: size, sunrise: sunrise, sunset: sunset, unit: userSettings.unit, coordinate: coordinate)
-                }
+                    GeometryReader { (geometry) in
+                        let size = geometry.size
+                        let height = min(size.width * 0.9, abs(size.height / 2 - 25))
+
+                        if allLocations.count > 1 {
+                            let currentIndex = userSettings.selectedLocationIndex
+                            let screenHeight = size.height
+
+                            ZStack {
+                                // Previous location (above)
+                                if currentIndex > 0, let prevLocation = allLocations[safe: currentIndex - 1] {
+                                    Foo(
+                                        weather: weatherForLocation(prevLocation.id),
+                                        height: height,
+                                        hour: hour,
+                                        now: now,
+                                        size: size,
+                                        sunrise: sunriseForLocation(prevLocation.id),
+                                        sunset: sunsetForLocation(prevLocation.id),
+                                        unit: userSettings.unit,
+                                        coordinate: prevLocation.coordinate
+                                    )
+                                    .offset(y: dragOffset - screenHeight)
+                                }
+
+                                // Current location
+                                if let location = allLocations[safe: currentIndex] ?? allLocations.first {
+                                    Foo(
+                                        weather: weatherForLocation(location.id),
+                                        height: height,
+                                        hour: hour,
+                                        now: now,
+                                        size: size,
+                                        sunrise: sunriseForLocation(location.id),
+                                        sunset: sunsetForLocation(location.id),
+                                        unit: userSettings.unit,
+                                        coordinate: location.coordinate
+                                    )
+                                    .offset(y: dragOffset)
+                                }
+
+                                // Next location (below)
+                                if currentIndex < allLocations.count - 1, let nextLocation = allLocations[safe: currentIndex + 1] {
+                                    Foo(
+                                        weather: weatherForLocation(nextLocation.id),
+                                        height: height,
+                                        hour: hour,
+                                        now: now,
+                                        size: size,
+                                        sunrise: sunriseForLocation(nextLocation.id),
+                                        sunset: sunsetForLocation(nextLocation.id),
+                                        unit: userSettings.unit,
+                                        coordinate: nextLocation.coordinate
+                                    )
+                                    .offset(y: dragOffset + screenHeight)
+                                }
+                            }
+                            .clipped()
+                            .contentShape(Rectangle())
+                            .gesture(
+                                DragGesture()
+                                    .onChanged { value in
+                                        let translation = value.translation.height
+                                        let hasPrevious = currentIndex > 0
+                                        let hasNext = currentIndex < allLocations.count - 1
+
+                                        if !hasPrevious && translation > 0 {
+                                            dragOffset = translation * 0.3
+                                        } else if !hasNext && translation < 0 {
+                                            dragOffset = translation * 0.3
+                                        } else {
+                                            dragOffset = translation
+                                        }
+                                    }
+                                    .onEnded { value in
+                                        let threshold: CGFloat = 60
+                                        let verticalMovement = value.translation.height
+
+                                        withAnimation(.easeOut(duration: 0.25)) {
+                                            if verticalMovement < -threshold && currentIndex < allLocations.count - 1 {
+                                                dragOffset = -screenHeight
+                                            } else if verticalMovement > threshold && currentIndex > 0 {
+                                                dragOffset = screenHeight
+                                            } else {
+                                                dragOffset = 0
+                                            }
+                                        }
+
+                                        DispatchQueue.main.asyncAfter(deadline: .now() + 0.25) {
+                                            if verticalMovement < -threshold && userSettings.selectedLocationIndex < allLocations.count - 1 {
+                                                userSettings.selectedLocationIndex += 1
+                                            } else if verticalMovement > threshold && userSettings.selectedLocationIndex > 0 {
+                                                userSettings.selectedLocationIndex -= 1
+                                            }
+                                            dragOffset = 0
+                                        }
+                                    }
+                            )
+                        } else if let location = allLocations.first {
+                            Foo(
+                                weather: weatherForLocation(location.id),
+                                height: height,
+                                hour: hour,
+                                now: now,
+                                size: size,
+                                sunrise: sunriseForLocation(location.id),
+                                sunset: sunsetForLocation(location.id),
+                                unit: userSettings.unit,
+                                coordinate: location.coordinate
+                            )
+                        } else {
+                            Foo(
+                                weather: [:],
+                                height: height,
+                                hour: hour,
+                                now: now,
+                                size: size,
+                                sunrise: [:],
+                                sunset: [:],
+                                unit: userSettings.unit,
+                                coordinate: coordinate
+                            )
+                        }
+                    }
 #if os(iOS)
-                .ignoresSafeArea(SafeAreaRegions.all, edges: .bottom)
+                    .ignoresSafeArea(SafeAreaRegions.all, edges: .bottom)
 #endif
-                .preferredColorScheme(ColorScheme.dark)
-                .onAppear {
-                    startLocationTracking()
-                    fetchWeather()
                 }
+
+#if !os(watchOS)
+                VStack {
+                    Spacer()
+                    HStack {
+                        Spacer()
+                        Button(action: { showSettings = true }) {
+                            Image(systemName: "gearshape.fill")
+                                .font(.system(size: 24))
+                                .foregroundColor(.white.opacity(0.7))
+                                .padding(12)
+                                .background(Circle().fill(Color.black.opacity(0.5)))
+                        }
+                        .padding(.trailing, 0)
+                        .padding(.bottom, 0)
+                    }
+                }
+#endif
+            }
+            .preferredColorScheme(ColorScheme.dark)
+            .onAppear {
+                startLocationTracking()
+                fetchWeather()
             }
             .onReceive(timer) { input in
                 now = input
@@ -734,7 +933,9 @@ struct FrejView: View {
                     fetchWeather()
                 }
             }
-        
+            .sheet(isPresented: $showSettings) {
+                SettingsView(userSettings: userSettings, gpsLocation: $gpsLocation)
+            }
         }
     }
     
@@ -742,7 +943,10 @@ struct FrejView: View {
         guard let date = Date().set(hour: hour) else {
             return nil
         }
-        return self.weather[date]
+        guard let locationId = currentLocationData?.id else {
+            return nil
+        }
+        return weatherByLocation[locationId]?[date]
     }
     
     func fetchWeather() {
@@ -759,66 +963,90 @@ struct FrejView: View {
     
     func fakeWeather() {
         let now = Date()
-        self.sunrise[now.getNaiveDate()] = now.set(hour: 6, minute: 20)
-        self.sunset[now.getNaiveDate()] = now.set(hour: 20, minute: 10)
+        let fakeLocation = SavedLocation(name: "Test City", latitude: 59.33, longitude: 18.07, isGPS: true)
+        self.gpsLocation = fakeLocation
+        let id = fakeLocation.id
+
+        var sunriseDict: [NaiveDate: Date] = [:]
+        var sunsetDict: [NaiveDate: Date] = [:]
+        var weatherDict: [Date: Weather] = [:]
+
+        sunriseDict[now.getNaiveDate()] = now.set(hour: 6, minute: 20)
+        sunsetDict[now.getNaiveDate()] = now.set(hour: 20, minute: 10)
         // AM
-        self.weather[now.set(hour:  0)!] = Weather(time: now.set(hour:  0)!, temperature:   1, weatherType:        .snow, rainMillimeter:  1, isDay: false)
-        self.weather[now.set(hour:  1)!] = Weather(time: now.set(hour:  1)!, temperature: -11, weatherType: .mainlyClear, rainMillimeter:  0, isDay: false)
-        self.weather[now.set(hour:  2)!] = Weather(time: now.set(hour:  2)!, temperature:  10, weatherType:       .clear, rainMillimeter:  1, isDay: false)
-        self.weather[now.set(hour:  3)!] = Weather(time: now.set(hour:  3)!, temperature:  15, weatherType:   .lightning, rainMillimeter:  0, isDay: false)
-        self.weather[now.set(hour:  4)!] = Weather(time: now.set(hour:  4)!, temperature:  20, weatherType:   .lightning, rainMillimeter:  9, isDay: false)
-        self.weather[now.set(hour:  5)!] = Weather(time: now.set(hour:  5)!, temperature:  26, weatherType:       .cloud, rainMillimeter:100, isDay: false)
-        self.weather[now.set(hour:  6)!] = Weather(time: now.set(hour:  6)!, temperature:  27, weatherType:.  lightCloud, rainMillimeter:  1, isDay: false)
-        self.weather[now.set(hour:  7)!] = Weather(time: now.set(hour:  7)!, temperature:  32, weatherType:        .rain, rainMillimeter:  0, isDay:  true)
-        self.weather[now.set(hour:  8)!] = Weather(time: now.set(hour:  8)!, temperature:   8, weatherType:        .wind, rainMillimeter: 0, isDay:  true)
-        self.weather[now.set(hour:  9)!] = Weather(time: now.set(hour:  9)!, temperature:   9, weatherType:       .cloud, rainMillimeter:  0, isDay:  true)
-        self.weather[now.set(hour: 10)!] = Weather(time: now.set(hour: 10)!, temperature:  10, weatherType:   .lightning, rainMillimeter:  0, isDay:  true)
-        self.weather[now.set(hour: 11)!] = Weather(time: now.set(hour: 11)!, temperature:  11, weatherType:         .fog, rainMillimeter: 10, isDay:  true)
+        weatherDict[now.set(hour:  0)!] = Weather(time: now.set(hour:  0)!, temperature:   1, weatherType:        .snow, rainMillimeter:  1, isDay: false)
+        weatherDict[now.set(hour:  1)!] = Weather(time: now.set(hour:  1)!, temperature: -11, weatherType: .mainlyClear, rainMillimeter:  0, isDay: false)
+        weatherDict[now.set(hour:  2)!] = Weather(time: now.set(hour:  2)!, temperature:  10, weatherType:       .clear, rainMillimeter:  1, isDay: false)
+        weatherDict[now.set(hour:  3)!] = Weather(time: now.set(hour:  3)!, temperature:  15, weatherType:   .lightning, rainMillimeter:  0, isDay: false)
+        weatherDict[now.set(hour:  4)!] = Weather(time: now.set(hour:  4)!, temperature:  20, weatherType:   .lightning, rainMillimeter:  9, isDay: false)
+        weatherDict[now.set(hour:  5)!] = Weather(time: now.set(hour:  5)!, temperature:  26, weatherType:       .cloud, rainMillimeter:100, isDay: false)
+        weatherDict[now.set(hour:  6)!] = Weather(time: now.set(hour:  6)!, temperature:  27, weatherType:  .lightCloud, rainMillimeter:  1, isDay: false)
+        weatherDict[now.set(hour:  7)!] = Weather(time: now.set(hour:  7)!, temperature:  32, weatherType:        .rain, rainMillimeter:  0, isDay:  true)
+        weatherDict[now.set(hour:  8)!] = Weather(time: now.set(hour:  8)!, temperature:   8, weatherType:        .wind, rainMillimeter: 0, isDay:  true)
+        weatherDict[now.set(hour:  9)!] = Weather(time: now.set(hour:  9)!, temperature:   9, weatherType:       .cloud, rainMillimeter:  0, isDay:  true)
+        weatherDict[now.set(hour: 10)!] = Weather(time: now.set(hour: 10)!, temperature:  10, weatherType:   .lightning, rainMillimeter:  0, isDay:  true)
+        weatherDict[now.set(hour: 11)!] = Weather(time: now.set(hour: 11)!, temperature:  11, weatherType:         .fog, rainMillimeter: 10, isDay:  true)
         // PM
-        self.weather[now.set(hour: 12)!] = Weather(time: now.set(hour: 12)!, temperature:  12, weatherType:         .fog, rainMillimeter:  0, isDay:  true)
-        self.weather[now.set(hour: 13)!] = Weather(time: now.set(hour: 13)!, temperature:  13, weatherType:   .lightning, rainMillimeter: 10, isDay:  true)
-        self.weather[now.set(hour: 14)!] = Weather(time: now.set(hour: 14)!, temperature:  14, weatherType:       .clear, rainMillimeter: 10, isDay:  true)
-        self.weather[now.set(hour: 15)!] = Weather(time: now.set(hour: 15)!, temperature:  16, weatherType:  .lightCloud, rainMillimeter:  10, isDay:  true)
-        self.weather[now.set(hour: 16)!] = Weather(time: now.set(hour: 16)!, temperature: -23, weatherType:  .lightCloud, rainMillimeter: 10, isDay:  true)
-        self.weather[now.set(hour: 17)!] = Weather(time: now.set(hour: 17)!, temperature: -12, weatherType:  .lightCloud, rainMillimeter:  0, isDay:  true)
-        self.weather[now.set(hour: 18)!] = Weather(time: now.set(hour: 18)!, temperature:  17, weatherType:        .wind, rainMillimeter: 10, isDay:  true)
-        self.weather[now.set(hour: 19)!] = Weather(time: now.set(hour: 19)!, temperature:  24, weatherType:       .cloud, rainMillimeter:  0, isDay: false)
-        self.weather[now.set(hour: 20)!] = Weather(time: now.set(hour: 20)!, temperature:  35, weatherType:   .lightning, rainMillimeter:  1, isDay: false)
-        self.weather[now.set(hour: 21)!] = Weather(time: now.set(hour: 21)!, temperature:   1, weatherType:          .fog, rainMillimeter:  0, isDay: false)
-        self.weather[now.set(hour: 22)!] = Weather(time: now.set(hour: 22)!, temperature:  10, weatherType:         .fog, rainMillimeter:  0, isDay: false)
-        self.weather[now.set(hour: 23)!] = Weather(time: now.set(hour: 23)!, temperature:  13, weatherType:         .fog, rainMillimeter:  0, isDay: false)
+        weatherDict[now.set(hour: 12)!] = Weather(time: now.set(hour: 12)!, temperature:  12, weatherType:         .fog, rainMillimeter:  0, isDay:  true)
+        weatherDict[now.set(hour: 13)!] = Weather(time: now.set(hour: 13)!, temperature:  13, weatherType:   .lightning, rainMillimeter: 10, isDay:  true)
+        weatherDict[now.set(hour: 14)!] = Weather(time: now.set(hour: 14)!, temperature:  14, weatherType:       .clear, rainMillimeter: 10, isDay:  true)
+        weatherDict[now.set(hour: 15)!] = Weather(time: now.set(hour: 15)!, temperature:  16, weatherType:  .lightCloud, rainMillimeter:  10, isDay:  true)
+        weatherDict[now.set(hour: 16)!] = Weather(time: now.set(hour: 16)!, temperature: -23, weatherType:  .lightCloud, rainMillimeter: 10, isDay:  true)
+        weatherDict[now.set(hour: 17)!] = Weather(time: now.set(hour: 17)!, temperature: -12, weatherType:  .lightCloud, rainMillimeter:  0, isDay:  true)
+        weatherDict[now.set(hour: 18)!] = Weather(time: now.set(hour: 18)!, temperature:  17, weatherType:        .wind, rainMillimeter: 10, isDay:  true)
+        weatherDict[now.set(hour: 19)!] = Weather(time: now.set(hour: 19)!, temperature:  24, weatherType:       .cloud, rainMillimeter:  0, isDay: false)
+        weatherDict[now.set(hour: 20)!] = Weather(time: now.set(hour: 20)!, temperature:  35, weatherType:   .lightning, rainMillimeter:  1, isDay: false)
+        weatherDict[now.set(hour: 21)!] = Weather(time: now.set(hour: 21)!, temperature:   1, weatherType:          .fog, rainMillimeter:  0, isDay: false)
+        weatherDict[now.set(hour: 22)!] = Weather(time: now.set(hour: 22)!, temperature:  10, weatherType:         .fog, rainMillimeter:  0, isDay: false)
+        weatherDict[now.set(hour: 23)!] = Weather(time: now.set(hour: 23)!, temperature:  13, weatherType:         .fog, rainMillimeter:  0, isDay: false)
+
+        self.weatherByLocation[id] = weatherDict
+        self.sunriseByLocation[id] = sunriseDict
+        self.sunsetByLocation[id] = sunsetDict
     }
-    
+
     func demoWeather() {
         let now = Date()
-        self.sunrise[now.getNaiveDate()] = now.set(hour: 6, minute: 20)
-        self.sunset[now.getNaiveDate()] = now.set(hour: 19, minute: 30)
+        let demoLocation = SavedLocation(name: "Demo City", latitude: 59.33, longitude: 18.07, isGPS: true)
+        self.gpsLocation = demoLocation
+        let id = demoLocation.id
+
+        var sunriseDict: [NaiveDate: Date] = [:]
+        var sunsetDict: [NaiveDate: Date] = [:]
+        var weatherDict: [Date: Weather] = [:]
+
+        sunriseDict[now.getNaiveDate()] = now.set(hour: 6, minute: 20)
+        sunsetDict[now.getNaiveDate()] = now.set(hour: 19, minute: 30)
         // AM
-        self.weather[now.set(hour:  0)!] = Weather(time: now.set(hour:  0)!, temperature:   1, weatherType:        .clear, rainMillimeter:  0, isDay: false)
-        self.weather[now.set(hour:  1)!] = Weather(time: now.set(hour:  1)!, temperature:  -1, weatherType: .mainlyClear, rainMillimeter:  0, isDay: false)
-        self.weather[now.set(hour:  2)!] = Weather(time: now.set(hour:  2)!, temperature:  3, weatherType:       .clear, rainMillimeter:  0, isDay: false)
-        self.weather[now.set(hour:  3)!] = Weather(time: now.set(hour:  3)!, temperature:  7, weatherType:   .clear, rainMillimeter:  0, isDay: false)
-        self.weather[now.set(hour:  4)!] = Weather(time: now.set(hour:  4)!, temperature:  14, weatherType:   .lightCloud, rainMillimeter:  0, isDay: false)
-        self.weather[now.set(hour:  5)!] = Weather(time: now.set(hour:  5)!, temperature:  18, weatherType:   .lightCloud, rainMillimeter:  0, isDay: false)
-        self.weather[now.set(hour:  6)!] = Weather(time: now.set(hour:  6)!, temperature:  20, weatherType:.  lightCloud, rainMillimeter:  1, isDay: false)
-        self.weather[now.set(hour:  7)!] = Weather(time: now.set(hour:  7)!, temperature:  20, weatherType:        .rain, rainMillimeter:  5, isDay:  true)
-        self.weather[now.set(hour:  8)!] = Weather(time: now.set(hour:  8)!, temperature:  19, weatherType:        .rain, rainMillimeter: 10, isDay:  true)
-        self.weather[now.set(hour:  9)!] = Weather(time: now.set(hour:  9)!, temperature:  20, weatherType:       .rain, rainMillimeter:  1, isDay:  true)
-        self.weather[now.set(hour: 10)!] = Weather(time: now.set(hour: 10)!, temperature:  19, weatherType:   .lightCloud, rainMillimeter:  0, isDay:  true)
-        self.weather[now.set(hour: 11)!] = Weather(time: now.set(hour: 11)!, temperature:  17, weatherType:         .lightCloud, rainMillimeter: 0, isDay:  true)
+        weatherDict[now.set(hour:  0)!] = Weather(time: now.set(hour:  0)!, temperature:   1, weatherType:        .clear, rainMillimeter:  0, isDay: false)
+        weatherDict[now.set(hour:  1)!] = Weather(time: now.set(hour:  1)!, temperature:  -1, weatherType: .mainlyClear, rainMillimeter:  0, isDay: false)
+        weatherDict[now.set(hour:  2)!] = Weather(time: now.set(hour:  2)!, temperature:  3, weatherType:       .clear, rainMillimeter:  0, isDay: false)
+        weatherDict[now.set(hour:  3)!] = Weather(time: now.set(hour:  3)!, temperature:  7, weatherType:   .clear, rainMillimeter:  0, isDay: false)
+        weatherDict[now.set(hour:  4)!] = Weather(time: now.set(hour:  4)!, temperature:  14, weatherType:   .lightCloud, rainMillimeter:  0, isDay: false)
+        weatherDict[now.set(hour:  5)!] = Weather(time: now.set(hour:  5)!, temperature:  18, weatherType:   .lightCloud, rainMillimeter:  0, isDay: false)
+        weatherDict[now.set(hour:  6)!] = Weather(time: now.set(hour:  6)!, temperature:  20, weatherType:  .lightCloud, rainMillimeter:  1, isDay: false)
+        weatherDict[now.set(hour:  7)!] = Weather(time: now.set(hour:  7)!, temperature:  20, weatherType:        .rain, rainMillimeter:  5, isDay:  true)
+        weatherDict[now.set(hour:  8)!] = Weather(time: now.set(hour:  8)!, temperature:  19, weatherType:        .rain, rainMillimeter: 10, isDay:  true)
+        weatherDict[now.set(hour:  9)!] = Weather(time: now.set(hour:  9)!, temperature:  20, weatherType:       .rain, rainMillimeter:  1, isDay:  true)
+        weatherDict[now.set(hour: 10)!] = Weather(time: now.set(hour: 10)!, temperature:  19, weatherType:   .lightCloud, rainMillimeter:  0, isDay:  true)
+        weatherDict[now.set(hour: 11)!] = Weather(time: now.set(hour: 11)!, temperature:  17, weatherType:   .lightCloud, rainMillimeter: 0, isDay:  true)
         // PM
-        self.weather[now.set(hour: 12)!] = Weather(time: now.set(hour: 12)!, temperature:  23, weatherType:         .clear, rainMillimeter:  0, isDay:  true)
-        self.weather[now.set(hour: 13)!] = Weather(time: now.set(hour: 13)!, temperature:  25, weatherType:   .clear, rainMillimeter: 0, isDay:  true)
-        self.weather[now.set(hour: 14)!] = Weather(time: now.set(hour: 14)!, temperature:  24, weatherType:       .clear, rainMillimeter: 0, isDay:  true)
-        self.weather[now.set(hour: 15)!] = Weather(time: now.set(hour: 15)!, temperature:  27, weatherType:  .lightCloud, rainMillimeter:  0, isDay:  true)
-        self.weather[now.set(hour: 16)!] = Weather(time: now.set(hour: 16)!, temperature:  26, weatherType:  .lightCloud, rainMillimeter: 0, isDay:  true)
-        self.weather[now.set(hour: 17)!] = Weather(time: now.set(hour: 17)!, temperature:  32, weatherType:  .lightCloud, rainMillimeter:  0, isDay:  true)
-        self.weather[now.set(hour: 18)!] = Weather(time: now.set(hour: 18)!, temperature:  30, weatherType:        .wind, rainMillimeter: 0, isDay:  true)
-        self.weather[now.set(hour: 19)!] = Weather(time: now.set(hour: 19)!, temperature:  28, weatherType:       .clear, rainMillimeter:  0, isDay: false)
-        self.weather[now.set(hour: 20)!] = Weather(time: now.set(hour: 20)!, temperature:  23, weatherType:   .clear, rainMillimeter:  0, isDay: false)
-        self.weather[now.set(hour: 21)!] = Weather(time: now.set(hour: 21)!, temperature:  20, weatherType:          .clear, rainMillimeter:  0, isDay: false)
-        self.weather[now.set(hour: 22)!] = Weather(time: now.set(hour: 22)!, temperature:  16, weatherType:         .clear, rainMillimeter:  0, isDay: false)
-        self.weather[now.set(hour: 23)!] = Weather(time: now.set(hour: 23)!, temperature:  18, weatherType:         .clear, rainMillimeter:  0, isDay: false)
+        weatherDict[now.set(hour: 12)!] = Weather(time: now.set(hour: 12)!, temperature:  23, weatherType:         .clear, rainMillimeter:  0, isDay:  true)
+        weatherDict[now.set(hour: 13)!] = Weather(time: now.set(hour: 13)!, temperature:  25, weatherType:   .clear, rainMillimeter: 0, isDay:  true)
+        weatherDict[now.set(hour: 14)!] = Weather(time: now.set(hour: 14)!, temperature:  24, weatherType:       .clear, rainMillimeter: 0, isDay:  true)
+        weatherDict[now.set(hour: 15)!] = Weather(time: now.set(hour: 15)!, temperature:  27, weatherType:  .lightCloud, rainMillimeter:  0, isDay:  true)
+        weatherDict[now.set(hour: 16)!] = Weather(time: now.set(hour: 16)!, temperature:  26, weatherType:  .lightCloud, rainMillimeter: 0, isDay:  true)
+        weatherDict[now.set(hour: 17)!] = Weather(time: now.set(hour: 17)!, temperature:  32, weatherType:  .lightCloud, rainMillimeter:  0, isDay:  true)
+        weatherDict[now.set(hour: 18)!] = Weather(time: now.set(hour: 18)!, temperature:  30, weatherType:        .wind, rainMillimeter: 0, isDay:  true)
+        weatherDict[now.set(hour: 19)!] = Weather(time: now.set(hour: 19)!, temperature:  28, weatherType:       .clear, rainMillimeter:  0, isDay: false)
+        weatherDict[now.set(hour: 20)!] = Weather(time: now.set(hour: 20)!, temperature:  23, weatherType:   .clear, rainMillimeter:  0, isDay: false)
+        weatherDict[now.set(hour: 21)!] = Weather(time: now.set(hour: 21)!, temperature:  20, weatherType:          .clear, rainMillimeter:  0, isDay: false)
+        weatherDict[now.set(hour: 22)!] = Weather(time: now.set(hour: 22)!, temperature:  16, weatherType:         .clear, rainMillimeter:  0, isDay: false)
+        weatherDict[now.set(hour: 23)!] = Weather(time: now.set(hour: 23)!, temperature:  18, weatherType:         .clear, rainMillimeter:  0, isDay: false)
+
+        self.weatherByLocation[id] = weatherDict
+        self.sunriseByLocation[id] = sunriseDict
+        self.sunsetByLocation[id] = sunsetDict
     }
     func startLocationTracking() {
         do {
@@ -843,129 +1071,138 @@ struct FrejView: View {
             geocoder.reverseGeocodeLocation(loc) { (placemarks, error) in
                 if error == nil {
                     let firstLocation = placemarks?[0]
-                    currentLocation = firstLocation?.locality ?? ""
-                    
+                    let locationName = firstLocation?.locality ?? ""
+                    currentLocation = locationName
+
+                    // Create or update GPS location
+                    let newGPSLocation = SavedLocation.gpsLocation(name: locationName, coordinate: loc.coordinate)
+                    self.gpsLocation = newGPSLocation
+
+                    // Fetch weather for GPS location
+                    self.fetchWeatherForLocation(newGPSLocation)
+
+                    // Fetch weather for all saved locations too
+                    for location in self.userSettings.savedLocations {
+                        self.fetchWeatherForLocation(location)
+                    }
+
                     if firstLocation?.country ?? "unknown" == "United States" && !userSettings.hasChosenUnit {
                         showUnitChooser = true
                     }
                 }
             }
+        }
+    }
 
-            // handleLocation(loc)
-            DispatchQueue.main.async {
-                let s = "https://api.open-meteo.com/v1/forecast?latitude=\(loc.coordinate.latitude)&longitude=\(loc.coordinate.longitude)&hourly=temperature_2m,precipitation,weathercode,cloudcover,windspeed_10m&past_days=1&daily=sunrise,sunset&timezone=UTC&timeformat=unixtime"
-                guard s != loadedURL && timeOfData.distance(to: Date()) > 60*60 else {  // don't update more than once an hour
-                    return
-                }
-                guard let url = URL(string: s) else {
-                    return
-                }
-                loadedURL = s
-                
-                print("getting: \(url)")
-                let request = URLRequest(url: url)
-                let task = URLSession.shared.dataTask(with: request) { (data, response, error) in
-                    if let response = response as? HTTPURLResponse {
-                        
-                        if response.statusCode == 503 {
-                            return
-                        }
-                        
-                       if error != nil {
-                            return
-                        }
-                        
-                        do {
-                            if let data = data {
-                                let string1 = String(data: data, encoding: String.Encoding.utf8) ?? "Data could not be printed"
-                                print(string1)
-                                let decoder = JSONDecoder()
-                                
-                                let dateFormatter = DateFormatter()
-                                dateFormatter.dateFormat = "yyyy-MM-dd'T'HH:mm"
-                                
-                                decoder.dateDecodingStrategy = JSONDecoder.DateDecodingStrategy.secondsSince1970
-                                let result = try decoder.decode(OMWeatherData.self, from: data)
-                                print("Parsed!")
-                                
-                                for sunset_item in result.daily.sunset {
-                                    self.sunset[sunset_item.getNaiveDate()] = sunset_item
+    func fetchWeatherForLocation(_ location: SavedLocation) {
+        // Check cache (1 hour)
+        if let lastFetched = lastFetchedByLocation[location.id],
+           Date().timeIntervalSince(lastFetched) < 3600 {
+            return
+        }
+
+        DispatchQueue.main.async {
+            let s = "https://api.open-meteo.com/v1/forecast?latitude=\(location.latitude)&longitude=\(location.longitude)&hourly=temperature_2m,precipitation,weathercode,cloudcover,windspeed_10m&past_days=1&daily=sunrise,sunset&timezone=UTC&timeformat=unixtime"
+
+            guard let url = URL(string: s) else {
+                return
+            }
+
+            print("getting weather for \(location.name): \(url)")
+            let request = URLRequest(url: url)
+            let task = URLSession.shared.dataTask(with: request) { (data, response, error) in
+                if let response = response as? HTTPURLResponse {
+
+                    if response.statusCode == 503 {
+                        return
+                    }
+
+                   if error != nil {
+                        return
+                    }
+
+                    do {
+                        if let data = data {
+                            let string1 = String(data: data, encoding: String.Encoding.utf8) ?? "Data could not be printed"
+                            print(string1)
+                            let decoder = JSONDecoder()
+
+                            decoder.dateDecodingStrategy = JSONDecoder.DateDecodingStrategy.secondsSince1970
+                            let result = try decoder.decode(OMWeatherData.self, from: data)
+                            print("Parsed for \(location.name)!")
+
+                            var sunsetDict: [NaiveDate: Date] = [:]
+                            var sunriseDict: [NaiveDate: Date] = [:]
+                            var weatherDict: [Date: Weather] = [:]
+
+                            for sunset_item in result.daily.sunset {
+                                sunsetDict[sunset_item.getNaiveDate()] = sunset_item
+                            }
+                            for sunrise_item in result.daily.sunrise {
+                                sunriseDict[sunrise_item.getNaiveDate()] = sunrise_item
+                            }
+
+                            for i in 0..<result.hourly.time.count {
+                                let time = result.hourly.time[i]
+                                let temperature = result.hourly.temperature_2m[i]
+                                let weatherSymbol = result.hourly.weathercode[i]
+                                let rainMillimeter = result.hourly.precipitation[i]
+                                let windspeed = result.hourly.windspeed_10m[i]
+                                let sunrise = sunriseDict[time.getNaiveDate()]
+                                let sunset = sunsetDict[time.getNaiveDate()]
+                                guard let sunrise = sunrise else {
+                                    continue
                                 }
-                                for sunrise_item in result.daily.sunrise {
-                                    self.sunrise[sunrise_item.getNaiveDate()] = sunrise_item
+                                guard let sunset = sunset else {
+                                    continue
+                                }
+                                let isDay = time > sunrise && time < sunset
+
+                                var weatherType: WeatherType
+                                switch weatherSymbol {
+                                case 0:
+                                    weatherType = .clear
+                                case 1:
+                                    weatherType = .mainlyClear
+                                case 2:
+                                    weatherType = .lightCloud
+                                case 3:
+                                    weatherType = .cloud
+                                case 71...75:
+                                    weatherType = .snow
+                                case 51...67:
+                                    weatherType = .rain
+                                case 80...86:
+                                    weatherType = .rain
+                                case 95...99:
+                                    weatherType = .lightning
+                                case 45...48:
+                                    weatherType = .fog
+                                default:
+                                    weatherType = .unknown
                                 }
 
-                                for i in 0..<result.hourly.time.count {
-                                    let time = result.hourly.time[i]
-                                    let temperature = result.hourly.temperature_2m[i]
-                                    let weatherSymbol = result.hourly.weathercode[i]
-                                    let rainMillimeter = result.hourly.precipitation[i]
-                                    let windspeed = result.hourly.windspeed_10m[i]
-                                    let sunrise = self.sunrise[time.getNaiveDate()]
-                                    let sunset = self.sunset[time.getNaiveDate()]
-                                    guard let sunrise = sunrise else {
-                                        continue
-                                    }
-                                    guard let sunset = sunset else {
-                                        continue
-                                    }
-                                    let isDay = time > sunrise && time < sunset
-                                                                     
-                                    /*
-                                     0              Clear sky
-                                     1, 2, 3        Mainly clear, partly cloudy, and overcast
-                                     45, 48         Fog and depositing rime fog
-                                     51, 53, 55     Drizzle: Light, moderate, and dense intensity
-                                     56, 57         Freezing Drizzle: Light and dense intensity
-                                     61, 63, 65     Rain: Slight, moderate and heavy intensity
-                                     66, 67         Freezing Rain: Light and heavy intensity
-                                     71, 73, 75     Snow fall: Slight, moderate, and heavy intensity
-                                     77             Snow grains
-                                     80, 81, 82     Rain showers: Slight, moderate, and violent
-                                     85, 86         Snow showers slight and heavy
-                                     95 *           Thunderstorm: Slight or moderate
-                                     96, 99 *       Thunderstorm with slight and heavy hail
-                                     */
-                                    
-                                    var weatherType : WeatherType
-                                    switch weatherSymbol {
-                                    case 0:
-                                        weatherType = .clear
-                                    case 1:
-                                        weatherType = .mainlyClear
-                                    case 2:
-                                        weatherType = .lightCloud
-                                    case 3:
-                                        weatherType = .cloud
-                                    case 71...75:
-                                        weatherType = .snow
-                                    case 51...67:
-                                        weatherType = .rain
-                                    case 80...86:
-                                        weatherType = .rain
-                                    case 95...99:
-                                        weatherType = .lightning
-                                    case 45...48:
-                                        weatherType = .fog
-                                    default:
-                                        weatherType = .unknown
-                                    }
-                                    
-                                    if windspeed > 20 {
-                                        weatherType = .wind
-                                    }
-                                    
-                                    self.weather[time] = Weather(time: time, temperature: temperature, weatherType: weatherType, rainMillimeter: rainMillimeter, isDay: isDay)
+                                if windspeed > 20 {
+                                    weatherType = .wind
                                 }
+
+                                weatherDict[time] = Weather(time: time, temperature: temperature, weatherType: weatherType, rainMillimeter: rainMillimeter, isDay: isDay)
+                            }
+
+                            DispatchQueue.main.async {
+                                self.weatherByLocation[location.id] = weatherDict
+                                self.sunriseByLocation[location.id] = sunriseDict
+                                self.sunsetByLocation[location.id] = sunsetDict
+                                self.lastFetchedByLocation[location.id] = Date()
                             }
                         }
-                        catch let error {
-                            print("Error parsing (\(error))")
-                        }
+                    }
+                    catch let error {
+                        print("Error parsing (\(error))")
                     }
                 }
-                task.resume()
             }
+            task.resume()
         }
     }
 }

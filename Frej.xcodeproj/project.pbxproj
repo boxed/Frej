@@ -7,6 +7,8 @@
 	objects = {
 
 /* Begin PBXBuildFile section */
+		CC000001B0000001000001A1 /* SavedLocation.swift in Sources */ = {isa = PBXBuildFile; fileRef = CC000001B0000001000001A2 /* SavedLocation.swift */; };
+		CC000001B0000002000001A1 /* SettingsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = CC000001B0000002000001A2 /* SettingsView.swift */; };
 		AE713E8D2649FFFC00A712A7 /* FrejApp.swift in Sources */ = {isa = PBXBuildFile; fileRef = AE713E8C2649FFFC00A712A7 /* FrejApp.swift */; };
 		AE713E8F2649FFFC00A712A7 /* ContentView.swift in Sources */ = {isa = PBXBuildFile; fileRef = AE713E8E2649FFFC00A712A7 /* ContentView.swift */; };
 		AE713E912649FFFD00A712A7 /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = AE713E902649FFFD00A712A7 /* Assets.xcassets */; };
@@ -56,6 +58,8 @@
 /* End PBXCopyFilesBuildPhase section */
 
 /* Begin PBXFileReference section */
+		CC000001B0000001000001A2 /* SavedLocation.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SavedLocation.swift; sourceTree = "<group>"; };
+		CC000001B0000002000001A2 /* SettingsView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SettingsView.swift; sourceTree = "<group>"; };
 		AE6DAA622725C5F500152EC6 /* Frej.entitlements */ = {isa = PBXFileReference; lastKnownFileType = text.plist.entitlements; path = Frej.entitlements; sourceTree = "<group>"; };
 		AE713E892649FFFC00A712A7 /* Frej.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = Frej.app; sourceTree = BUILT_PRODUCTS_DIR; };
 		AE713E8C2649FFFC00A712A7 /* FrejApp.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FrejApp.swift; sourceTree = "<group>"; };
@@ -135,6 +139,8 @@
 				AE6DAA622725C5F500152EC6 /* Frej.entitlements */,
 				AE713E8C2649FFFC00A712A7 /* FrejApp.swift */,
 				AE7FE2C7272D3C1E00104E4F /* FrejView.swift */,
+				CC000001B0000001000001A2 /* SavedLocation.swift */,
+				CC000001B0000002000001A2 /* SettingsView.swift */,
 				AE713E8E2649FFFC00A712A7 /* ContentView.swift */,
 				AE7344D526FF37D50048EABF /* DateFromComponents.swift */,
 				AE713E902649FFFD00A712A7 /* Assets.xcassets */,
@@ -321,6 +327,8 @@
 			isa = PBXSourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				CC000001B0000001000001A1 /* SavedLocation.swift in Sources */,
+				CC000001B0000002000001A1 /* SettingsView.swift in Sources */,
 				AE713EB8264DACC100A712A7 /* LocationProvider.swift in Sources */,
 				AE7344D426FF03500048EABF /* ColorHex.swift in Sources */,
 				AE713E8F2649FFFC00A712A7 /* ContentView.swift in Sources */,
