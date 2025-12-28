@@ -98,17 +98,17 @@ struct Rays: Shape {
     var start_degree = 0.0
     var end_degree = 360.0
     var wiggle_size = 1.01
-    
+
     func path(in rect: CGRect) -> Path {
         var p = Path()
         let degrees = end_degree - start_degree
 
         let number_of_rays = Int(Double(degrees) * ray_density)
-        
+
         if number_of_rays < 0 {
             return p
         }
-        
+
         for i in 0..<number_of_rays {
             let degree = start_degree + CGFloat(i) / ray_density
             var size_a : CGFloat = rect.height/a
@@ -131,6 +131,63 @@ struct Rays: Shape {
             p.addLine(to: CGPoint(x: x2, y: y2))
         }
         return p
+    }
+}
+
+struct ColoredRays: View {
+    let a: CGFloat
+    let b: CGFloat
+    let ray_density: Double
+    var wiggle_a: Bool = false
+    var start_degree = 0.0
+    var end_degree = 360.0
+    var wiggle_size = 1.01
+    var lineWidth: CGFloat = 1
+
+    // Three colors: before (start edge), center, after (end edge)
+    var colorBefore: Color = .yellow
+    var colorCenter: Color = .yellow
+    var colorAfter: Color = .yellow
+
+    var body: some View {
+        Canvas { context, size in
+            let rect = CGRect(origin: .zero, size: size)
+            let degrees = end_degree - start_degree
+            let number_of_rays = Int(Double(degrees) * ray_density)
+
+            if number_of_rays <= 0 { return }
+
+            for i in 0..<number_of_rays {
+                let degree = start_degree + CGFloat(i) / ray_density
+                var size_a: CGFloat = rect.height / a
+                let size_b: CGFloat = rect.height / b
+                if wiggle_a && i % 2 == 0 {
+                    size_a *= wiggle_size
+                }
+                let radians = CGFloat.pi - degree.degreesToRadians
+                let x = sin(radians) * size_a + rect.width / 2
+                let y = cos(radians) * size_a + rect.height / 2
+                let x2 = sin(radians) * size_b + rect.width / 2
+                let y2 = cos(radians) * size_b + rect.height / 2
+
+                // Calculate color based on position (0 = start, 0.5 = center, 1 = end)
+                let progress = Double(i) / Double(max(1, number_of_rays - 1))
+                let color: Color
+                if progress < 0.5 {
+                    // Blend from colorBefore to colorCenter
+                    color = blendColors(colorBefore, colorCenter, ratio: progress * 2)
+                } else {
+                    // Blend from colorCenter to colorAfter
+                    color = blendColors(colorCenter, colorAfter, ratio: (progress - 0.5) * 2)
+                }
+
+                var path = Path()
+                path.move(to: CGPoint(x: x, y: y))
+                path.addLine(to: CGPoint(x: x2, y: y2))
+
+                context.stroke(path, with: .color(color), lineWidth: lineWidth)
+            }
+        }
     }
 }
 
@@ -303,6 +360,39 @@ func uvToColor(_ uvIndex: Float) -> Color {
     }
 }
 
+func blendColors(_ c1: Color, _ c2: Color, ratio: Double) -> Color {
+    let r = min(1, max(0, ratio))
+
+    let ui1 = UIColor(c1)
+    let ui2 = UIColor(c2)
+
+    var r1: CGFloat = 0, g1: CGFloat = 0, b1: CGFloat = 0, a1: CGFloat = 0
+    var r2: CGFloat = 0, g2: CGFloat = 0, b2: CGFloat = 0, a2: CGFloat = 0
+
+    if let srgb1 = ui1.cgColor.converted(to: CGColorSpace(name: CGColorSpace.sRGB)!, intent: .defaultIntent, options: nil) {
+        let components1 = srgb1.components ?? [0, 0, 0, 1]
+        r1 = components1.count > 0 ? components1[0] : 0
+        g1 = components1.count > 1 ? components1[1] : 0
+        b1 = components1.count > 2 ? components1[2] : 0
+        a1 = components1.count > 3 ? components1[3] : 1
+    }
+
+    if let srgb2 = ui2.cgColor.converted(to: CGColorSpace(name: CGColorSpace.sRGB)!, intent: .defaultIntent, options: nil) {
+        let components2 = srgb2.components ?? [0, 0, 0, 1]
+        r2 = components2.count > 0 ? components2[0] : 0
+        g2 = components2.count > 1 ? components2[1] : 0
+        b2 = components2.count > 2 ? components2[2] : 0
+        a2 = components2.count > 3 ? components2[3] : 1
+    }
+
+    let red = r1 + (r2 - r1) * r
+    let green = g1 + (g2 - g1) * r
+    let blue = b1 + (b2 - b1) * r
+    let alpha = a1 + (a2 - a1) * r
+
+    return Color(red: Double(red), green: Double(green), blue: Double(blue), opacity: Double(alpha))
+}
+
 struct Daylight : View {
     var start : Int
     var sunrise: Date?
@@ -315,15 +405,44 @@ struct Daylight : View {
         if let sunrise = sunrise, let sunset = sunset {
             let (from, to) = datetime_to_degrees(sunrise: sunrise, sunset: sunset, start: start)
             if showUVRays {
-                // Draw individual rays per hour with UV-based thickness
+                // Draw individual rays per hour with UV-based thickness and color fading
                 ForEach(0..<12, id: \.self) { id in
                     let startDatetime = startOfToday.addingTimeInterval(TimeInterval((id + start) * 60 * 60))
+                    let prevDatetime = startOfToday.addingTimeInterval(TimeInterval((id + start - 1) * 60 * 60))
+                    let nextDatetime = startOfToday.addingTimeInterval(TimeInterval((id + start + 1) * 60 * 60))
+
                     if let hourWeather = weather[startDatetime], hourWeather.isDay {
                         let (hourFrom, hourTo) = rainDegrees(date: startDatetime)
                         let lineWidth = uvToLineWidth(hourWeather.uvIndex)
-                        let color = uvToColor(hourWeather.uvIndex)
-                        Rays(a: 2.6, b: circle_inner_diameter, ray_density: sun_ray_density, wiggle_a: true, start_degree: hourFrom, end_degree: hourTo)
-                            .stroke(color, style: StrokeStyle(lineWidth: lineWidth, lineCap: .butt))
+                        let centerColor = uvToColor(hourWeather.uvIndex)
+
+                        // Get colors from adjacent hours
+                        let prevWeather = weather[prevDatetime]
+                        let nextWeather = weather[nextDatetime]
+
+                        let prevColor = prevWeather != nil && prevWeather!.isDay
+                            ? uvToColor(prevWeather!.uvIndex)
+                            : centerColor
+                        let nextColor = nextWeather != nil && nextWeather!.isDay
+                            ? uvToColor(nextWeather!.uvIndex)
+                            : centerColor
+
+                        // Edge colors are the midpoint blend between this hour and adjacent hours
+                        let beforeColor = blendColors(prevColor, centerColor, ratio: 0.5)
+                        let afterColor = blendColors(centerColor, nextColor, ratio: 0.5)
+
+                        ColoredRays(
+                            a: 2.6,
+                            b: circle_inner_diameter,
+                            ray_density: sun_ray_density,
+                            wiggle_a: true,
+                            start_degree: hourFrom,
+                            end_degree: hourTo,
+                            lineWidth: lineWidth,
+                            colorBefore: beforeColor,
+                            colorCenter: centerColor,
+                            colorAfter: afterColor
+                        )
                     }
                 }
             } else {
