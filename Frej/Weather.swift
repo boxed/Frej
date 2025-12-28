@@ -120,13 +120,15 @@ struct Weather {
     let isDay : Bool
     let iconColor : Color
     let rainIntensity : RainIntensity
+    let uvIndex : Float
 
     init(
         time : Date,
         temperature : Float,
         weatherType : WeatherType,
         rainMillimeter : Float,
-        isDay : Bool
+        isDay : Bool,
+        uvIndex : Float = 0
     ) {
         self.time = time
         self.temperature = temperature
@@ -134,7 +136,8 @@ struct Weather {
         self.rainMillimeter = rainMillimeter
 
         self.isDay = isDay
-                
+        self.uvIndex = uvIndex
+
         self.circleSegmentColor = rainMillimeter > 0 ? rainColor : .white
         self.circleSegmentWidth = max(1, CGFloat(log(rainMillimeter) * 10))
         self.textColor = _textColor(isDay: isDay, weatherType: weatherType)
@@ -230,6 +233,7 @@ struct OMHourly : Decodable {
     let precipitation : [Float]
     let time : [Date]
     let temperature_2m : [Float]
+    let uv_index : [Float]
 }
 
 

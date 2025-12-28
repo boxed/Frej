@@ -18,6 +18,10 @@ struct SettingsView: View {
                     .pickerStyle(SegmentedPickerStyle())
                 }
 
+                Section(header: Text("Display")) {
+                    Toggle("Show UV Index on Sun Rays", isOn: $userSettings.showUVRays)
+                }
+
                 Section(header: Text("Locations")) {
                     if let gps = gpsLocation {
                         HStack {

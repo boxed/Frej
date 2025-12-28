@@ -279,16 +279,57 @@ func datetime_to_degrees(sunrise: Date, sunset: Date, start: Int) -> (Double, Do
     return (360 * from - x, 360 * to - x)
 }
 
+func uvToLineWidth(_ uvIndex: Float) -> CGFloat {
+    // UV index typically ranges 0-11+
+    // Scale line width from 0.5 (low UV) to 3 (extreme UV)
+    let clamped = min(max(uvIndex, 0), 11)
+    return CGFloat(0.5 + clamped * 0.25)
+}
+
+func uvToColor(_ uvIndex: Float) -> Color {
+    // UV index color scale:
+    // 0-5: Yellow (low/moderate)
+    // 6-7: Orange (high)
+    // 8-10: Blue (very high)
+    // 11+: Purple (extreme)
+    if uvIndex < 6 {
+        return Color.yellow
+    } else if uvIndex < 8 {
+        return Color.orange
+    } else if uvIndex < 11 {
+        return Color.blue
+    } else {
+        return Color.purple
+    }
+}
+
 struct Daylight : View {
     var start : Int
     var sunrise: Date?
     var sunset: Date?
+    var weather: [Date: Weather] = [:]
+    var showUVRays: Bool = false
+    var startOfToday: Date = Date()
 
     var body : some View {
         if let sunrise = sunrise, let sunset = sunset {
             let (from, to) = datetime_to_degrees(sunrise: sunrise, sunset: sunset, start: start)
-            Rays(a: 2.6, b: circle_inner_diameter, ray_density: sun_ray_density, wiggle_a: true, start_degree: from, end_degree: to)
-                .stroke(Color.yellow, style: StrokeStyle(lineWidth: 1, lineCap: .butt))
+            if showUVRays {
+                // Draw individual rays per hour with UV-based thickness
+                ForEach(0..<12, id: \.self) { id in
+                    let startDatetime = startOfToday.addingTimeInterval(TimeInterval((id + start) * 60 * 60))
+                    if let hourWeather = weather[startDatetime], hourWeather.isDay {
+                        let (hourFrom, hourTo) = rainDegrees(date: startDatetime)
+                        let lineWidth = uvToLineWidth(hourWeather.uvIndex)
+                        let color = uvToColor(hourWeather.uvIndex)
+                        Rays(a: 2.6, b: circle_inner_diameter, ray_density: sun_ray_density, wiggle_a: true, start_degree: hourFrom, end_degree: hourTo)
+                            .stroke(color, style: StrokeStyle(lineWidth: lineWidth, lineCap: .butt))
+                    }
+                }
+            } else {
+                Rays(a: 2.6, b: circle_inner_diameter, ray_density: sun_ray_density, wiggle_a: true, start_degree: from, end_degree: to)
+                    .stroke(Color.yellow, style: StrokeStyle(lineWidth: 1, lineCap: .butt))
+            }
         }
         else {
             Text("")
@@ -412,6 +453,7 @@ struct Clock : View {
     var sunrise : [NaiveDate: Date]
     var sunset : [NaiveDate: Date]
     let unit : String
+    var showUVRays : Bool = false
 
 
     var body : some View {
@@ -431,7 +473,7 @@ struct Clock : View {
             
             ZStack {
                 Night(start: start, sunrise: sunrise[startTime.getNaiveDate()], sunset: sunset[startTime.getNaiveDate()])
-                Daylight(start: start, sunrise: sunrise[startTime.getNaiveDate()], sunset: sunset[startTime.getNaiveDate()])
+                Daylight(start: start, sunrise: sunrise[startTime.getNaiveDate()], sunset: sunset[startTime.getNaiveDate()], weather: weather, showUVRays: showUVRays, startOfToday: startOfToday)
                 #if !os(watchOS)
                 VStack {
                     Text("\(weekdayStr)").frame(maxWidth: .infinity, alignment: .leading)
@@ -574,6 +616,7 @@ struct Foo : View {
     let unit: String
     let coordinate: CLLocationCoordinate2D?
     @Binding var selectedDay: Int
+    var showUVRays: Bool = false
 
     var body: some View {
         let fractionalHour: Double = now.fractionalHour()
@@ -585,12 +628,14 @@ struct Foo : View {
                     let start1 = 12*id
                     Clock(
                         now: now,
+                        startOfToday: startOfToday,
                         showDials: fractionalHour > (start1 - 0.5) && fractionalHour < (start1 + 12 - 0.5),
                         start: start1,
                         weather: weather,
                         sunrise: sunrise,
                         sunset: sunset,
-                        unit: unit
+                        unit: unit,
+                        showUVRays: showUVRays
                     )
                     .tag(id)
                 }
@@ -618,7 +663,8 @@ struct Foo : View {
                                 weather: weather,
                                 sunrise: sunrise,
                                 sunset: sunset,
-                                unit: unit
+                                unit: unit,
+                                showUVRays: showUVRays
                             ).frame(height: height)
                             Clock(
                                 now: now,
@@ -628,7 +674,8 @@ struct Foo : View {
                                 weather: weather,
                                 sunrise: sunrise,
                                 sunset: sunset,
-                                unit: unit
+                                unit: unit,
+                                showUVRays: showUVRays
                             ).frame(height: height)
                         }
                     }
@@ -673,10 +720,17 @@ class UserSettings: ObservableObject {
         }
     }
 
+    @Published var showUVRays: Bool {
+        didSet {
+            UserDefaults.standard.set(showUVRays, forKey: "showUVRays")
+        }
+    }
+
     init() {
         self.hasChosenUnit = UserDefaults.standard.bool(forKey: "hasChosenUnit")
         self.unit = UserDefaults.standard.string(forKey: "unit") ?? "C"
         self.selectedLocationIndex = UserDefaults.standard.integer(forKey: "selectedLocationIndex")
+        self.showUVRays = UserDefaults.standard.bool(forKey: "showUVRays")
 
         if let data = UserDefaults.standard.data(forKey: "savedLocations"),
            let decoded = try? JSONDecoder().decode([SavedLocation].self, from: data) {
@@ -799,7 +853,8 @@ struct FrejView: View {
                                             sunset: sunsetForLocation(prevLocation.id),
                                             unit: userSettings.unit,
                                             coordinate: prevLocation.coordinate,
-                                            selectedDay: $selectedDay
+                                            selectedDay: $selectedDay,
+                                            showUVRays: userSettings.showUVRays
                                         )
                                     }
                                     .offset(y: dragOffset - screenHeight)
@@ -822,7 +877,8 @@ struct FrejView: View {
                                             sunset: sunsetForLocation(location.id),
                                             unit: userSettings.unit,
                                             coordinate: location.coordinate,
-                                            selectedDay: $selectedDay
+                                            selectedDay: $selectedDay,
+                                            showUVRays: userSettings.showUVRays
                                         )
                                     }
                                     .offset(y: dragOffset)
@@ -845,7 +901,8 @@ struct FrejView: View {
                                             sunset: sunsetForLocation(nextLocation.id),
                                             unit: userSettings.unit,
                                             coordinate: nextLocation.coordinate,
-                                            selectedDay: $selectedDay
+                                            selectedDay: $selectedDay,
+                                            showUVRays: userSettings.showUVRays
                                         )
                                     }
                                     .offset(y: dragOffset + screenHeight)
@@ -911,7 +968,8 @@ struct FrejView: View {
                                     sunset: sunsetForLocation(location.id),
                                     unit: userSettings.unit,
                                     coordinate: location.coordinate,
-                                    selectedDay: $selectedDay
+                                    selectedDay: $selectedDay,
+                                    showUVRays: userSettings.showUVRays
                                 )
                             }
                         } else {
@@ -930,7 +988,8 @@ struct FrejView: View {
                                     sunset: [:],
                                     unit: userSettings.unit,
                                     coordinate: coordinate,
-                                    selectedDay: $selectedDay
+                                    selectedDay: $selectedDay,
+                                    showUVRays: userSettings.showUVRays
                                 )
                             }
                         }
@@ -1139,7 +1198,7 @@ struct FrejView: View {
         }
 
         DispatchQueue.main.async {
-            let s = "https://api.open-meteo.com/v1/forecast?latitude=\(location.latitude)&longitude=\(location.longitude)&hourly=temperature_2m,precipitation,weathercode,cloudcover,windspeed_10m&past_days=1&daily=sunrise,sunset&timezone=UTC&timeformat=unixtime"
+            let s = "https://api.open-meteo.com/v1/forecast?latitude=\(location.latitude)&longitude=\(location.longitude)&hourly=temperature_2m,precipitation,weathercode,cloudcover,windspeed_10m,uv_index&past_days=1&daily=sunrise,sunset&timezone=UTC&timeformat=unixtime"
 
             guard let url = URL(string: s) else {
                 return
@@ -1185,6 +1244,7 @@ struct FrejView: View {
                                 let weatherSymbol = result.hourly.weathercode[i]
                                 let rainMillimeter = result.hourly.precipitation[i]
                                 let windspeed = result.hourly.windspeed_10m[i]
+                                let uvIndex = result.hourly.uv_index[i]
                                 let sunrise = sunriseDict[time.getNaiveDate()]
                                 let sunset = sunsetDict[time.getNaiveDate()]
                                 guard let sunrise = sunrise else {
@@ -1223,7 +1283,7 @@ struct FrejView: View {
                                     weatherType = .wind
                                 }
 
-                                weatherDict[time] = Weather(time: time, temperature: temperature, weatherType: weatherType, rainMillimeter: rainMillimeter, isDay: isDay)
+                                weatherDict[time] = Weather(time: time, temperature: temperature, weatherType: weatherType, rainMillimeter: rainMillimeter, isDay: isDay, uvIndex: uvIndex)
                             }
 
                             DispatchQueue.main.async {
