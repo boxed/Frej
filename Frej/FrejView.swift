@@ -600,7 +600,7 @@ struct Foo : View {
                             Spacer()
                             let moon_size = min(geometry.size.height/2, geometry.size.width) / 6.0
 
-                            Moon(date: now.addingTimeInterval(TimeInterval(day * 24 * 60 * 60))).frame(width: moon_size, height: moon_size).rotationEffect(Angle(degrees: (coordinate?.latitude ?? 0) - 90)).padding(20)
+                            Moon(date: now.addingTimeInterval(TimeInterval(day * 24 * 60 * 60))).frame(width: moon_size, height: moon_size).rotationEffect(Angle(degrees: (coordinate?.latitude ?? 0) - 90)).padding(.trailing, 10).padding([.top, .leading], 20)
                         }
 
                         VStack {
