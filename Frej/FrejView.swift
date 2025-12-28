@@ -840,13 +840,16 @@ struct FrejView: View {
                                         let hasPrevious = currentIndex > 0
                                         let hasNext = currentIndex < allLocations.count - 1
 
+                                        let newOffset: CGFloat
                                         if !hasPrevious && translation > 0 {
-                                            dragOffset = translation * 0.3
+                                            newOffset = translation * 0.3
                                         } else if !hasNext && translation < 0 {
-                                            dragOffset = translation * 0.3
+                                            newOffset = translation * 0.3
                                         } else {
-                                            dragOffset = translation
+                                            newOffset = translation
                                         }
+                                        // Round to whole pixels to avoid sub-pixel jitter
+                                        dragOffset = round(newOffset)
                                     }
                                     .onEnded { value in
                                         let threshold: CGFloat = 60
