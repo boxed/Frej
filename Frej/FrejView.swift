@@ -776,7 +776,6 @@ struct FrejView: View {
 #if !os(watchOS)
                     Spacer()
                     Text(displayLocationName).font(Font.system(size: 25))
-                    Link("Weather data by Open-Meteo.com", destination: URL(string: "https://open-meteo.com/")!).font(Font.system(size: 12)).foregroundColor(Color.gray)
 #endif
                     GeometryReader { (geometry) in
                         let size = geometry.size

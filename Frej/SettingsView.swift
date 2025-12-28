@@ -49,6 +49,11 @@ struct SettingsView: View {
                         }
                     }
                 }
+
+                Section {
+                    Link("Weather data by Open-Meteo.com", destination: URL(string: "https://open-meteo.com/")!)
+                        .foregroundColor(.gray)
+                }
             }
             #if os(iOS) || targetEnvironment(macCatalyst)
             .listStyle(InsetGroupedListStyle())
