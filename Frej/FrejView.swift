@@ -436,7 +436,8 @@ struct Clock : View {
                 VStack {
                     Text("\(weekdayStr)").frame(maxWidth: .infinity, alignment: .leading)
                     .font(Font.system(size: 10))
-                    .padding()
+                    .padding([.leading, .trailing])
+                    .padding(.top, 5)
                     Spacer()
                 }
                 #endif
@@ -769,14 +770,9 @@ struct FrejView: View {
             let calendar = Calendar.current
             let components = calendar.dateComponents([Calendar.Component.hour], from: now)
             let hour = components.hour!
-            let displayLocationName = currentLocationData?.name ?? currentLocation
 
             ZStack {
-                VStack {
-#if !os(watchOS)
-                    Spacer()
-                    Text(displayLocationName).font(Font.system(size: 25))
-#endif
+                VStack(spacing: 0) {
                     GeometryReader { (geometry) in
                         let size = geometry.size
                         let height = min(size.width * 0.9, abs(size.height / 2 - 25))
@@ -788,52 +784,70 @@ struct FrejView: View {
                             ZStack {
                                 // Previous location (above)
                                 if currentIndex > 0, let prevLocation = allLocations[safe: currentIndex - 1] {
-                                    Foo(
-                                        weather: weatherForLocation(prevLocation.id),
-                                        height: height,
-                                        hour: hour,
-                                        now: now,
-                                        size: size,
-                                        sunrise: sunriseForLocation(prevLocation.id),
-                                        sunset: sunsetForLocation(prevLocation.id),
-                                        unit: userSettings.unit,
-                                        coordinate: prevLocation.coordinate,
-                                        selectedDay: $selectedDay
-                                    )
+                                    VStack(spacing: 0) {
+#if !os(watchOS)
+                                        Spacer()
+                                        Text(prevLocation.name).font(Font.system(size: 25)).padding(.bottom, -10)
+#endif
+                                        Foo(
+                                            weather: weatherForLocation(prevLocation.id),
+                                            height: height,
+                                            hour: hour,
+                                            now: now,
+                                            size: size,
+                                            sunrise: sunriseForLocation(prevLocation.id),
+                                            sunset: sunsetForLocation(prevLocation.id),
+                                            unit: userSettings.unit,
+                                            coordinate: prevLocation.coordinate,
+                                            selectedDay: $selectedDay
+                                        )
+                                    }
                                     .offset(y: dragOffset - screenHeight)
                                 }
 
                                 // Current location
                                 if let location = allLocations[safe: currentIndex] ?? allLocations.first {
-                                    Foo(
-                                        weather: weatherForLocation(location.id),
-                                        height: height,
-                                        hour: hour,
-                                        now: now,
-                                        size: size,
-                                        sunrise: sunriseForLocation(location.id),
-                                        sunset: sunsetForLocation(location.id),
-                                        unit: userSettings.unit,
-                                        coordinate: location.coordinate,
-                                        selectedDay: $selectedDay
-                                    )
+                                    VStack(spacing: 0) {
+#if !os(watchOS)
+                                        Spacer()
+                                        Text(location.name).font(Font.system(size: 25)).padding(.bottom, -10)
+#endif
+                                        Foo(
+                                            weather: weatherForLocation(location.id),
+                                            height: height,
+                                            hour: hour,
+                                            now: now,
+                                            size: size,
+                                            sunrise: sunriseForLocation(location.id),
+                                            sunset: sunsetForLocation(location.id),
+                                            unit: userSettings.unit,
+                                            coordinate: location.coordinate,
+                                            selectedDay: $selectedDay
+                                        )
+                                    }
                                     .offset(y: dragOffset)
                                 }
 
                                 // Next location (below)
                                 if currentIndex < allLocations.count - 1, let nextLocation = allLocations[safe: currentIndex + 1] {
-                                    Foo(
-                                        weather: weatherForLocation(nextLocation.id),
-                                        height: height,
-                                        hour: hour,
-                                        now: now,
-                                        size: size,
-                                        sunrise: sunriseForLocation(nextLocation.id),
-                                        sunset: sunsetForLocation(nextLocation.id),
-                                        unit: userSettings.unit,
-                                        coordinate: nextLocation.coordinate,
-                                        selectedDay: $selectedDay
-                                    )
+                                    VStack(spacing: 0) {
+#if !os(watchOS)
+                                        Spacer()
+                                        Text(nextLocation.name).font(Font.system(size: 25)).padding(.bottom, -10)
+#endif
+                                        Foo(
+                                            weather: weatherForLocation(nextLocation.id),
+                                            height: height,
+                                            hour: hour,
+                                            now: now,
+                                            size: size,
+                                            sunrise: sunriseForLocation(nextLocation.id),
+                                            sunset: sunsetForLocation(nextLocation.id),
+                                            unit: userSettings.unit,
+                                            coordinate: nextLocation.coordinate,
+                                            selectedDay: $selectedDay
+                                        )
+                                    }
                                     .offset(y: dragOffset + screenHeight)
                                 }
                             }
@@ -882,31 +896,43 @@ struct FrejView: View {
                                     }
                             )
                         } else if let location = allLocations.first {
-                            Foo(
-                                weather: weatherForLocation(location.id),
-                                height: height,
-                                hour: hour,
-                                now: now,
-                                size: size,
-                                sunrise: sunriseForLocation(location.id),
-                                sunset: sunsetForLocation(location.id),
-                                unit: userSettings.unit,
-                                coordinate: location.coordinate,
-                                selectedDay: $selectedDay
-                            )
+                            VStack(spacing: 0) {
+#if !os(watchOS)
+                                Spacer()
+                                Text(location.name).font(Font.system(size: 25)).padding(.bottom, -10)
+#endif
+                                Foo(
+                                    weather: weatherForLocation(location.id),
+                                    height: height,
+                                    hour: hour,
+                                    now: now,
+                                    size: size,
+                                    sunrise: sunriseForLocation(location.id),
+                                    sunset: sunsetForLocation(location.id),
+                                    unit: userSettings.unit,
+                                    coordinate: location.coordinate,
+                                    selectedDay: $selectedDay
+                                )
+                            }
                         } else {
-                            Foo(
-                                weather: [:],
-                                height: height,
-                                hour: hour,
-                                now: now,
-                                size: size,
-                                sunrise: [:],
-                                sunset: [:],
-                                unit: userSettings.unit,
-                                coordinate: coordinate,
-                                selectedDay: $selectedDay
-                            )
+                            VStack(spacing: 0) {
+#if !os(watchOS)
+                                Spacer()
+                                Text(currentLocation).font(Font.system(size: 25)).padding(.bottom, -10)
+#endif
+                                Foo(
+                                    weather: [:],
+                                    height: height,
+                                    hour: hour,
+                                    now: now,
+                                    size: size,
+                                    sunrise: [:],
+                                    sunset: [:],
+                                    unit: userSettings.unit,
+                                    coordinate: coordinate,
+                                    selectedDay: $selectedDay
+                                )
+                            }
                         }
                     }
 #if os(iOS)
