@@ -7,8 +7,6 @@
 	objects = {
 
 /* Begin PBXBuildFile section */
-		CC000001B0000001000001A1 /* SavedLocation.swift in Sources */ = {isa = PBXBuildFile; fileRef = CC000001B0000001000001A2 /* SavedLocation.swift */; };
-		CC000001B0000002000001A1 /* SettingsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = CC000001B0000002000001A2 /* SettingsView.swift */; };
 		AE713E8D2649FFFC00A712A7 /* FrejApp.swift in Sources */ = {isa = PBXBuildFile; fileRef = AE713E8C2649FFFC00A712A7 /* FrejApp.swift */; };
 		AE713E8F2649FFFC00A712A7 /* ContentView.swift in Sources */ = {isa = PBXBuildFile; fileRef = AE713E8E2649FFFC00A712A7 /* ContentView.swift */; };
 		AE713E912649FFFD00A712A7 /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = AE713E902649FFFD00A712A7 /* Assets.xcassets */; };
@@ -25,6 +23,8 @@
 		AE77F85A2B823119009FC286 /* Stars.swift in Sources */ = {isa = PBXBuildFile; fileRef = AE77F8592B823119009FC286 /* Stars.swift */; };
 		AE7FE2C8272D3C1E00104E4F /* FrejView.swift in Sources */ = {isa = PBXBuildFile; fileRef = AE7FE2C7272D3C1E00104E4F /* FrejView.swift */; };
 		AEBD6CE42711818D007B9772 /* NaiveDate.swift in Sources */ = {isa = PBXBuildFile; fileRef = AEBD6CE32711818D007B9772 /* NaiveDate.swift */; };
+		CC000001B0000001000001A1 /* SavedLocation.swift in Sources */ = {isa = PBXBuildFile; fileRef = CC000001B0000001000001A2 /* SavedLocation.swift */; };
+		CC000001B0000002000001A1 /* SettingsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = CC000001B0000002000001A2 /* SettingsView.swift */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXContainerItemProxy section */
@@ -58,8 +58,6 @@
 /* End PBXCopyFilesBuildPhase section */
 
 /* Begin PBXFileReference section */
-		CC000001B0000001000001A2 /* SavedLocation.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SavedLocation.swift; sourceTree = "<group>"; };
-		CC000001B0000002000001A2 /* SettingsView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SettingsView.swift; sourceTree = "<group>"; };
 		AE6DAA622725C5F500152EC6 /* Frej.entitlements */ = {isa = PBXFileReference; lastKnownFileType = text.plist.entitlements; path = Frej.entitlements; sourceTree = "<group>"; };
 		AE713E892649FFFC00A712A7 /* Frej.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = Frej.app; sourceTree = BUILT_PRODUCTS_DIR; };
 		AE713E8C2649FFFC00A712A7 /* FrejApp.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FrejApp.swift; sourceTree = "<group>"; };
@@ -85,6 +83,8 @@
 		AE88C70328D20ADA00D33D60 /* WidgetKit.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = WidgetKit.framework; path = System/Library/Frameworks/WidgetKit.framework; sourceTree = SDKROOT; };
 		AE88C70528D20ADA00D33D60 /* SwiftUI.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = SwiftUI.framework; path = System/Library/Frameworks/SwiftUI.framework; sourceTree = SDKROOT; };
 		AEBD6CE32711818D007B9772 /* NaiveDate.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = NaiveDate.swift; sourceTree = "<group>"; };
+		CC000001B0000001000001A2 /* SavedLocation.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SavedLocation.swift; sourceTree = "<group>"; };
+		CC000001B0000002000001A2 /* SettingsView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SettingsView.swift; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -500,7 +500,7 @@
 				ASSETCATALOG_COMPILER_INCLUDE_ALL_APPICON_ASSETS = NO;
 				CODE_SIGN_ENTITLEMENTS = Frej/Frej.entitlements;
 				CODE_SIGN_STYLE = Automatic;
-				CURRENT_PROJECT_VERSION = 7;
+				CURRENT_PROJECT_VERSION = 8;
 				DEVELOPMENT_ASSET_PATHS = "\"Frej/Preview Content\"";
 				DEVELOPMENT_TEAM = B6FVY827P9;
 				ENABLE_PREVIEWS = YES;
@@ -511,7 +511,7 @@
 					"$(inherited)",
 					"@executable_path/Frameworks",
 				);
-				MARKETING_VERSION = 7.0;
+				MARKETING_VERSION = 8.0;
 				PRODUCT_BUNDLE_IDENTIFIER = net.kodare.sunhail;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				SUPPORTS_MACCATALYST = YES;
@@ -528,7 +528,7 @@
 				ASSETCATALOG_COMPILER_INCLUDE_ALL_APPICON_ASSETS = NO;
 				CODE_SIGN_ENTITLEMENTS = Frej/Frej.entitlements;
 				CODE_SIGN_STYLE = Automatic;
-				CURRENT_PROJECT_VERSION = 7;
+				CURRENT_PROJECT_VERSION = 8;
 				DEVELOPMENT_ASSET_PATHS = "\"Frej/Preview Content\"";
 				DEVELOPMENT_TEAM = B6FVY827P9;
 				ENABLE_PREVIEWS = YES;
@@ -539,7 +539,7 @@
 					"$(inherited)",
 					"@executable_path/Frameworks",
 				);
-				MARKETING_VERSION = 7.0;
+				MARKETING_VERSION = 8.0;
 				PRODUCT_BUNDLE_IDENTIFIER = net.kodare.sunhail;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				SUPPORTS_MACCATALYST = YES;
