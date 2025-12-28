@@ -238,6 +238,7 @@ struct OMHourly : Decodable {
 
 
 struct OMDaily : Decodable {
+    let time : [Date]
     let sunset : [Date]
     let sunrise : [Date]
 }

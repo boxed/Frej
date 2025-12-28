@@ -1168,6 +1168,15 @@ struct FrejView: View {
             .sheet(isPresented: $showSettings) {
                 SettingsView(userSettings: userSettings, gpsLocation: $gpsLocation)
             }
+            .onChange(of: userSettings.savedLocations) { oldValue, newValue in
+                // Fetch weather for any newly added locations
+                let newLocations = newValue.filter { newLoc in
+                    !oldValue.contains { $0.id == newLoc.id }
+                }
+                for location in newLocations {
+                    fetchWeatherForLocation(location)
+                }
+            }
         }
     }
     
@@ -1367,11 +1376,14 @@ struct FrejView: View {
                             var sunriseDict: [NaiveDate: Date] = [:]
                             var weatherDict: [Date: Weather] = [:]
 
-                            for sunset_item in result.daily.sunset {
-                                sunsetDict[sunset_item.getNaiveDate()] = sunset_item
-                            }
-                            for sunrise_item in result.daily.sunrise {
-                                sunriseDict[sunrise_item.getNaiveDate()] = sunrise_item
+                            for i in 0..<result.daily.time.count {
+                                let date = result.daily.time[i].getNaiveDate()
+                                if i < result.daily.sunset.count {
+                                    sunsetDict[date] = result.daily.sunset[i]
+                                }
+                                if i < result.daily.sunrise.count {
+                                    sunriseDict[date] = result.daily.sunrise[i]
+                                }
                             }
 
                             for i in 0..<result.hourly.time.count {
