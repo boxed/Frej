@@ -97,6 +97,7 @@ struct AddLocationView: View {
     @State private var searchText = ""
     @State private var searchResults: [CLPlacemark] = []
     @State private var isSearching = false
+    @FocusState private var isSearchFieldFocused: Bool
 
     private let geocoder = CLGeocoder()
 
@@ -107,6 +108,7 @@ struct AddLocationView: View {
                     Image(systemName: "magnifyingglass")
                         .foregroundColor(.gray)
                     TextField("Search city...", text: $searchText)
+                        .focused($isSearchFieldFocused)
                         #if os(iOS)
                         .textInputAutocapitalization(.words)
                         #endif
@@ -158,6 +160,9 @@ struct AddLocationView: View {
             #endif
         }
         .preferredColorScheme(.dark)
+        .onAppear {
+            isSearchFieldFocused = true
+        }
     }
 
     func performSearch() {
