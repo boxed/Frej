@@ -572,12 +572,13 @@ struct Foo : View {
     var sunset : [NaiveDate: Date]
     let unit: String
     let coordinate: CLLocationCoordinate2D?
-    
+    @Binding var selectedDay: Int
+
     var body: some View {
         let fractionalHour: Double = now.fractionalHour()
         let startOfToday = now.set(hour: 0, minute: 0)!
         GeometryReader { (geometry) in
-            TabView {
+            TabView(selection: $selectedDay) {
 #if os(watchOS)
                 ForEach(0..<12, id: \.self) { id in
                     let start1 = 12*id
@@ -590,6 +591,7 @@ struct Foo : View {
                         sunset: sunset,
                         unit: unit
                     )
+                    .tag(id)
                 }
 #else
                 ForEach(0..<6, id: \.self) { day in
@@ -597,10 +599,10 @@ struct Foo : View {
                         HStack {
                             Spacer()
                             let moon_size = min(geometry.size.height/2, geometry.size.width) / 6.0
-                            
+
                             Moon(date: now.addingTimeInterval(TimeInterval(day * 24 * 60 * 60))).frame(width: moon_size, height: moon_size).rotationEffect(Angle(degrees: (coordinate?.latitude ?? 0) - 90)).padding(20)
                         }
-                        
+
                         VStack {
                             let i: Int = day * 2
                             let start1: Int = 12*i
@@ -629,6 +631,7 @@ struct Foo : View {
                             ).frame(height: height)
                         }
                     }
+                    .tag(day)
                 }
 #endif
             }
@@ -705,6 +708,7 @@ struct FrejView: View {
     @State var showSettings = false
     @State var gpsLocation: SavedLocation?
     @State var dragOffset: CGFloat = 0
+    @State var selectedDay: Int = 0
     @ObservedObject var userSettings = UserSettings()
     @State var weatherSource: WeatherSource = .real
 
@@ -794,7 +798,8 @@ struct FrejView: View {
                                         sunrise: sunriseForLocation(prevLocation.id),
                                         sunset: sunsetForLocation(prevLocation.id),
                                         unit: userSettings.unit,
-                                        coordinate: prevLocation.coordinate
+                                        coordinate: prevLocation.coordinate,
+                                        selectedDay: $selectedDay
                                     )
                                     .offset(y: dragOffset - screenHeight)
                                 }
@@ -810,7 +815,8 @@ struct FrejView: View {
                                         sunrise: sunriseForLocation(location.id),
                                         sunset: sunsetForLocation(location.id),
                                         unit: userSettings.unit,
-                                        coordinate: location.coordinate
+                                        coordinate: location.coordinate,
+                                        selectedDay: $selectedDay
                                     )
                                     .offset(y: dragOffset)
                                 }
@@ -826,7 +832,8 @@ struct FrejView: View {
                                         sunrise: sunriseForLocation(nextLocation.id),
                                         sunset: sunsetForLocation(nextLocation.id),
                                         unit: userSettings.unit,
-                                        coordinate: nextLocation.coordinate
+                                        coordinate: nextLocation.coordinate,
+                                        selectedDay: $selectedDay
                                     )
                                     .offset(y: dragOffset + screenHeight)
                                 }
@@ -885,7 +892,8 @@ struct FrejView: View {
                                 sunrise: sunriseForLocation(location.id),
                                 sunset: sunsetForLocation(location.id),
                                 unit: userSettings.unit,
-                                coordinate: location.coordinate
+                                coordinate: location.coordinate,
+                                selectedDay: $selectedDay
                             )
                         } else {
                             Foo(
@@ -897,7 +905,8 @@ struct FrejView: View {
                                 sunrise: [:],
                                 sunset: [:],
                                 unit: userSettings.unit,
-                                coordinate: coordinate
+                                coordinate: coordinate,
+                                selectedDay: $selectedDay
                             )
                         }
                     }
