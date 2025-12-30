@@ -224,6 +224,7 @@ struct SMHIWeatherParameter : Decodable {
 struct OMWeatherData : Decodable {
     let hourly: OMHourly
     let daily: OMDaily
+    let utc_offset_seconds: Int
 }
 
 struct OMHourly : Decodable {

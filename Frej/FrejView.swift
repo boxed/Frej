@@ -337,10 +337,10 @@ let weekday_number_to_string = [
 ]
 
 
-func datetime_to_degrees(sunrise: Date, sunset: Date, start: Int) -> (Double, Double) {
+func datetime_to_degrees(sunrise: Date, sunset: Date, start: Int, utcOffsetSeconds: Int = 0) -> (Double, Double) {
     let myStart = Double(start).truncatingRemainder(dividingBy: 24) - 0.5
-    let from = 1/12 * max(0, Double(sunrise.fractionalHour() - myStart))
-    let to = 1/12 * min(11.9, Double(sunset.fractionalHour() - myStart))
+    let from = 1/12 * max(0, Double(sunrise.fractionalHour(utcOffsetSeconds: utcOffsetSeconds) - myStart))
+    let to = 1/12 * min(11.9, Double(sunset.fractionalHour(utcOffsetSeconds: utcOffsetSeconds) - myStart))
     let x = 360/12.0/2
     return (360 * from - x, 360 * to - x)
 }
@@ -406,10 +406,11 @@ struct Daylight : View {
     var weather: [Date: Weather] = [:]
     var showUVRays: Bool = false
     var startOfToday: Date = Date()
+    var utcOffsetSeconds: Int = 0
 
     var body : some View {
         if let sunrise = sunrise, let sunset = sunset {
-            let (from, to) = datetime_to_degrees(sunrise: sunrise, sunset: sunset, start: start)
+            let (from, to) = datetime_to_degrees(sunrise: sunrise, sunset: sunset, start: start, utcOffsetSeconds: utcOffsetSeconds)
             if showUVRays {
                 // Draw individual rays per hour with UV-based thickness and color fading
                 ForEach(0..<12, id: \.self) { id in
@@ -417,8 +418,16 @@ struct Daylight : View {
                     let prevDatetime = startOfToday.addingTimeInterval(TimeInterval((id + start - 1) * 60 * 60))
                     let nextDatetime = startOfToday.addingTimeInterval(TimeInterval((id + start + 1) * 60 * 60))
 
-                    if let hourWeather = weather[startDatetime], hourWeather.isDay {
-                        let (hourFrom, hourTo) = rainDegrees(date: startDatetime)
+                    // Compute hour degree range directly from id to avoid timezone issues
+                    let k = (id + start) % 12
+                    let mid = Double(k * 30)
+                    let hourFrom = mid - 15.0
+                    let hourTo = mid + 15.0 - (k == 11 ? 2.1 : 0)
+
+                    // Check if this hour overlaps with daylight using degree ranges
+                    let isDuringDaylight = hourTo > from && hourFrom < to
+
+                    if let hourWeather = weather[startDatetime], isDuringDaylight {
                         let centerLineWidth = uvToLineWidth(hourWeather.uvIndex)
                         let centerColor = uvToColor(hourWeather.uvIndex)
 
@@ -426,17 +435,30 @@ struct Daylight : View {
                         let prevWeather = weather[prevDatetime]
                         let nextWeather = weather[nextDatetime]
 
-                        let prevColor = prevWeather != nil && prevWeather!.isDay
+                        // Check if prev/next hours are during daylight using degree ranges
+                        let prevK = (id + start - 1) % 12
+                        let prevMid = Double(prevK * 30)
+                        let prevHourTo = prevMid + 15.0 - (prevK == 11 ? 2.1 : 0)
+                        let prevHourFrom = prevMid - 15.0
+                        let prevIsDaylight = prevHourTo > from && prevHourFrom < to
+
+                        let nextK = (id + start + 1) % 12
+                        let nextMid = Double(nextK * 30)
+                        let nextHourTo = nextMid + 15.0 - (nextK == 11 ? 2.1 : 0)
+                        let nextHourFrom = nextMid - 15.0
+                        let nextIsDaylight = nextHourTo > from && nextHourFrom < to
+
+                        let prevColor = prevWeather != nil && prevIsDaylight
                             ? uvToColor(prevWeather!.uvIndex)
                             : centerColor
-                        let nextColor = nextWeather != nil && nextWeather!.isDay
+                        let nextColor = nextWeather != nil && nextIsDaylight
                             ? uvToColor(nextWeather!.uvIndex)
                             : centerColor
 
-                        let prevLineWidth = prevWeather != nil && prevWeather!.isDay
+                        let prevLineWidth = prevWeather != nil && prevIsDaylight
                             ? uvToLineWidth(prevWeather!.uvIndex)
                             : centerLineWidth
-                        let nextLineWidth = nextWeather != nil && nextWeather!.isDay
+                        let nextLineWidth = nextWeather != nil && nextIsDaylight
                             ? uvToLineWidth(nextWeather!.uvIndex)
                             : centerLineWidth
 
@@ -463,6 +485,7 @@ struct Daylight : View {
                     }
                 }
             } else {
+                // Use the same approach as Night - draw rays based on sunrise/sunset degrees
                 Rays(a: 2.6, b: circle_inner_diameter, ray_density: sun_ray_density, wiggle_a: true, start_degree: from, end_degree: to)
                     .stroke(Color.yellow, style: StrokeStyle(lineWidth: 1, lineCap: .butt))
             }
@@ -477,10 +500,11 @@ struct Night : View {
     var start : Int
     var sunrise: Date?
     var sunset: Date?
+    var utcOffsetSeconds: Int = 0
 
     var body : some View {
         if let sunrise = sunrise, let sunset = sunset {
-            let (from, to) = datetime_to_degrees(sunrise: sunrise, sunset: sunset, start: start)
+            let (from, to) = datetime_to_degrees(sunrise: sunrise, sunset: sunset, start: start, utcOffsetSeconds: utcOffsetSeconds)
             if start % 24 == 0 {
                 StarRays(ray_density: star_density, start_degree: -15, end_degree: from)
                 //.stroke(Color.white, style: StrokeStyle(lineWidth: 1, lineCap: .butt))
@@ -590,6 +614,7 @@ struct Clock : View {
     var sunset : [NaiveDate: Date]
     let unit : String
     var showUVRays : Bool = false
+    var utcOffsetSeconds: Int = 0
 
 
     var body : some View {
@@ -598,7 +623,7 @@ struct Clock : View {
             let startTime = startOfToday.addingTimeInterval(TimeInterval(start * 60 * 60))
             let components = calendar.dateComponents([.hour, .minute, .second, .nanosecond], from: now)
             let minutes = Double(components.minute!)
-            let hour = now.fractionalHour()
+            let hour = now.fractionalHour(utcOffsetSeconds: utcOffsetSeconds)
     //        let seconds = Double(components.second!) + Double(components.nanosecond!) / 1_000_000_000.0
             let strokeWidth = frame.height / 70
             let weekday = calendar.dateComponents([.weekday], from: startTime).weekday!
@@ -608,8 +633,8 @@ struct Clock : View {
 
             
             ZStack {
-                Night(start: start, sunrise: sunrise[startTime.getNaiveDate()], sunset: sunset[startTime.getNaiveDate()])
-                Daylight(start: start, sunrise: sunrise[startTime.getNaiveDate()], sunset: sunset[startTime.getNaiveDate()], weather: weather, showUVRays: showUVRays, startOfToday: startOfToday)
+                Night(start: start, sunrise: sunrise[startTime.getNaiveDate(utcOffsetSeconds: utcOffsetSeconds)], sunset: sunset[startTime.getNaiveDate(utcOffsetSeconds: utcOffsetSeconds)], utcOffsetSeconds: utcOffsetSeconds)
+                Daylight(start: start, sunrise: sunrise[startTime.getNaiveDate(utcOffsetSeconds: utcOffsetSeconds)], sunset: sunset[startTime.getNaiveDate(utcOffsetSeconds: utcOffsetSeconds)], weather: weather, showUVRays: showUVRays, startOfToday: startOfToday, utcOffsetSeconds: utcOffsetSeconds)
                 #if !os(watchOS)
                 VStack {
                     Text("\(weekdayStr)").frame(maxWidth: .infinity, alignment: .leading)
@@ -753,10 +778,11 @@ struct Foo : View {
     let coordinate: CLLocationCoordinate2D?
     @Binding var selectedDay: Int
     var showUVRays: Bool = false
+    var utcOffsetSeconds: Int = 0
 
     var body: some View {
-        let fractionalHour: Double = now.fractionalHour()
-        let startOfToday = now.set(hour: 0, minute: 0)!
+        let fractionalHour: Double = now.fractionalHour(utcOffsetSeconds: utcOffsetSeconds)
+        let startOfToday = now.startOfDay(utcOffsetSeconds: utcOffsetSeconds)
         GeometryReader { (geometry) in
             TabView(selection: $selectedDay) {
 #if os(watchOS)
@@ -771,7 +797,8 @@ struct Foo : View {
                         sunrise: sunrise,
                         sunset: sunset,
                         unit: unit,
-                        showUVRays: showUVRays
+                        showUVRays: showUVRays,
+                        utcOffsetSeconds: utcOffsetSeconds
                     )
                     .tag(id)
                 }
@@ -800,7 +827,8 @@ struct Foo : View {
                                 sunrise: sunrise,
                                 sunset: sunset,
                                 unit: unit,
-                                showUVRays: showUVRays
+                                showUVRays: showUVRays,
+                                utcOffsetSeconds: utcOffsetSeconds
                             ).frame(height: height)
                             Clock(
                                 now: now,
@@ -811,7 +839,8 @@ struct Foo : View {
                                 sunrise: sunrise,
                                 sunset: sunset,
                                 unit: unit,
-                                showUVRays: showUVRays
+                                showUVRays: showUVRays,
+                                utcOffsetSeconds: utcOffsetSeconds
                             ).frame(height: height)
                         }
                     }
@@ -890,6 +919,7 @@ struct FrejView: View {
     @State var weatherByLocation: [UUID: [Date: Weather]] = [:]
     @State var sunriseByLocation: [UUID: [NaiveDate: Date]] = [:]
     @State var sunsetByLocation: [UUID: [NaiveDate: Date]] = [:]
+    @State var utcOffsetByLocation: [UUID: Int] = [:]
     @State var lastFetchedByLocation: [UUID: Date] = [:]
     @State var cancellableLocation: AnyCancellable?
     @State var loadedURL: String = ""
@@ -928,6 +958,10 @@ struct FrejView: View {
 
     func sunsetForLocation(_ id: UUID) -> [NaiveDate: Date] {
         sunsetByLocation[id] ?? [:]
+    }
+
+    func utcOffsetForLocation(_ id: UUID) -> Int {
+        utcOffsetByLocation[id] ?? 0
     }
 
     let timer = Timer.publish(
@@ -990,7 +1024,8 @@ struct FrejView: View {
                                             unit: userSettings.unit,
                                             coordinate: prevLocation.coordinate,
                                             selectedDay: $selectedDay,
-                                            showUVRays: userSettings.showUVRays
+                                            showUVRays: userSettings.showUVRays,
+                                            utcOffsetSeconds: utcOffsetForLocation(prevLocation.id)
                                         )
                                     }
                                     .offset(y: dragOffset - screenHeight)
@@ -1014,7 +1049,8 @@ struct FrejView: View {
                                             unit: userSettings.unit,
                                             coordinate: location.coordinate,
                                             selectedDay: $selectedDay,
-                                            showUVRays: userSettings.showUVRays
+                                            showUVRays: userSettings.showUVRays,
+                                            utcOffsetSeconds: utcOffsetForLocation(location.id)
                                         )
                                     }
                                     .offset(y: dragOffset)
@@ -1038,7 +1074,8 @@ struct FrejView: View {
                                             unit: userSettings.unit,
                                             coordinate: nextLocation.coordinate,
                                             selectedDay: $selectedDay,
-                                            showUVRays: userSettings.showUVRays
+                                            showUVRays: userSettings.showUVRays,
+                                            utcOffsetSeconds: utcOffsetForLocation(nextLocation.id)
                                         )
                                     }
                                     .offset(y: dragOffset + screenHeight)
@@ -1105,7 +1142,8 @@ struct FrejView: View {
                                     unit: userSettings.unit,
                                     coordinate: location.coordinate,
                                     selectedDay: $selectedDay,
-                                    showUVRays: userSettings.showUVRays
+                                    showUVRays: userSettings.showUVRays,
+                                    utcOffsetSeconds: utcOffsetForLocation(location.id)
                                 )
                             }
                         } else {
@@ -1343,7 +1381,7 @@ struct FrejView: View {
         }
 
         DispatchQueue.main.async {
-            let s = "https://api.open-meteo.com/v1/forecast?latitude=\(location.latitude)&longitude=\(location.longitude)&hourly=temperature_2m,precipitation,weathercode,cloudcover,windspeed_10m,uv_index&past_days=1&daily=sunrise,sunset&timezone=UTC&timeformat=unixtime"
+            let s = "https://api.open-meteo.com/v1/forecast?latitude=\(location.latitude)&longitude=\(location.longitude)&hourly=temperature_2m,precipitation,weathercode,cloudcover,windspeed_10m,uv_index&past_days=1&daily=sunrise,sunset&timezone=auto&timeformat=unixtime"
 
             guard let url = URL(string: s) else {
                 return
@@ -1377,7 +1415,7 @@ struct FrejView: View {
                             var weatherDict: [Date: Weather] = [:]
 
                             for i in 0..<result.daily.time.count {
-                                let date = result.daily.time[i].getNaiveDate()
+                                let date = result.daily.time[i].getNaiveDate(utcOffsetSeconds: result.utc_offset_seconds)
                                 if i < result.daily.sunset.count {
                                     sunsetDict[date] = result.daily.sunset[i]
                                 }
@@ -1438,6 +1476,7 @@ struct FrejView: View {
                                 self.weatherByLocation[location.id] = weatherDict
                                 self.sunriseByLocation[location.id] = sunriseDict
                                 self.sunsetByLocation[location.id] = sunsetDict
+                                self.utcOffsetByLocation[location.id] = result.utc_offset_seconds
                                 self.lastFetchedByLocation[location.id] = Date()
                             }
                         }
