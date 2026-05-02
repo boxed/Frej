@@ -547,13 +547,15 @@ struct Temperature : View {
     var frame : CGSize
     let id : Int
     let unit: String
-    
+    var useApparentTemperature: Bool = false
+
     func temperature(weather: Weather) -> Int {
+        let value = useApparentTemperature ? weather.apparentTemperature : weather.temperature
         if unit == "F" {
-            return Int(weather.temperature * 9 / 5 + 32)
+            return Int(value * 9 / 5 + 32)
         }
         else {
-            return Int(round(weather.temperature))
+            return Int(round(value))
         }
     }
 
@@ -615,6 +617,7 @@ struct Clock : View {
     let unit : String
     var showUVRays : Bool = false
     var utcOffsetSeconds: Int = 0
+    var useApparentTemperature: Bool = false
 
 
     var body : some View {
@@ -726,7 +729,7 @@ struct Clock : View {
 //                            Wind().stroke(Color.black, lineWidth: 44).fill(Color.gray).rotationEffect(Angle.degrees(Double(hour) * 30.0)).scaleEffect(0.07).position(x: x, y: y)
 //                        }
 
-                        Temperature(weather: weather, start: start, frame: frame, id: id, unit: unit)
+                        Temperature(weather: weather, start: start, frame: frame, id: id, unit: unit, useApparentTemperature: useApparentTemperature)
                     }
                 }
                 // ground, or circle showing the break in the timeline
@@ -779,6 +782,7 @@ struct Foo : View {
     @Binding var selectedDay: Int
     var showUVRays: Bool = false
     var utcOffsetSeconds: Int = 0
+    var useApparentTemperature: Bool = false
 
     var body: some View {
         let fractionalHour: Double = now.fractionalHour(utcOffsetSeconds: utcOffsetSeconds)
@@ -798,7 +802,8 @@ struct Foo : View {
                         sunset: sunset,
                         unit: unit,
                         showUVRays: showUVRays,
-                        utcOffsetSeconds: utcOffsetSeconds
+                        utcOffsetSeconds: utcOffsetSeconds,
+                        useApparentTemperature: useApparentTemperature
                     )
                     .tag(id)
                 }
@@ -828,7 +833,8 @@ struct Foo : View {
                                 sunset: sunset,
                                 unit: unit,
                                 showUVRays: showUVRays,
-                                utcOffsetSeconds: utcOffsetSeconds
+                                utcOffsetSeconds: utcOffsetSeconds,
+                                useApparentTemperature: useApparentTemperature
                             ).frame(height: height)
                             Clock(
                                 now: now,
@@ -840,7 +846,8 @@ struct Foo : View {
                                 sunset: sunset,
                                 unit: unit,
                                 showUVRays: showUVRays,
-                                utcOffsetSeconds: utcOffsetSeconds
+                                utcOffsetSeconds: utcOffsetSeconds,
+                                useApparentTemperature: useApparentTemperature
                             ).frame(height: height)
                         }
                     }
@@ -891,11 +898,18 @@ class UserSettings: ObservableObject {
         }
     }
 
+    @Published var useApparentTemperature: Bool {
+        didSet {
+            UserDefaults.standard.set(useApparentTemperature, forKey: "useApparentTemperature")
+        }
+    }
+
     init() {
         self.hasChosenUnit = UserDefaults.standard.bool(forKey: "hasChosenUnit")
         self.unit = UserDefaults.standard.string(forKey: "unit") ?? "C"
         self.selectedLocationIndex = UserDefaults.standard.integer(forKey: "selectedLocationIndex")
         self.showUVRays = UserDefaults.standard.bool(forKey: "showUVRays")
+        self.useApparentTemperature = UserDefaults.standard.bool(forKey: "useApparentTemperature")
 
         if let data = UserDefaults.standard.data(forKey: "savedLocations"),
            let decoded = try? JSONDecoder().decode([SavedLocation].self, from: data) {
@@ -1025,7 +1039,8 @@ struct FrejView: View {
                                             coordinate: prevLocation.coordinate,
                                             selectedDay: $selectedDay,
                                             showUVRays: userSettings.showUVRays,
-                                            utcOffsetSeconds: utcOffsetForLocation(prevLocation.id)
+                                            utcOffsetSeconds: utcOffsetForLocation(prevLocation.id),
+                                            useApparentTemperature: userSettings.useApparentTemperature
                                         )
                                     }
                                     .offset(y: dragOffset - screenHeight)
@@ -1050,7 +1065,8 @@ struct FrejView: View {
                                             coordinate: location.coordinate,
                                             selectedDay: $selectedDay,
                                             showUVRays: userSettings.showUVRays,
-                                            utcOffsetSeconds: utcOffsetForLocation(location.id)
+                                            utcOffsetSeconds: utcOffsetForLocation(location.id),
+                                            useApparentTemperature: userSettings.useApparentTemperature
                                         )
                                     }
                                     .offset(y: dragOffset)
@@ -1075,7 +1091,8 @@ struct FrejView: View {
                                             coordinate: nextLocation.coordinate,
                                             selectedDay: $selectedDay,
                                             showUVRays: userSettings.showUVRays,
-                                            utcOffsetSeconds: utcOffsetForLocation(nextLocation.id)
+                                            utcOffsetSeconds: utcOffsetForLocation(nextLocation.id),
+                                            useApparentTemperature: userSettings.useApparentTemperature
                                         )
                                     }
                                     .offset(y: dragOffset + screenHeight)
@@ -1143,7 +1160,8 @@ struct FrejView: View {
                                     coordinate: location.coordinate,
                                     selectedDay: $selectedDay,
                                     showUVRays: userSettings.showUVRays,
-                                    utcOffsetSeconds: utcOffsetForLocation(location.id)
+                                    utcOffsetSeconds: utcOffsetForLocation(location.id),
+                                    useApparentTemperature: userSettings.useApparentTemperature
                                 )
                             }
                         } else {
@@ -1163,7 +1181,8 @@ struct FrejView: View {
                                     unit: userSettings.unit,
                                     coordinate: coordinate,
                                     selectedDay: $selectedDay,
-                                    showUVRays: userSettings.showUVRays
+                                    showUVRays: userSettings.showUVRays,
+                                    useApparentTemperature: userSettings.useApparentTemperature
                                 )
                             }
                         }
@@ -1181,7 +1200,7 @@ struct FrejView: View {
                         Button(action: { showSettings = true }) {
                             Image(systemName: "gearshape.fill")
                                 .font(.system(size: 24))
-                                .foregroundColor(.white.opacity(0.2))
+                                .foregroundColor(.white.opacity(0.55))
                                 .padding(12)
                                 .background(Circle().fill(Color.black.opacity(0.5)))
                         }
