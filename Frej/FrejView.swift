@@ -526,7 +526,7 @@ func color_from_temperature(_ temp: Float) -> Color {
     if temp < 0 {
         return Color(cold)
     }
-    if temp < 20 {
+    if temp < 18 {
         return Color(coldish)
     }
     if temp > 30 {
@@ -576,7 +576,7 @@ struct Temperature : View {
         temperature
             .font(font)
             .position(x: textX, y: y)
-            .foregroundColor(color_from_temperature(self.weather.temperature))
+            .foregroundColor(color_from_temperature(self.weather.apparentTemperature))
     }
 }
 
@@ -1381,7 +1381,7 @@ struct FrejView: View {
         }
 
         DispatchQueue.main.async {
-            let s = "https://api.open-meteo.com/v1/forecast?latitude=\(location.latitude)&longitude=\(location.longitude)&hourly=temperature_2m,precipitation,weathercode,cloudcover,windspeed_10m,uv_index&past_days=1&daily=sunrise,sunset&timezone=auto&timeformat=unixtime"
+            let s = "https://api.open-meteo.com/v1/forecast?latitude=\(location.latitude)&longitude=\(location.longitude)&hourly=temperature_2m,apparent_temperature,precipitation,weathercode,cloudcover,windspeed_10m,uv_index&past_days=1&daily=sunrise,sunset&timezone=auto&timeformat=unixtime"
 
             guard let url = URL(string: s) else {
                 return
@@ -1427,6 +1427,7 @@ struct FrejView: View {
                             for i in 0..<result.hourly.time.count {
                                 let time = result.hourly.time[i]
                                 let temperature = result.hourly.temperature_2m[i]
+                                let apparentTemperature = result.hourly.apparent_temperature[i]
                                 let weatherSymbol = result.hourly.weathercode[i]
                                 let rainMillimeter = result.hourly.precipitation[i]
                                 let windspeed = result.hourly.windspeed_10m[i]
@@ -1469,7 +1470,7 @@ struct FrejView: View {
                                     weatherType = .wind
                                 }
 
-                                weatherDict[time] = Weather(time: time, temperature: temperature, weatherType: weatherType, rainMillimeter: rainMillimeter, isDay: isDay, uvIndex: uvIndex)
+                                weatherDict[time] = Weather(time: time, temperature: temperature, weatherType: weatherType, rainMillimeter: rainMillimeter, isDay: isDay, uvIndex: uvIndex, apparentTemperature: apparentTemperature)
                             }
 
                             DispatchQueue.main.async {

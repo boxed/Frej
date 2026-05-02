@@ -112,6 +112,7 @@ let sunColor = Color.init(hex: 0xF9E231)
 struct Weather {
     let time : Date
     let temperature : Float
+    let apparentTemperature : Float
     let weatherType : WeatherType
     let rainMillimeter : Float
     let textColor : Color
@@ -128,10 +129,12 @@ struct Weather {
         weatherType : WeatherType,
         rainMillimeter : Float,
         isDay : Bool,
-        uvIndex : Float = 0
+        uvIndex : Float = 0,
+        apparentTemperature : Float? = nil
     ) {
         self.time = time
         self.temperature = temperature
+        self.apparentTemperature = apparentTemperature ?? temperature
         self.weatherType = weatherType
         self.rainMillimeter = rainMillimeter
 
@@ -234,6 +237,7 @@ struct OMHourly : Decodable {
     let precipitation : [Float]
     let time : [Date]
     let temperature_2m : [Float]
+    let apparent_temperature : [Float]
     let uv_index : [Float]
 }
 
