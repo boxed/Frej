@@ -1364,22 +1364,39 @@ struct FrejView: View {
  
     func weatherFromOpenMeteo() {
         cancellableLocation = locationProvider.locationWillChange.sink { loc in
-            let geocoder = CLGeocoder()
             coordinate = loc.coordinate
+
+            let movedFar: Bool
+            if let prev = self.gpsLocation {
+                let prevLoc = CLLocation(latitude: prev.latitude, longitude: prev.longitude)
+                movedFar = loc.distance(from: prevLoc) >= 1000
+            } else {
+                movedFar = true
+            }
+
+            guard movedFar else { return }
+
+            let geocoder = CLGeocoder()
             geocoder.reverseGeocodeLocation(loc) { (placemarks, error) in
                 if error == nil {
                     let firstLocation = placemarks?[0]
                     let locationName = firstLocation?.locality ?? ""
                     currentLocation = locationName
 
-                    // Create or update GPS location
-                    let newGPSLocation = SavedLocation.gpsLocation(name: locationName, coordinate: loc.coordinate)
+                    // Reuse the existing GPS UUID so per-location caches survive across updates.
+                    let id = self.gpsLocation?.id ?? UUID()
+                    let newGPSLocation = SavedLocation(
+                        id: id,
+                        name: locationName,
+                        latitude: loc.coordinate.latitude,
+                        longitude: loc.coordinate.longitude,
+                        isGPS: true
+                    )
                     self.gpsLocation = newGPSLocation
+                    self.lastFetchedByLocation[id] = nil
 
-                    // Fetch weather for GPS location
                     self.fetchWeatherForLocation(newGPSLocation)
 
-                    // Fetch weather for all saved locations too
                     for location in self.userSettings.savedLocations {
                         self.fetchWeatherForLocation(location)
                     }
