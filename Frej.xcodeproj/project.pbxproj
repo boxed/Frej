@@ -25,6 +25,24 @@
 		AEBD6CE42711818D007B9772 /* NaiveDate.swift in Sources */ = {isa = PBXBuildFile; fileRef = AEBD6CE32711818D007B9772 /* NaiveDate.swift */; };
 		CC000001B0000001000001A1 /* SavedLocation.swift in Sources */ = {isa = PBXBuildFile; fileRef = CC000001B0000001000001A2 /* SavedLocation.swift */; };
 		CC000001B0000002000001A1 /* SettingsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = CC000001B0000002000001A2 /* SettingsView.swift */; };
+		FE0000000000000000000101 /* SharedStore.swift in Sources (Frej) */ = {isa = PBXBuildFile; fileRef = FE0000000000000000000001 /* SharedStore.swift */; };
+		FE0000000000000000000102 /* SharedStore.swift in Sources (Widget) */ = {isa = PBXBuildFile; fileRef = FE0000000000000000000001 /* SharedStore.swift */; };
+		FE0000000000000000000103 /* FrejWidgetBundle.swift in Sources */ = {isa = PBXBuildFile; fileRef = FE0000000000000000000002 /* FrejWidgetBundle.swift */; };
+		FE0000000000000000000104 /* FrejWidget.swift in Sources */ = {isa = PBXBuildFile; fileRef = FE0000000000000000000003 /* FrejWidget.swift */; };
+		FE0000000000000000000105 /* FrejWidgetView.swift in Sources */ = {isa = PBXBuildFile; fileRef = FE0000000000000000000004 /* FrejWidgetView.swift */; };
+		FE0000000000000000000106 /* Weather.swift in Sources (Widget) */ = {isa = PBXBuildFile; fileRef = AE713EB9264DB79B00A712A7 /* Weather.swift */; };
+		FE0000000000000000000107 /* Icons.swift in Sources (Widget) */ = {isa = PBXBuildFile; fileRef = AE7344D126FE261A0048EABF /* Icons.swift */; };
+		FE0000000000000000000108 /* ColorHex.swift in Sources (Widget) */ = {isa = PBXBuildFile; fileRef = AE7344D326FF034F0048EABF /* ColorHex.swift */; };
+		FE0000000000000000000109 /* DateFromComponents.swift in Sources (Widget) */ = {isa = PBXBuildFile; fileRef = AE7344D526FF37D50048EABF /* DateFromComponents.swift */; };
+		FE000000000000000000010A /* NaiveDate.swift in Sources (Widget) */ = {isa = PBXBuildFile; fileRef = AEBD6CE32711818D007B9772 /* NaiveDate.swift */; };
+		FE000000000000000000010B /* SavedLocation.swift in Sources (Widget) */ = {isa = PBXBuildFile; fileRef = CC000001B0000001000001A2 /* SavedLocation.swift */; };
+		FE000000000000000000010C /* Stars.swift in Sources (Widget) */ = {isa = PBXBuildFile; fileRef = AE77F8592B823119009FC286 /* Stars.swift */; };
+		FE000000000000000000010D /* Icon.swift in Sources (Widget) */ = {isa = PBXBuildFile; fileRef = AE77F8522B7A85C6009FC286 /* Icon.swift */; };
+		FE000000000000000000010E /* FrejView.swift in Sources (Widget) */ = {isa = PBXBuildFile; fileRef = AE7FE2C7272D3C1E00104E4F /* FrejView.swift */; };
+		FE000000000000000000010F /* LocationProvider.swift in Sources (Widget) */ = {isa = PBXBuildFile; fileRef = AE713EB7264DACC100A712A7 /* LocationProvider.swift */; };
+		FE0000000000000000000111 /* SettingsView.swift in Sources (Widget) */ = {isa = PBXBuildFile; fileRef = CC000001B0000002000001A2 /* SettingsView.swift */; };
+		FE0000000000000000000112 /* Moon.swift in Sources (Widget) */ = {isa = PBXBuildFile; fileRef = AE77F8542B7FD34E009FC286 /* Moon.swift */; };
+		FE0000000000000000000110 /* FrejWidgetExtension.appex in Embed Foundation Extensions */ = {isa = PBXBuildFile; fileRef = FE0000000000000000000200 /* FrejWidgetExtension.appex */; settings = {ATTRIBUTES = (RemoveHeadersOnCopy, ); }; };
 /* End PBXBuildFile section */
 
 /* Begin PBXContainerItemProxy section */
@@ -42,17 +60,25 @@
 			remoteGlobalIDString = AE713E882649FFFC00A712A7;
 			remoteInfo = Frej;
 		};
+		FE0000000000000000000500 /* PBXContainerItemProxy */ = {
+			isa = PBXContainerItemProxy;
+			containerPortal = AE713E812649FFFC00A712A7 /* Project object */;
+			proxyType = 1;
+			remoteGlobalIDString = FE0000000000000000000600;
+			remoteInfo = FrejWidgetExtension;
+		};
 /* End PBXContainerItemProxy section */
 
 /* Begin PBXCopyFilesBuildPhase section */
-		AE88C71228D20ADD00D33D60 /* Embed App Extensions */ = {
+		AE88C71228D20ADD00D33D60 /* Embed Foundation Extensions */ = {
 			isa = PBXCopyFilesBuildPhase;
 			buildActionMask = 2147483647;
 			dstPath = "";
 			dstSubfolderSpec = 13;
 			files = (
+				FE0000000000000000000110 /* FrejWidgetExtension.appex in Embed Foundation Extensions */,
 			);
-			name = "Embed App Extensions";
+			name = "Embed Foundation Extensions";
 			runOnlyForDeploymentPostprocessing = 0;
 		};
 /* End PBXCopyFilesBuildPhase section */
@@ -85,6 +111,13 @@
 		AEBD6CE32711818D007B9772 /* NaiveDate.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = NaiveDate.swift; sourceTree = "<group>"; };
 		CC000001B0000001000001A2 /* SavedLocation.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SavedLocation.swift; sourceTree = "<group>"; };
 		CC000001B0000002000001A2 /* SettingsView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SettingsView.swift; sourceTree = "<group>"; };
+		FE0000000000000000000001 /* SharedStore.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SharedStore.swift; sourceTree = "<group>"; };
+		FE0000000000000000000002 /* FrejWidgetBundle.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FrejWidgetBundle.swift; sourceTree = "<group>"; };
+		FE0000000000000000000003 /* FrejWidget.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FrejWidget.swift; sourceTree = "<group>"; };
+		FE0000000000000000000004 /* FrejWidgetView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FrejWidgetView.swift; sourceTree = "<group>"; };
+		FE0000000000000000000006 /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist.xml; path = Info.plist; sourceTree = "<group>"; };
+		FE0000000000000000000007 /* FrejWidget.entitlements */ = {isa = PBXFileReference; lastKnownFileType = text.plist.entitlements; path = FrejWidget.entitlements; sourceTree = "<group>"; };
+		FE0000000000000000000200 /* FrejWidgetExtension.appex */ = {isa = PBXFileReference; explicitFileType = "wrapper.app-extension"; includeInIndex = 0; path = FrejWidgetExtension.appex; sourceTree = BUILT_PRODUCTS_DIR; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -109,6 +142,13 @@
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
+		FE0000000000000000000401 /* Frameworks */ = {
+			isa = PBXFrameworksBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
 /* End PBXFrameworksBuildPhase section */
 
 /* Begin PBXGroup section */
@@ -116,6 +156,7 @@
 			isa = PBXGroup;
 			children = (
 				AE713E8B2649FFFC00A712A7 /* Frej */,
+				FE0000000000000000000300 /* FrejWidget */,
 				AE713E9D2649FFFD00A712A7 /* FrejTests */,
 				AE713EA82649FFFD00A712A7 /* FrejUITests */,
 				AE88C70228D20ADA00D33D60 /* Frameworks */,
@@ -129,6 +170,7 @@
 				AE713E892649FFFC00A712A7 /* Frej.app */,
 				AE713E9A2649FFFD00A712A7 /* FrejTests.xctest */,
 				AE713EA52649FFFD00A712A7 /* FrejUITests.xctest */,
+				FE0000000000000000000200 /* FrejWidgetExtension.appex */,
 			);
 			name = Products;
 			sourceTree = "<group>";
@@ -154,8 +196,21 @@
 				AE77F8522B7A85C6009FC286 /* Icon.swift */,
 				AE77F8542B7FD34E009FC286 /* Moon.swift */,
 				AE77F8592B823119009FC286 /* Stars.swift */,
+				FE0000000000000000000001 /* SharedStore.swift */,
 			);
 			path = Frej;
+			sourceTree = "<group>";
+		};
+		FE0000000000000000000300 /* FrejWidget */ = {
+			isa = PBXGroup;
+			children = (
+				FE0000000000000000000002 /* FrejWidgetBundle.swift */,
+				FE0000000000000000000003 /* FrejWidget.swift */,
+				FE0000000000000000000004 /* FrejWidgetView.swift */,
+				FE0000000000000000000006 /* Info.plist */,
+				FE0000000000000000000007 /* FrejWidget.entitlements */,
+			);
+			path = FrejWidget;
 			sourceTree = "<group>";
 		};
 		AE713E922649FFFD00A712A7 /* Preview Content */ = {
@@ -203,11 +258,12 @@
 				AE713E852649FFFC00A712A7 /* Sources */,
 				AE713E862649FFFC00A712A7 /* Frameworks */,
 				AE713E872649FFFC00A712A7 /* Resources */,
-				AE88C71228D20ADD00D33D60 /* Embed App Extensions */,
+				AE88C71228D20ADD00D33D60 /* Embed Foundation Extensions */,
 			);
 			buildRules = (
 			);
 			dependencies = (
+				FE0000000000000000000501 /* PBXTargetDependency */,
 			);
 			name = Frej;
 			packageProductDependencies = (
@@ -215,6 +271,23 @@
 			productName = Frej;
 			productReference = AE713E892649FFFC00A712A7 /* Frej.app */;
 			productType = "com.apple.product-type.application";
+		};
+		FE0000000000000000000600 /* FrejWidgetExtension */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = FE0000000000000000000700 /* Build configuration list for PBXNativeTarget "FrejWidgetExtension" */;
+			buildPhases = (
+				FE0000000000000000000400 /* Sources */,
+				FE0000000000000000000401 /* Frameworks */,
+				FE0000000000000000000402 /* Resources */,
+			);
+			buildRules = (
+			);
+			dependencies = (
+			);
+			name = FrejWidgetExtension;
+			productName = FrejWidgetExtension;
+			productReference = FE0000000000000000000200 /* FrejWidgetExtension.appex */;
+			productType = "com.apple.product-type.app-extension";
 		};
 		AE713E992649FFFD00A712A7 /* FrejTests */ = {
 			isa = PBXNativeTarget;
@@ -272,6 +345,9 @@
 						CreatedOnToolsVersion = 12.5;
 						TestTargetID = AE713E882649FFFC00A712A7;
 					};
+					FE0000000000000000000600 = {
+						CreatedOnToolsVersion = 15.0;
+					};
 				};
 			};
 			buildConfigurationList = AE713E842649FFFC00A712A7 /* Build configuration list for PBXProject "Frej" */;
@@ -290,6 +366,7 @@
 			projectRoot = "";
 			targets = (
 				AE713E882649FFFC00A712A7 /* Frej */,
+				FE0000000000000000000600 /* FrejWidgetExtension */,
 				AE713E992649FFFD00A712A7 /* FrejTests */,
 				AE713EA42649FFFD00A712A7 /* FrejUITests */,
 			);
@@ -320,6 +397,13 @@
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
+		FE0000000000000000000402 /* Resources */ = {
+			isa = PBXResourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
 /* End PBXResourcesBuildPhase section */
 
 /* Begin PBXSourcesBuildPhase section */
@@ -341,6 +425,30 @@
 				AE713E8D2649FFFC00A712A7 /* FrejApp.swift in Sources */,
 				AE77F8552B7FD34E009FC286 /* Moon.swift in Sources */,
 				AE77F8532B7A85C6009FC286 /* Icon.swift in Sources */,
+				FE0000000000000000000101 /* SharedStore.swift in Sources (Frej) */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		FE0000000000000000000400 /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				FE0000000000000000000103 /* FrejWidgetBundle.swift in Sources */,
+				FE0000000000000000000104 /* FrejWidget.swift in Sources */,
+				FE0000000000000000000105 /* FrejWidgetView.swift in Sources */,
+				FE0000000000000000000102 /* SharedStore.swift in Sources (Widget) */,
+				FE0000000000000000000106 /* Weather.swift in Sources (Widget) */,
+				FE0000000000000000000107 /* Icons.swift in Sources (Widget) */,
+				FE0000000000000000000108 /* ColorHex.swift in Sources (Widget) */,
+				FE0000000000000000000109 /* DateFromComponents.swift in Sources (Widget) */,
+				FE000000000000000000010A /* NaiveDate.swift in Sources (Widget) */,
+				FE000000000000000000010B /* SavedLocation.swift in Sources (Widget) */,
+				FE000000000000000000010C /* Stars.swift in Sources (Widget) */,
+				FE000000000000000000010D /* Icon.swift in Sources (Widget) */,
+				FE000000000000000000010E /* FrejView.swift in Sources (Widget) */,
+				FE000000000000000000010F /* LocationProvider.swift in Sources (Widget) */,
+				FE0000000000000000000111 /* SettingsView.swift in Sources (Widget) */,
+				FE0000000000000000000112 /* Moon.swift in Sources (Widget) */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -372,6 +480,11 @@
 			isa = PBXTargetDependency;
 			target = AE713E882649FFFC00A712A7 /* Frej */;
 			targetProxy = AE713EA62649FFFD00A712A7 /* PBXContainerItemProxy */;
+		};
+		FE0000000000000000000501 /* PBXTargetDependency */ = {
+			isa = PBXTargetDependency;
+			target = FE0000000000000000000600 /* FrejWidgetExtension */;
+			targetProxy = FE0000000000000000000500 /* PBXContainerItemProxy */;
 		};
 /* End PBXTargetDependency section */
 
@@ -500,7 +613,7 @@
 				ASSETCATALOG_COMPILER_INCLUDE_ALL_APPICON_ASSETS = NO;
 				CODE_SIGN_ENTITLEMENTS = Frej/Frej.entitlements;
 				CODE_SIGN_STYLE = Automatic;
-				CURRENT_PROJECT_VERSION = 9;
+				CURRENT_PROJECT_VERSION = 10;
 				DEVELOPMENT_ASSET_PATHS = "\"Frej/Preview Content\"";
 				DEVELOPMENT_TEAM = B6FVY827P9;
 				ENABLE_PREVIEWS = YES;
@@ -511,7 +624,7 @@
 					"$(inherited)",
 					"@executable_path/Frameworks",
 				);
-				MARKETING_VERSION = 9.0;
+				MARKETING_VERSION = 10.0;
 				PRODUCT_BUNDLE_IDENTIFIER = net.kodare.sunhail;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				SUPPORTS_MACCATALYST = YES;
@@ -528,7 +641,7 @@
 				ASSETCATALOG_COMPILER_INCLUDE_ALL_APPICON_ASSETS = NO;
 				CODE_SIGN_ENTITLEMENTS = Frej/Frej.entitlements;
 				CODE_SIGN_STYLE = Automatic;
-				CURRENT_PROJECT_VERSION = 9;
+				CURRENT_PROJECT_VERSION = 10;
 				DEVELOPMENT_ASSET_PATHS = "\"Frej/Preview Content\"";
 				DEVELOPMENT_TEAM = B6FVY827P9;
 				ENABLE_PREVIEWS = YES;
@@ -539,7 +652,7 @@
 					"$(inherited)",
 					"@executable_path/Frameworks",
 				);
-				MARKETING_VERSION = 9.0;
+				MARKETING_VERSION = 10.0;
 				PRODUCT_BUNDLE_IDENTIFIER = net.kodare.sunhail;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				SUPPORTS_MACCATALYST = YES;
@@ -634,6 +747,68 @@
 			};
 			name = Release;
 		};
+		FE0000000000000000000701 /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
+				ASSETCATALOG_COMPILER_WIDGET_BACKGROUND_COLOR_NAME = WidgetBackground;
+				CODE_SIGN_ENTITLEMENTS = FrejWidget/FrejWidget.entitlements;
+				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = 10;
+				DEVELOPMENT_TEAM = B6FVY827P9;
+				GENERATE_INFOPLIST_FILE = YES;
+				INFOPLIST_FILE = FrejWidget/Info.plist;
+				INFOPLIST_KEY_CFBundleDisplayName = Frej;
+				INFOPLIST_KEY_NSHumanReadableCopyright = "";
+				IPHONEOS_DEPLOYMENT_TARGET = 17;
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/Frameworks",
+					"@executable_path/../../Frameworks",
+				);
+				MARKETING_VERSION = 10.0;
+				PRODUCT_BUNDLE_IDENTIFIER = net.kodare.sunhail.FrejWidget;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SKIP_INSTALL = YES;
+				SUPPORTS_MACCATALYST = YES;
+				SWIFT_ACTIVE_COMPILATION_CONDITIONS = WIDGET_EXTENSION;
+				SWIFT_EMIT_LOC_STRINGS = YES;
+				SWIFT_VERSION = 5.0;
+				TARGETED_DEVICE_FAMILY = "1,2";
+			};
+			name = Debug;
+		};
+		FE0000000000000000000702 /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
+				ASSETCATALOG_COMPILER_WIDGET_BACKGROUND_COLOR_NAME = WidgetBackground;
+				CODE_SIGN_ENTITLEMENTS = FrejWidget/FrejWidget.entitlements;
+				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = 10;
+				DEVELOPMENT_TEAM = B6FVY827P9;
+				GENERATE_INFOPLIST_FILE = YES;
+				INFOPLIST_FILE = FrejWidget/Info.plist;
+				INFOPLIST_KEY_CFBundleDisplayName = Frej;
+				INFOPLIST_KEY_NSHumanReadableCopyright = "";
+				IPHONEOS_DEPLOYMENT_TARGET = 17;
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/Frameworks",
+					"@executable_path/../../Frameworks",
+				);
+				MARKETING_VERSION = 10.0;
+				PRODUCT_BUNDLE_IDENTIFIER = net.kodare.sunhail.FrejWidget;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SKIP_INSTALL = YES;
+				SUPPORTS_MACCATALYST = YES;
+				SWIFT_ACTIVE_COMPILATION_CONDITIONS = WIDGET_EXTENSION;
+				SWIFT_EMIT_LOC_STRINGS = YES;
+				SWIFT_VERSION = 5.0;
+				TARGETED_DEVICE_FAMILY = "1,2";
+			};
+			name = Release;
+		};
 /* End XCBuildConfiguration section */
 
 /* Begin XCConfigurationList section */
@@ -669,6 +844,15 @@
 			buildConfigurations = (
 				AE713EB52649FFFD00A712A7 /* Debug */,
 				AE713EB62649FFFD00A712A7 /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
+		};
+		FE0000000000000000000700 /* Build configuration list for PBXNativeTarget "FrejWidgetExtension" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				FE0000000000000000000701 /* Debug */,
+				FE0000000000000000000702 /* Release */,
 			);
 			defaultConfigurationIsVisible = 0;
 			defaultConfigurationName = Release;

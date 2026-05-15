@@ -133,7 +133,7 @@ public class LocationProvider: NSObject, ObservableObject {
 
 /// Present an alert that suggests to go to the app settings screen.
 public func presentLocationSettingsAlert(alertText : String? = nil) -> Void {
-    #if os(iOS)
+    #if os(iOS) && !WIDGET_EXTENSION
     let alertController = UIAlertController (title: "Enable Location Access", message: alertText ?? "The location access for this app is set to 'never'. Enable location access in the application settings. Go to Settings now?", preferredStyle: .alert)
     let settingsAction = UIAlertAction(title: "Settings", style: .default) { (_) -> Void in
         guard let settingsUrl = URL(string:UIApplication.openSettingsURLString) else {

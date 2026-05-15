@@ -247,3 +247,90 @@ struct OMDaily : Decodable {
     let sunset : [Date]
     let sunrise : [Date]
 }
+
+struct WeatherSnapshot {
+    let weather: [Date: Weather]
+    let sunrise: [NaiveDate: Date]
+    let sunset: [NaiveDate: Date]
+    let utcOffsetSeconds: Int
+}
+
+func decodeOpenMeteoResponse(_ data: Data) -> WeatherSnapshot? {
+    let decoder = JSONDecoder()
+    decoder.dateDecodingStrategy = .secondsSince1970
+    guard let result = try? decoder.decode(OMWeatherData.self, from: data) else {
+        return nil
+    }
+
+    var sunsetDict: [NaiveDate: Date] = [:]
+    var sunriseDict: [NaiveDate: Date] = [:]
+    var weatherDict: [Date: Weather] = [:]
+
+    for i in 0..<result.daily.time.count {
+        let date = result.daily.time[i].getNaiveDate(utcOffsetSeconds: result.utc_offset_seconds)
+        if i < result.daily.sunset.count {
+            sunsetDict[date] = result.daily.sunset[i]
+        }
+        if i < result.daily.sunrise.count {
+            sunriseDict[date] = result.daily.sunrise[i]
+        }
+    }
+
+    for i in 0..<result.hourly.time.count {
+        let time = result.hourly.time[i]
+        let temperature = result.hourly.temperature_2m[i]
+        let apparentTemperature = result.hourly.apparent_temperature[i]
+        let weatherSymbol = result.hourly.weathercode[i]
+        let rainMillimeter = result.hourly.precipitation[i]
+        let windspeed = result.hourly.windspeed_10m[i]
+        let uvIndex = result.hourly.uv_index[i]
+        guard let sunrise = sunriseDict[time.getNaiveDate()] else { continue }
+        guard let sunset = sunsetDict[time.getNaiveDate()] else { continue }
+        let isDay = time > sunrise && time < sunset
+
+        var weatherType: WeatherType
+        switch weatherSymbol {
+        case 0:
+            weatherType = .clear
+        case 1:
+            weatherType = .mainlyClear
+        case 2:
+            weatherType = .lightCloud
+        case 3:
+            weatherType = .cloud
+        case 71...75:
+            weatherType = .snow
+        case 51...67:
+            weatherType = .rain
+        case 80...86:
+            weatherType = .rain
+        case 95...99:
+            weatherType = .lightning
+        case 45...48:
+            weatherType = .fog
+        default:
+            weatherType = .unknown
+        }
+
+        if windspeed > 20 {
+            weatherType = .wind
+        }
+
+        weatherDict[time] = Weather(
+            time: time,
+            temperature: temperature,
+            weatherType: weatherType,
+            rainMillimeter: rainMillimeter,
+            isDay: isDay,
+            uvIndex: uvIndex,
+            apparentTemperature: apparentTemperature
+        )
+    }
+
+    return WeatherSnapshot(
+        weather: weatherDict,
+        sunrise: sunriseDict,
+        sunset: sunsetDict,
+        utcOffsetSeconds: result.utc_offset_seconds
+    )
+}

@@ -407,6 +407,7 @@ struct Daylight : View {
     var showUVRays: Bool = false
     var startOfToday: Date = Date()
     var utcOffsetSeconds: Int = 0
+    var densityScale: Double = 1.0
 
     var body : some View {
         if let sunrise = sunrise, let sunset = sunset {
@@ -471,7 +472,7 @@ struct Daylight : View {
                         ColoredRays(
                             a: 2.6,
                             b: circle_inner_diameter,
-                            ray_density: sun_ray_density,
+                            ray_density: sun_ray_density * densityScale,
                             wiggle_a: true,
                             start_degree: hourFrom,
                             end_degree: hourTo,
@@ -486,7 +487,7 @@ struct Daylight : View {
                 }
             } else {
                 // Use the same approach as Night - draw rays based on sunrise/sunset degrees
-                Rays(a: 2.6, b: circle_inner_diameter, ray_density: sun_ray_density, wiggle_a: true, start_degree: from, end_degree: to)
+                Rays(a: 2.6, b: circle_inner_diameter, ray_density: sun_ray_density * densityScale, wiggle_a: true, start_degree: from, end_degree: to)
                     .stroke(Color.yellow, style: StrokeStyle(lineWidth: 1, lineCap: .butt))
             }
         }
@@ -618,6 +619,7 @@ struct Clock : View {
     var showUVRays : Bool = false
     var utcOffsetSeconds: Int = 0
     var useApparentTemperature: Bool = false
+    var densityScale: Double = 1.0
 
 
     var body : some View {
@@ -637,8 +639,8 @@ struct Clock : View {
             
             ZStack {
                 Night(start: start, sunrise: sunrise[startTime.getNaiveDate(utcOffsetSeconds: utcOffsetSeconds)], sunset: sunset[startTime.getNaiveDate(utcOffsetSeconds: utcOffsetSeconds)], utcOffsetSeconds: utcOffsetSeconds)
-                Daylight(start: start, sunrise: sunrise[startTime.getNaiveDate(utcOffsetSeconds: utcOffsetSeconds)], sunset: sunset[startTime.getNaiveDate(utcOffsetSeconds: utcOffsetSeconds)], weather: weather, showUVRays: showUVRays, startOfToday: startOfToday, utcOffsetSeconds: utcOffsetSeconds)
-                #if !os(watchOS)
+                Daylight(start: start, sunrise: sunrise[startTime.getNaiveDate(utcOffsetSeconds: utcOffsetSeconds)], sunset: sunset[startTime.getNaiveDate(utcOffsetSeconds: utcOffsetSeconds)], weather: weather, showUVRays: showUVRays, startOfToday: startOfToday, utcOffsetSeconds: utcOffsetSeconds, densityScale: densityScale)
+                #if !os(watchOS) && !WIDGET_EXTENSION
                 VStack {
                     Text("\(weekdayStr)").frame(maxWidth: .infinity, alignment: .leading)
                     .font(Font.system(size: 10))
@@ -683,17 +685,17 @@ struct Clock : View {
 
                         if darkClouds {
                             // black anti-rays
-                            Rays(a: cloud_diameter, b: circle_inner_diameter, ray_density: sun_ray_density, start_degree: from, end_degree: to )
+                            Rays(a: cloud_diameter, b: circle_inner_diameter, ray_density: sun_ray_density * densityScale, start_degree: from, end_degree: to )
                                 .stroke(Color.black, style: StrokeStyle(lineWidth: min(geometry.size.height/2, geometry.size.width) / 50, lineCap: .round))
                         }
                         if rain {
                             if weather.weatherType == .snow {
-                                Rays(a: cloud_diameter, b: circle_inner_diameter, ray_density: rain_density, wiggle_a: true, wiggle_b: true, start_degree: from, end_degree: to)
+                                Rays(a: cloud_diameter, b: circle_inner_diameter, ray_density: rain_density * densityScale, wiggle_a: true, wiggle_b: true, start_degree: from, end_degree: to)
                                     .stroke(snow_color, style: StrokeStyle(lineWidth: 1, lineCap: .butt, dash: [1, 4, 1, 4]))
                             }
                             else {
                                 // rain
-                                Rays(a: cloud_diameter, b: circle_inner_diameter, ray_density: rain_density, wiggle_a: true, wiggle_b: true, start_degree: from, end_degree: to)
+                                Rays(a: cloud_diameter, b: circle_inner_diameter, ray_density: rain_density * densityScale, wiggle_a: true, wiggle_b: true, start_degree: from, end_degree: to)
                                     .stroke(rainColor, style: StrokeStyle(lineWidth: rainIntensityToLineWidth(weather.rainIntensity), lineCap: .butt, dash: [2]))
                             }
                         }
@@ -875,6 +877,7 @@ class UserSettings: ObservableObject {
     @Published var unit: String {
         didSet {
             UserDefaults.standard.set(unit, forKey: "unit")
+            mirrorSettingsToSharedStore()
         }
     }
 
@@ -883,6 +886,8 @@ class UserSettings: ObservableObject {
             if let encoded = try? JSONEncoder().encode(savedLocations) {
                 UserDefaults.standard.set(encoded, forKey: "savedLocations")
             }
+            SharedStore.saveLocations(savedLocations)
+            WidgetReloader.reload()
         }
     }
 
@@ -895,13 +900,20 @@ class UserSettings: ObservableObject {
     @Published var showUVRays: Bool {
         didSet {
             UserDefaults.standard.set(showUVRays, forKey: "showUVRays")
+            mirrorSettingsToSharedStore()
         }
     }
 
     @Published var useApparentTemperature: Bool {
         didSet {
             UserDefaults.standard.set(useApparentTemperature, forKey: "useApparentTemperature")
+            mirrorSettingsToSharedStore()
         }
+    }
+
+    private func mirrorSettingsToSharedStore() {
+        SharedStore.saveSettings(unit: unit, showUVRays: showUVRays, useApparentTemperature: useApparentTemperature)
+        WidgetReloader.reload()
     }
 
     init() {
@@ -917,6 +929,9 @@ class UserSettings: ObservableObject {
         } else {
             self.savedLocations = []
         }
+
+        SharedStore.saveSettings(unit: unit, showUVRays: showUVRays, useApparentTemperature: useApparentTemperature)
+        SharedStore.saveLocations(savedLocations)
     }
 }
 
@@ -1393,6 +1408,7 @@ struct FrejView: View {
                         isGPS: true
                     )
                     self.gpsLocation = newGPSLocation
+                    SharedStore.saveGPSLocation(newGPSLocation)
                     self.lastFetchedByLocation[id] = nil
 
                     self.fetchWeatherForLocation(newGPSLocation)
@@ -1436,90 +1452,17 @@ struct FrejView: View {
                         return
                     }
 
-                    do {
-                        if let data = data {
-                            let string1 = String(data: data, encoding: String.Encoding.utf8) ?? "Data could not be printed"
-                            print(string1)
-                            let decoder = JSONDecoder()
-
-                            decoder.dateDecodingStrategy = JSONDecoder.DateDecodingStrategy.secondsSince1970
-                            let result = try decoder.decode(OMWeatherData.self, from: data)
-                            print("Parsed for \(location.name)!")
-
-                            var sunsetDict: [NaiveDate: Date] = [:]
-                            var sunriseDict: [NaiveDate: Date] = [:]
-                            var weatherDict: [Date: Weather] = [:]
-
-                            for i in 0..<result.daily.time.count {
-                                let date = result.daily.time[i].getNaiveDate(utcOffsetSeconds: result.utc_offset_seconds)
-                                if i < result.daily.sunset.count {
-                                    sunsetDict[date] = result.daily.sunset[i]
-                                }
-                                if i < result.daily.sunrise.count {
-                                    sunriseDict[date] = result.daily.sunrise[i]
-                                }
-                            }
-
-                            for i in 0..<result.hourly.time.count {
-                                let time = result.hourly.time[i]
-                                let temperature = result.hourly.temperature_2m[i]
-                                let apparentTemperature = result.hourly.apparent_temperature[i]
-                                let weatherSymbol = result.hourly.weathercode[i]
-                                let rainMillimeter = result.hourly.precipitation[i]
-                                let windspeed = result.hourly.windspeed_10m[i]
-                                let uvIndex = result.hourly.uv_index[i]
-                                let sunrise = sunriseDict[time.getNaiveDate()]
-                                let sunset = sunsetDict[time.getNaiveDate()]
-                                guard let sunrise = sunrise else {
-                                    continue
-                                }
-                                guard let sunset = sunset else {
-                                    continue
-                                }
-                                let isDay = time > sunrise && time < sunset
-
-                                var weatherType: WeatherType
-                                switch weatherSymbol {
-                                case 0:
-                                    weatherType = .clear
-                                case 1:
-                                    weatherType = .mainlyClear
-                                case 2:
-                                    weatherType = .lightCloud
-                                case 3:
-                                    weatherType = .cloud
-                                case 71...75:
-                                    weatherType = .snow
-                                case 51...67:
-                                    weatherType = .rain
-                                case 80...86:
-                                    weatherType = .rain
-                                case 95...99:
-                                    weatherType = .lightning
-                                case 45...48:
-                                    weatherType = .fog
-                                default:
-                                    weatherType = .unknown
-                                }
-
-                                if windspeed > 20 {
-                                    weatherType = .wind
-                                }
-
-                                weatherDict[time] = Weather(time: time, temperature: temperature, weatherType: weatherType, rainMillimeter: rainMillimeter, isDay: isDay, uvIndex: uvIndex, apparentTemperature: apparentTemperature)
-                            }
-
-                            DispatchQueue.main.async {
-                                self.weatherByLocation[location.id] = weatherDict
-                                self.sunriseByLocation[location.id] = sunriseDict
-                                self.sunsetByLocation[location.id] = sunsetDict
-                                self.utcOffsetByLocation[location.id] = result.utc_offset_seconds
-                                self.lastFetchedByLocation[location.id] = Date()
-                            }
+                    if let data = data, let snapshot = decodeOpenMeteoResponse(data) {
+                        print("Parsed for \(location.name)!")
+                        SharedStore.saveWeatherJSON(data, for: location.id)
+                        DispatchQueue.main.async {
+                            self.weatherByLocation[location.id] = snapshot.weather
+                            self.sunriseByLocation[location.id] = snapshot.sunrise
+                            self.sunsetByLocation[location.id] = snapshot.sunset
+                            self.utcOffsetByLocation[location.id] = snapshot.utcOffsetSeconds
+                            self.lastFetchedByLocation[location.id] = Date()
+                            WidgetReloader.reload()
                         }
-                    }
-                    catch let error {
-                        print("Error parsing (\(error))")
                     }
                 }
             }
