@@ -32,7 +32,7 @@ struct FrejWidgetView: View {
 
         // Each clock in systemSmall and systemMedium renders at roughly half the
         // size of systemLarge, so thin out sun/rain/snow rays to stay readable.
-        let densityScale: Double = (family == .systemSmall || family == .systemMedium) ? 0.5 : 1.0
+        let densityScale: Double = (family == .systemSmall || family == .systemMedium) ? 0.6 : 1.0
 
         switch family {
         case .systemMedium:
