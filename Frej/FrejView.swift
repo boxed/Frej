@@ -407,7 +407,7 @@ struct Daylight : View {
     var showUVRays: Bool = false
     var startOfToday: Date = Date()
     var utcOffsetSeconds: Int = 0
-    var densityScale: Double = 1.0
+    var sunRayDensityScale: Double = 1.0
 
     var body : some View {
         if let sunrise = sunrise, let sunset = sunset {
@@ -472,7 +472,7 @@ struct Daylight : View {
                         ColoredRays(
                             a: 2.6,
                             b: circle_inner_diameter,
-                            ray_density: sun_ray_density * densityScale,
+                            ray_density: sun_ray_density * sunRayDensityScale,
                             wiggle_a: true,
                             start_degree: hourFrom,
                             end_degree: hourTo,
@@ -487,7 +487,7 @@ struct Daylight : View {
                 }
             } else {
                 // Use the same approach as Night - draw rays based on sunrise/sunset degrees
-                Rays(a: 2.6, b: circle_inner_diameter, ray_density: sun_ray_density * densityScale, wiggle_a: true, start_degree: from, end_degree: to)
+                Rays(a: 2.6, b: circle_inner_diameter, ray_density: sun_ray_density * sunRayDensityScale, wiggle_a: true, start_degree: from, end_degree: to)
                     .stroke(Color.yellow, style: StrokeStyle(lineWidth: 1, lineCap: .butt))
             }
         }
@@ -619,7 +619,8 @@ struct Clock : View {
     var showUVRays : Bool = false
     var utcOffsetSeconds: Int = 0
     var useApparentTemperature: Bool = false
-    var densityScale: Double = 1.0
+    var sunRayDensityScale: Double = 1.0
+    var rainDensityScale: Double = 1.0
 
 
     var body : some View {
@@ -639,7 +640,7 @@ struct Clock : View {
             
             ZStack {
                 Night(start: start, sunrise: sunrise[startTime.getNaiveDate(utcOffsetSeconds: utcOffsetSeconds)], sunset: sunset[startTime.getNaiveDate(utcOffsetSeconds: utcOffsetSeconds)], utcOffsetSeconds: utcOffsetSeconds)
-                Daylight(start: start, sunrise: sunrise[startTime.getNaiveDate(utcOffsetSeconds: utcOffsetSeconds)], sunset: sunset[startTime.getNaiveDate(utcOffsetSeconds: utcOffsetSeconds)], weather: weather, showUVRays: showUVRays, startOfToday: startOfToday, utcOffsetSeconds: utcOffsetSeconds, densityScale: densityScale)
+                Daylight(start: start, sunrise: sunrise[startTime.getNaiveDate(utcOffsetSeconds: utcOffsetSeconds)], sunset: sunset[startTime.getNaiveDate(utcOffsetSeconds: utcOffsetSeconds)], weather: weather, showUVRays: showUVRays, startOfToday: startOfToday, utcOffsetSeconds: utcOffsetSeconds, sunRayDensityScale: sunRayDensityScale)
                 #if !os(watchOS) && !WIDGET_EXTENSION
                 VStack {
                     Text("\(weekdayStr)").frame(maxWidth: .infinity, alignment: .leading)
@@ -685,17 +686,17 @@ struct Clock : View {
 
                         if darkClouds {
                             // black anti-rays
-                            Rays(a: cloud_diameter, b: circle_inner_diameter, ray_density: sun_ray_density * densityScale, start_degree: from, end_degree: to )
+                            Rays(a: cloud_diameter, b: circle_inner_diameter, ray_density: sun_ray_density * sunRayDensityScale, start_degree: from, end_degree: to )
                                 .stroke(Color.black, style: StrokeStyle(lineWidth: min(geometry.size.height/2, geometry.size.width) / 50, lineCap: .round))
                         }
                         if rain {
                             if weather.weatherType == .snow {
-                                Rays(a: cloud_diameter, b: circle_inner_diameter, ray_density: rain_density * densityScale, wiggle_a: true, wiggle_b: true, start_degree: from, end_degree: to)
+                                Rays(a: cloud_diameter, b: circle_inner_diameter, ray_density: rain_density * rainDensityScale, wiggle_a: true, wiggle_b: true, start_degree: from, end_degree: to)
                                     .stroke(snow_color, style: StrokeStyle(lineWidth: 1, lineCap: .butt, dash: [1, 4, 1, 4]))
                             }
                             else {
                                 // rain
-                                Rays(a: cloud_diameter, b: circle_inner_diameter, ray_density: rain_density * densityScale, wiggle_a: true, wiggle_b: true, start_degree: from, end_degree: to)
+                                Rays(a: cloud_diameter, b: circle_inner_diameter, ray_density: rain_density * rainDensityScale, wiggle_a: true, wiggle_b: true, start_degree: from, end_degree: to)
                                     .stroke(rainColor, style: StrokeStyle(lineWidth: rainIntensityToLineWidth(weather.rainIntensity), lineCap: .butt, dash: [2]))
                             }
                         }

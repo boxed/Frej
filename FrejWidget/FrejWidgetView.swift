@@ -10,6 +10,7 @@ struct FrejWidgetView: View {
             Color.black
             if let snapshot = entry.snapshot {
                 content(snapshot: snapshot)
+                    .scaleEffect(0.95)
             } else {
                 emptyState
             }
@@ -32,7 +33,9 @@ struct FrejWidgetView: View {
 
         // Each clock in systemSmall and systemMedium renders at roughly half the
         // size of systemLarge, so thin out sun/rain/snow rays to stay readable.
-        let densityScale: Double = (family == .systemSmall || family == .systemMedium) ? 0.6 : 1.0
+        let isSmall = family == .systemSmall || family == .systemMedium
+        let sunRayDensityScale: Double = isSmall ? 0.5 : 1.0
+        let rainDensityScale: Double = isSmall ? 0.6 : 1.0
 
         switch family {
         case .systemMedium:
@@ -43,7 +46,8 @@ struct FrejWidgetView: View {
                     snapshot: snapshot,
                     now: now,
                     startOfToday: startOfToday,
-                    densityScale: densityScale
+                    sunRayDensityScale: sunRayDensityScale,
+                    rainDensityScale: rainDensityScale
                 )
                 clock(
                     start: secondStart,
@@ -51,7 +55,8 @@ struct FrejWidgetView: View {
                     snapshot: snapshot,
                     now: now,
                     startOfToday: startOfToday,
-                    densityScale: densityScale
+                    sunRayDensityScale: sunRayDensityScale,
+                    rainDensityScale: rainDensityScale
                 )
             }
         default:
@@ -61,7 +66,8 @@ struct FrejWidgetView: View {
                 snapshot: snapshot,
                 now: now,
                 startOfToday: startOfToday,
-                densityScale: densityScale
+                sunRayDensityScale: sunRayDensityScale,
+                rainDensityScale: rainDensityScale
             )
         }
     }
@@ -72,7 +78,8 @@ struct FrejWidgetView: View {
         snapshot: WeatherSnapshot,
         now: Date,
         startOfToday: Date,
-        densityScale: Double
+        sunRayDensityScale: Double,
+        rainDensityScale: Double
     ) -> some View {
         Clock(
             now: now,
@@ -86,7 +93,8 @@ struct FrejWidgetView: View {
             showUVRays: entry.showUVRays,
             utcOffsetSeconds: snapshot.utcOffsetSeconds,
             useApparentTemperature: entry.useApparentTemperature,
-            densityScale: densityScale
+            sunRayDensityScale: sunRayDensityScale,
+            rainDensityScale: rainDensityScale
         )
         .aspectRatio(1, contentMode: .fit)
     }
