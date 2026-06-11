@@ -766,6 +766,33 @@ struct Clock : View {
 }
 
 
+// Pulses a view's opacity along a true sine wave while `enabled`. `phase` is driven
+// linearly 0→1 on a forever loop; mapping it through a raised cosine gives a seamless
+// sinusoid (full opacity at phase 0 and 1, `minOpacity` at 0.5) with no plateau at the
+// peaks. Being Animatable, only the opacity is recomposited per frame — the wrapped
+// view is not rebuilt.
+struct SinePulse: ViewModifier, Animatable {
+    var phase: Double
+    var enabled: Bool
+    var minOpacity: Double
+
+    var animatableData: Double {
+        get { phase }
+        set { phase = newValue }
+    }
+
+    func body(content: Content) -> some View {
+        let opacity: Double
+        if enabled {
+            let t = (1 - cos(phase * 2 * .pi)) / 2   // 0 → 1 → 0 across the cycle
+            opacity = 1.0 - (1.0 - minOpacity) * t
+        } else {
+            opacity = 1.0
+        }
+        return content.opacity(opacity)
+    }
+}
+
 struct Foo : View {
     let weather : [Date: Weather]
     let height : CGFloat
@@ -780,11 +807,63 @@ struct Foo : View {
     var showUVRays: Bool = false
     var utcOffsetSeconds: Int = 0
     var useApparentTemperature: Bool = false
+    var loadState: LoadState = .loaded
+    var onRetry: () -> Void = {}
+    @State private var pulsePhase: Double = 0
 
     var body: some View {
+        // Only signal loading/error visually when we have no data to show yet.
+        // A background refresh of already-loaded data shouldn't disturb the view.
+        let isInitialLoading = weather.isEmpty && loadState == .loading
+        let isFailed = weather.isEmpty && loadState == .failed
+
+        ZStack {
+            clock
+                .modifier(SinePulse(phase: pulsePhase, enabled: isInitialLoading, minOpacity: 0.35))
+
+            if isFailed {
+                VStack(spacing: 16) {
+                    Image(systemName: "exclamationmark.triangle")
+                        .font(.system(size: 40))
+                        .foregroundColor(.white.opacity(0.7))
+                    Text("Couldn't load weather")
+                        .font(.system(size: 20))
+                        .foregroundColor(.white)
+                    Button(action: onRetry) {
+                        Text("Retry")
+                            .font(.system(size: 18))
+                            .padding(.horizontal, 24)
+                            .padding(.vertical, 10)
+                            .foregroundColor(.white)
+                            .background(Capsule().fill(Color.white.opacity(0.15)))
+                    }
+                }
+            }
+        }
+        .onAppear { updatePulse(loading: isInitialLoading) }
+        .onChange(of: isInitialLoading) { _, loading in updatePulse(loading: loading) }
+    }
+
+    private func updatePulse(loading: Bool) {
+        if loading {
+            // Advance the phase linearly and forever; SinePulse maps it through a raised
+            // cosine, so the *opacity* traces a true sine with no plateau at either end.
+            pulsePhase = 0
+            withAnimation(.linear(duration: 2.0).repeatForever(autoreverses: false)) {
+                pulsePhase = 1
+            }
+        } else {
+            // A finite animation here replaces (and thus stops) the repeating one.
+            withAnimation(.linear(duration: 0.25)) {
+                pulsePhase = 0
+            }
+        }
+    }
+
+    var clock: some View {
         let fractionalHour: Double = now.fractionalHour(utcOffsetSeconds: utcOffsetSeconds)
         let startOfToday = now.startOfDay(utcOffsetSeconds: utcOffsetSeconds)
-        GeometryReader { (geometry) in
+        return GeometryReader { (geometry) in
             TabView(selection: $selectedDay) {
 #if os(watchOS)
                 ForEach(0..<12, id: \.self) { id in
@@ -936,6 +1015,13 @@ enum WeatherSource {
     case demo
 }
 
+enum LoadState {
+    case idle
+    case loading
+    case loaded
+    case failed
+}
+
 struct FrejView: View {
     @State var now: Date = Date()
     @StateObject var locationProvider = LocationProvider()
@@ -945,6 +1031,7 @@ struct FrejView: View {
     @State var sunsetByLocation: [UUID: [NaiveDate: Date]] = [:]
     @State var utcOffsetByLocation: [UUID: Int] = [:]
     @State var lastFetchedByLocation: [UUID: Date] = [:]
+    @State var loadStateByLocation: [UUID: LoadState] = [:]
     @State var cancellableLocation: AnyCancellable?
     @State var loadedURL: String = ""
     @State var timeOfData: Date = Date.init(timeIntervalSince1970: 0)
@@ -986,6 +1073,10 @@ struct FrejView: View {
 
     func utcOffsetForLocation(_ id: UUID) -> Int {
         utcOffsetByLocation[id] ?? 0
+    }
+
+    func loadStateForLocation(_ id: UUID) -> LoadState {
+        loadStateByLocation[id] ?? .idle
     }
 
     let timer = Timer.publish(
@@ -1050,7 +1141,9 @@ struct FrejView: View {
                                             selectedDay: $selectedDay,
                                             showUVRays: userSettings.showUVRays,
                                             utcOffsetSeconds: utcOffsetForLocation(prevLocation.id),
-                                            useApparentTemperature: userSettings.useApparentTemperature
+                                            useApparentTemperature: userSettings.useApparentTemperature,
+                                            loadState: loadStateForLocation(prevLocation.id),
+                                            onRetry: { fetchWeatherForLocation(prevLocation) }
                                         )
                                     }
                                     .offset(y: dragOffset - screenHeight)
@@ -1076,7 +1169,9 @@ struct FrejView: View {
                                             selectedDay: $selectedDay,
                                             showUVRays: userSettings.showUVRays,
                                             utcOffsetSeconds: utcOffsetForLocation(location.id),
-                                            useApparentTemperature: userSettings.useApparentTemperature
+                                            useApparentTemperature: userSettings.useApparentTemperature,
+                                            loadState: loadStateForLocation(location.id),
+                                            onRetry: { fetchWeatherForLocation(location) }
                                         )
                                     }
                                     .offset(y: dragOffset)
@@ -1102,7 +1197,9 @@ struct FrejView: View {
                                             selectedDay: $selectedDay,
                                             showUVRays: userSettings.showUVRays,
                                             utcOffsetSeconds: utcOffsetForLocation(nextLocation.id),
-                                            useApparentTemperature: userSettings.useApparentTemperature
+                                            useApparentTemperature: userSettings.useApparentTemperature,
+                                            loadState: loadStateForLocation(nextLocation.id),
+                                            onRetry: { fetchWeatherForLocation(nextLocation) }
                                         )
                                     }
                                     .offset(y: dragOffset + screenHeight)
@@ -1171,7 +1268,9 @@ struct FrejView: View {
                                     selectedDay: $selectedDay,
                                     showUVRays: userSettings.showUVRays,
                                     utcOffsetSeconds: utcOffsetForLocation(location.id),
-                                    useApparentTemperature: userSettings.useApparentTemperature
+                                    useApparentTemperature: userSettings.useApparentTemperature,
+                                    loadState: loadStateForLocation(location.id),
+                                    onRetry: { fetchWeatherForLocation(location) }
                                 )
                             }
                         } else {
@@ -1224,6 +1323,7 @@ struct FrejView: View {
             .onAppear {
                 startLocationTracking()
                 fetchWeather()
+                fetchKnownLocations()
             }
             .onReceive(timer) { input in
                 now = input
@@ -1247,6 +1347,24 @@ struct FrejView: View {
         }
     }
     
+    // Kick off fetches for every location we already know about (the restored GPS
+    // location plus saved locations), independent of a live GPS fix / reverse geocode.
+    // Without this, nothing calls fetchWeatherForLocation on a cold launch with no
+    // connectivity, so the loading/error states would never trigger.
+    func fetchKnownLocations() {
+        guard weatherSource == .real else { return }
+
+        if gpsLocation == nil {
+            gpsLocation = SharedStore.gpsLocation
+        }
+        if let gps = gpsLocation {
+            fetchWeatherForLocation(gps)
+        }
+        for location in userSettings.savedLocations {
+            fetchWeatherForLocation(location)
+        }
+    }
+
     func getWeather(hour: Int) -> Weather? {
         guard let date = Date().set(hour: hour) else {
             return nil
@@ -1428,36 +1546,38 @@ struct FrejView: View {
         }
 
         DispatchQueue.main.async {
+            self.loadStateByLocation[location.id] = .loading
+
             let s = "https://api.open-meteo.com/v1/forecast?latitude=\(location.latitude)&longitude=\(location.longitude)&hourly=temperature_2m,apparent_temperature,precipitation,weathercode,cloudcover,windspeed_10m,uv_index&past_days=1&daily=sunrise,sunset&timezone=auto&timeformat=unixtime"
 
             guard let url = URL(string: s) else {
+                self.loadStateByLocation[location.id] = .failed
                 return
             }
 
             print("getting weather for \(location.name): \(url)")
             let request = URLRequest(url: url)
             let task = URLSession.shared.dataTask(with: request) { (data, response, error) in
-                if let response = response as? HTTPURLResponse {
+                var snapshot: WeatherSnapshot? = nil
+                if error == nil,
+                   let data = data,
+                   (response as? HTTPURLResponse).map({ $0.statusCode == 200 }) ?? true {
+                    snapshot = decodeOpenMeteoResponse(data)
+                }
 
-                    if response.statusCode == 503 {
-                        return
-                    }
-
-                   if error != nil {
-                        return
-                    }
-
-                    if let data = data, let snapshot = decodeOpenMeteoResponse(data) {
+                DispatchQueue.main.async {
+                    if let snapshot = snapshot, let data = data {
                         print("Parsed for \(location.name)!")
                         SharedStore.saveWeatherJSON(data, for: location.id)
-                        DispatchQueue.main.async {
-                            self.weatherByLocation[location.id] = snapshot.weather
-                            self.sunriseByLocation[location.id] = snapshot.sunrise
-                            self.sunsetByLocation[location.id] = snapshot.sunset
-                            self.utcOffsetByLocation[location.id] = snapshot.utcOffsetSeconds
-                            self.lastFetchedByLocation[location.id] = Date()
-                            WidgetReloader.reload()
-                        }
+                        self.weatherByLocation[location.id] = snapshot.weather
+                        self.sunriseByLocation[location.id] = snapshot.sunrise
+                        self.sunsetByLocation[location.id] = snapshot.sunset
+                        self.utcOffsetByLocation[location.id] = snapshot.utcOffsetSeconds
+                        self.lastFetchedByLocation[location.id] = Date()
+                        self.loadStateByLocation[location.id] = .loaded
+                        WidgetReloader.reload()
+                    } else {
+                        self.loadStateByLocation[location.id] = .failed
                     }
                 }
             }
