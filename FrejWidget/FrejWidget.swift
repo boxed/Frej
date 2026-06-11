@@ -9,66 +9,28 @@ struct FrejEntry: TimelineEntry {
     let showUVRays: Bool
     let useApparentTemperature: Bool
 
+    // The placeholder must never show fake weather — when WidgetKit has no real
+    // timeline yet it should fall back to the empty/setup state, not demo data.
     static let placeholder = FrejEntry(
         date: Date(),
         location: nil,
-        snapshot: fakePreviewSnapshot(),
+        snapshot: nil,
         unit: "C",
         showUVRays: false,
         useApparentTemperature: false
     )
 }
 
-// Synthetic 24-hour forecast for the widget gallery preview: includes rain,
-// snow, and a wide temperature spread in both halves of the day so any visible
-// 12-hour window looks varied.
-func fakePreviewSnapshot() -> WeatherSnapshot {
-    let now = Date()
-    var weatherDict: [Date: Weather] = [:]
-    var sunriseDict: [NaiveDate: Date] = [:]
-    var sunsetDict: [NaiveDate: Date] = [:]
-
-    sunriseDict[now.getNaiveDate()] = now.set(hour: 6, minute: 20)
-    sunsetDict[now.getNaiveDate()] = now.set(hour: 19, minute: 30)
-
-    let entries: [(Int, Float, WeatherType, Float, Bool)] = [
-        // hour, temp, type, rainMM, isDay
-        ( 0,  -5, .snow,        1, false),
-        ( 1,  -3, .snow,        1, false),
-        ( 2,  -1, .clear,       0, false),
-        ( 3,   1, .clear,       0, false),
-        ( 4,   3, .lightCloud,  0, false),
-        ( 5,   6, .lightCloud,  0, false),
-        ( 6,  10, .mainlyClear, 0, true ),
-        ( 7,  15, .clear,       0, true ),
-        ( 8,  22, .clear,       0, true ),
-        ( 9,  26, .lightCloud,  0, true ),
-        (10,  28, .rain,        4, true ),
-        (11,  25, .rain,        6, true ),
-        (12,  24, .rain,        3, true ),
-        (13,  23, .lightning,   8, true ),
-        (14,  28, .lightCloud,  0, true ),
-        (15,  30, .clear,       0, true ),
-        (16,  27, .clear,       0, true ),
-        (17,  22, .lightCloud,  0, true ),
-        (18,  15, .cloud,       0, true ),
-        (19,  10, .rain,        2, false),
-        (20,   5, .rain,        3, false),
-        (21,   0, .snow,        1, false),
-        (22,  -3, .snow,        2, false),
-        (23,  -6, .snow,        1, false),
-    ]
-    for (hour, temp, type, rain, isDay) in entries {
-        let t = now.set(hour: hour)!
-        weatherDict[t] = Weather(time: t, temperature: temp, weatherType: type, rainMillimeter: rain, isDay: isDay, uvIndex: isDay ? 4 : 0)
+// Loads the first location and its decoded weather from the shared App Group
+// store the app writes to. Returns nil snapshot when there's no location or no
+// decodable weather yet, in which case the view shows the empty/setup state.
+func loadSnapshot() -> (SavedLocation?, WeatherSnapshot?) {
+    guard let location = SharedStore.allLocations.first,
+          let data = SharedStore.loadWeatherJSON(for: location.id),
+          let snapshot = decodeOpenMeteoResponse(data) else {
+        return (SharedStore.allLocations.first, nil)
     }
-
-    return WeatherSnapshot(
-        weather: weatherDict,
-        sunrise: sunriseDict,
-        sunset: sunsetDict,
-        utcOffsetSeconds: TimeZone.current.secondsFromGMT(for: now)
-    )
+    return (location, snapshot)
 }
 
 struct FrejProvider: TimelineProvider {
@@ -84,28 +46,27 @@ struct FrejProvider: TimelineProvider {
         let now = Date()
 
         // Decode the shared snapshot once and reuse it for every entry.
-        let location = SharedStore.allLocations.first
-        let snapshot: WeatherSnapshot?
-        if let location = location, let data = SharedStore.loadWeatherJSON(for: location.id) {
-            snapshot = decodeOpenMeteoResponse(data)
-        } else {
-            snapshot = nil
-        }
+        let (location, snapshot) = loadSnapshot()
         let unit = SharedStore.unit
         let showUVRays = SharedStore.showUVRays
         let useApparentTemperature = SharedStore.useApparentTemperature
 
-        // One entry per minute for the next 24 hours so the minute and hour
-        // hands keep advancing across the whole day without depending on
-        // WidgetKit reloads (which the system heavily throttles). The dial
-        // hands are derived from each entry's date, so coarser spacing left
-        // the hands visually frozen between jumps. All entries share the same
-        // decoded snapshot via copy-on-write, so the cost is the entry count,
-        // not duplicated weather data.
-        let minutesInDay = 24 * 60
+        // Each entry carries the full ~192-hour snapshot, and WidgetKit
+        // serializes EVERY entry when it persists the timeline. On a real
+        // device the widget extension has a hard (~30 MB) memory budget, so a
+        // large entry count makes that archive too big and the timeline never
+        // commits — leaving the widget stuck on the redacted placeholder. (The
+        // simulator has no such limit, which is why it renders fine there.)
+        // The original working widget used ~12 entries; a 1440-entry timeline
+        // broke it. Keep the count modest: one entry every 5 minutes over the
+        // 12-hour display window gives smooth-enough hand movement while
+        // staying well within the archive budget. `.atEnd` then reloads to pick
+        // up fresh weather, and the app nudges an earlier reload on each fetch.
+        let stepMinutes = 5
+        let windowMinutes = 12 * 60
         var entries: [FrejEntry] = []
-        entries.reserveCapacity(minutesInDay)
-        for offset in 0..<minutesInDay {
+        entries.reserveCapacity(windowMinutes / stepMinutes)
+        for offset in stride(from: 0, to: windowMinutes, by: stepMinutes) {
             let date = Calendar.current.date(byAdding: .minute, value: offset, to: now) ?? now
             entries.append(FrejEntry(
                 date: date,
@@ -117,20 +78,14 @@ struct FrejProvider: TimelineProvider {
             ))
         }
 
-        // Reload once the day's worth of entries runs out, picking up fresh
+        // Reload once the window's worth of entries runs out, picking up fresh
         // weather. We also nudge the widget to reload sooner via WidgetCenter
         // whenever the app fetches new data.
         completion(Timeline(entries: entries, policy: .atEnd))
     }
 
     private func currentEntry(at date: Date) -> FrejEntry {
-        let location = SharedStore.allLocations.first
-        let snapshot: WeatherSnapshot?
-        if let location = location, let data = SharedStore.loadWeatherJSON(for: location.id) {
-            snapshot = decodeOpenMeteoResponse(data)
-        } else {
-            snapshot = nil
-        }
+        let (location, snapshot) = loadSnapshot()
         return FrejEntry(
             date: date,
             location: location,
