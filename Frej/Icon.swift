@@ -62,26 +62,24 @@ struct ClockIcon : View {
                         // Rain
                         let (from, to) = rainDegrees(date: startDatetime)
                         
-                        let darkClouds  = weather.rainMillimeter > 0 || weather.weatherType == .rain || weather.weatherType == .cloud
-                    
-                        if darkClouds {
-                            // black anti-rays
-                            Rays(a: cloud_diameter, b: circle_inner_diameter, ray_density: sun_ray_density, start_degree: from, end_degree: to )
-                                .stroke(Color.black, style: StrokeStyle(lineWidth: 4, lineCap: .round))
+                        let rain = weather.rainMillimeter > 0 || weather.weatherType == .rain
+                        // nil = no cloud band; otherwise 0 (thin white) ... 1 (dark overcast)
+                        let cloudShade = cloudBandShade(weatherType: weather.weatherType, cloudCover: weather.cloudCover, rain: rain)
 
+                        if let shade = cloudShade {
+                            // black anti-rays — fade in with cloudiness
+                            Rays(a: cloud_diameter, b: circle_inner_diameter, ray_density: sun_ray_density, start_degree: from, end_degree: to )
+                                .stroke(Color.black.opacity(shade), style: StrokeStyle(lineWidth: 4, lineCap: .round))
+                        }
+                        if rain {
                             // rain
                             Rays(a: cloud_diameter, b: circle_inner_diameter, ray_density: rain_density, wiggle_a: true, wiggle_b: true, start_degree: from, end_degree: to, wiggle_size: 1.05)
                                 .stroke(rainColor, style: StrokeStyle(lineWidth: 8, lineCap: .butt, dash: [7]))
                         }
-                        if !darkClouds && weather.weatherType == .lightCloud  {
-                            // white clouds
-                            Rays(a: cloud_diameter, b: cloud_diameter2, ray_density: cloud_ray_density, wiggle_a: false, wiggle_b: true, start_degree: from + 0.5, end_degree: to + 0.5, wiggle_size: 1.03)
-                                .stroke(Color.white, style: StrokeStyle(lineWidth: cloudSize, lineCap: .round))
-                        }
-                        if darkClouds {
-                            // dark clouds
+                        if let shade = cloudShade {
+                            // cloud band, shaded continuously from white to dark grey by cloud cover
                             Rays(a: cloud_diameter, b: cloud_diameter2, ray_density: cloud_ray_density, wiggle_c: true, start_degree: from + 0.5, end_degree: to + 0.5, wiggle_size: 1.03)
-                                .stroke(Color(hex: 0x606060, alpha: 1), style: StrokeStyle(lineWidth: cloudSize, lineCap: .round))
+                                .stroke(cloudBandColor(shade: shade), style: StrokeStyle(lineWidth: cloudSize, lineCap: .round))
                         }
                     }
                 }

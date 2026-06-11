@@ -82,17 +82,45 @@ struct FrejProvider: TimelineProvider {
 
     func getTimeline(in context: Context, completion: @escaping (Timeline<FrejEntry>) -> Void) {
         let now = Date()
-        var entries: [FrejEntry] = []
 
-        // One entry per hour for the next 12 hours so the dial advances.
-        for offset in 0..<12 {
-            let date = Calendar.current.date(byAdding: .hour, value: offset, to: now) ?? now
-            entries.append(currentEntry(at: date))
+        // Decode the shared snapshot once and reuse it for every entry.
+        let location = SharedStore.allLocations.first
+        let snapshot: WeatherSnapshot?
+        if let location = location, let data = SharedStore.loadWeatherJSON(for: location.id) {
+            snapshot = decodeOpenMeteoResponse(data)
+        } else {
+            snapshot = nil
+        }
+        let unit = SharedStore.unit
+        let showUVRays = SharedStore.showUVRays
+        let useApparentTemperature = SharedStore.useApparentTemperature
+
+        // One entry per minute for the next 24 hours so the minute and hour
+        // hands keep advancing across the whole day without depending on
+        // WidgetKit reloads (which the system heavily throttles). The dial
+        // hands are derived from each entry's date, so coarser spacing left
+        // the hands visually frozen between jumps. All entries share the same
+        // decoded snapshot via copy-on-write, so the cost is the entry count,
+        // not duplicated weather data.
+        let minutesInDay = 24 * 60
+        var entries: [FrejEntry] = []
+        entries.reserveCapacity(minutesInDay)
+        for offset in 0..<minutesInDay {
+            let date = Calendar.current.date(byAdding: .minute, value: offset, to: now) ?? now
+            entries.append(FrejEntry(
+                date: date,
+                location: location,
+                snapshot: snapshot,
+                unit: unit,
+                showUVRays: showUVRays,
+                useApparentTemperature: useApparentTemperature
+            ))
         }
 
-        // Refresh in ~30 minutes; the app's next fetch will populate fresh data.
-        let nextRefresh = Calendar.current.date(byAdding: .minute, value: 30, to: now) ?? now.addingTimeInterval(1800)
-        completion(Timeline(entries: entries, policy: .after(nextRefresh)))
+        // Reload once the day's worth of entries runs out, picking up fresh
+        // weather. We also nudge the widget to reload sooner via WidgetCenter
+        // whenever the app fetches new data.
+        completion(Timeline(entries: entries, policy: .atEnd))
     }
 
     private func currentEntry(at date: Date) -> FrejEntry {

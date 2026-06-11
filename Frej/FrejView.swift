@@ -672,8 +672,9 @@ struct Clock : View {
                         
                         let rain  = weather.rainMillimeter > 0 || weather.weatherType == .rain
                         
-                        let darkClouds = rain || weather.weatherType == .lightning || weather.weatherType == .cloud
-                    
+                        // nil = no cloud band; otherwise 0 (thin white) ... 1 (dark overcast)
+                        let cloudShade = cloudBandShade(weatherType: weather.weatherType, cloudCover: weather.cloudCover, rain: rain)
+
                         if weather.weatherType == .fog {
                             let blur_radius = frame.height / 60
                             Rays(a: cloud_diameter, b: circle_inner_diameter, ray_density: fog_density - 0.5, wiggle_a: true, wiggle_b: true, start_degree: from-1, end_degree: to+1, wiggle_size: 1.02)
@@ -684,10 +685,10 @@ struct Clock : View {
                                 .stroke(fog_color, style: StrokeStyle(lineWidth: 1, lineCap: .butt, dash: [1, 1])).blur(radius: blur_radius)
                         }
 
-                        if darkClouds {
-                            // black anti-rays
+                        if let shade = cloudShade {
+                            // black anti-rays — fade in with cloudiness so thin clouds still let the sun through
                             Rays(a: cloud_diameter, b: circle_inner_diameter, ray_density: sun_ray_density * sunRayDensityScale, start_degree: from, end_degree: to )
-                                .stroke(Color.black, style: StrokeStyle(lineWidth: min(geometry.size.height/2, geometry.size.width) / 50, lineCap: .round))
+                                .stroke(Color.black.opacity(shade), style: StrokeStyle(lineWidth: min(geometry.size.height/2, geometry.size.width) / 50, lineCap: .round))
                         }
                         if rain {
                             if weather.weatherType == .snow {
@@ -705,21 +706,14 @@ struct Clock : View {
                             Bolt(a: bolt_diameter, b: bolt_diameter2, start_degree: from, end_degree: to).stroke(lightning_color)
                         }
                         
-                        if !rain && weather.weatherType == .lightCloud  {
+                        if let shade = cloudShade {
+                            // black border
                             Rays(a: cloud_diameter - dark_cloud_border_offset, b: cloud_diameter2 - dark_cloud_border_offset, ray_density: cloud_ray_density, wiggle_c: true, start_degree: from + 0.5, end_degree: to + 0.5, wiggle_size: cloud_wiggle_size)
                                 .stroke(Color.black, style: StrokeStyle(lineWidth: cloud_size, lineCap: .round))
 
-                            // white clouds
-                            Rays(a: cloud_diameter, b: cloud_diameter2, ray_density: cloud_ray_density, wiggle_a: false, wiggle_b: true, start_degree: from + 0.5, end_degree: to + 0.5, wiggle_size: cloud_wiggle_size)
-                                .stroke(Color.white, style: StrokeStyle(lineWidth: cloud_size, lineCap: .round))
-                        }
-                        if darkClouds {
-                            Rays(a: cloud_diameter - dark_cloud_border_offset, b: cloud_diameter2 - dark_cloud_border_offset, ray_density: cloud_ray_density, wiggle_c: true, start_degree: from + 0.5, end_degree: to + 0.5, wiggle_size: cloud_wiggle_size)
-                                .stroke(Color.black, style: StrokeStyle(lineWidth: cloud_size, lineCap: .round))
-
-                            // dark clouds
+                            // cloud band, shaded continuously from white to dark grey by cloud cover
                             Rays(a: cloud_diameter, b: cloud_diameter2, ray_density: cloud_ray_density, wiggle_c: true, start_degree: from + 0.5, end_degree: to + 0.5, wiggle_size: cloud_wiggle_size)
-                                .stroke(dark_cloud_color, style: StrokeStyle(lineWidth: cloud_size, lineCap: .round))
+                                .stroke(cloudBandColor(shade: shade), style: StrokeStyle(lineWidth: cloud_size, lineCap: .round))
                         }
                         
 //                        if weather.weatherType == .wind {

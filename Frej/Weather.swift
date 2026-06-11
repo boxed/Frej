@@ -5,6 +5,7 @@ enum WeatherType {
     case clear
     case mainlyClear
     case lightCloud
+    case mediumCloud
     case cloud
     case rain
     case lightning
@@ -37,6 +38,8 @@ private func _textColor(isDay: Bool, weatherType: WeatherType) -> Color {
         return Color.init(hex: 0x929292)
     case .cloud:
         return Color.init(hex: 0xC2C2C2)
+    case .mediumCloud:
+        return Color.init(hex: 0xDADADA)
     case .lightCloud:
         return .white
     case .fog:
@@ -65,6 +68,8 @@ private func _iconColor(weatherType : WeatherType, isDay : Bool) -> Color {
         return .white
     case .lightCloud:
         return .white
+    case .mediumCloud:
+        return Color.init(hex: 0xC8C8C8)
     case .cloud:
         return Color.init(hex: 0x929292)
     case .rain:
@@ -109,6 +114,43 @@ private func _rainIntensity(rainMillimeter : Float) -> RainIntensity {
 let rainColor = Color.init(hex: 0x0080FF)
 let sunColor = Color.init(hex: 0xF9E231)
 
+// Below this cloud-cover percentage the sky reads as clear (sun shows); above it,
+// clouds darken smoothly with cover rather than snapping between discrete tiers.
+let clearCloudCoverCutoff = 15
+
+// 0 (thin white cloud) ... 1 (heavy dark overcast). Returns nil when there is no cloud band.
+func cloudBandShade(weatherType: WeatherType, cloudCover: Int, rain: Bool) -> Double? {
+    if rain || weatherType == .lightning {
+        return 1.0
+    }
+    switch weatherType {
+    case .cloud:
+        if cloudCover <= 0 { return 1.0 } // hand-authored demo data with no cloud-cover value
+        return min(1.0, max(0.0, Double(cloudCover - clearCloudCoverCutoff) / Double(100 - clearCloudCoverCutoff)))
+    case .mediumCloud:
+        return 0.5
+    case .lightCloud:
+        return 0.12
+    default:
+        return nil
+    }
+}
+
+private func lerp(_ a: Double, _ b: Double, _ t: Double) -> Double { a + (b - a) * t }
+
+// White (shade 0) interpolated to the heavy-overcast grey (shade 1) used for the dial band.
+func cloudBandColor(shade: Double) -> Color {
+    let s = min(1.0, max(0.0, shade))
+    return Color(red: lerp(1.0, 0.3568909366, s), green: lerp(1.0, 0.3843440824, s), blue: lerp(1.0, 0.4227784864, s))
+}
+
+// White (shade 0) interpolated to 0x929292 (shade 1) for the small cloud glyph.
+func cloudIconColor(cloudCover: Int) -> Color {
+    let shade = cloudBandShade(weatherType: .cloud, cloudCover: cloudCover, rain: false) ?? 1.0
+    let v = lerp(1.0, Double(0x92) / 255.0, shade)
+    return Color(red: v, green: v, blue: v)
+}
+
 struct Weather {
     let time : Date
     let temperature : Float
@@ -122,6 +164,7 @@ struct Weather {
     let iconColor : Color
     let rainIntensity : RainIntensity
     let uvIndex : Float
+    let cloudCover : Int
 
     init(
         time : Date,
@@ -130,7 +173,8 @@ struct Weather {
         rainMillimeter : Float,
         isDay : Bool,
         uvIndex : Float = 0,
-        apparentTemperature : Float? = nil
+        apparentTemperature : Float? = nil,
+        cloudCover : Int = 0
     ) {
         self.time = time
         self.temperature = temperature
@@ -140,11 +184,17 @@ struct Weather {
 
         self.isDay = isDay
         self.uvIndex = uvIndex
+        self.cloudCover = cloudCover
 
         self.circleSegmentColor = rainMillimeter > 0 ? rainColor : .white
         self.circleSegmentWidth = max(1, CGFloat(log(rainMillimeter) * 10))
         self.textColor = _textColor(isDay: isDay, weatherType: weatherType)
-        self.iconColor = _iconColor(weatherType: weatherType, isDay: isDay)
+        // Overcast clouds shade continuously with cloud cover; everything else keeps its fixed colour.
+        if weatherType == .cloud && cloudCover > 0 {
+            self.iconColor = cloudIconColor(cloudCover: cloudCover)
+        } else {
+            self.iconColor = _iconColor(weatherType: weatherType, isDay: isDay)
+        }
         self.rainIntensity = _rainIntensity(rainMillimeter: self.rainMillimeter)
     }
     
@@ -187,6 +237,8 @@ struct Weather {
                     .foregroundColor(Color.black)
             }
         case .lightCloud:
+            Cloud().foregroundColor(self.iconColor)
+        case .mediumCloud:
             Cloud().foregroundColor(self.iconColor)
         case .cloud:
             Cloud().foregroundColor(self.iconColor)
@@ -281,6 +333,7 @@ func decodeOpenMeteoResponse(_ data: Data) -> WeatherSnapshot? {
         let temperature = result.hourly.temperature_2m[i]
         let apparentTemperature = result.hourly.apparent_temperature[i]
         let weatherSymbol = result.hourly.weathercode[i]
+        let cloudcover = result.hourly.cloudcover[i]
         let rainMillimeter = result.hourly.precipitation[i]
         let windspeed = result.hourly.windspeed_10m[i]
         let uvIndex = result.hourly.uv_index[i]
@@ -290,14 +343,6 @@ func decodeOpenMeteoResponse(_ data: Data) -> WeatherSnapshot? {
 
         var weatherType: WeatherType
         switch weatherSymbol {
-        case 0:
-            weatherType = .clear
-        case 1:
-            weatherType = .mainlyClear
-        case 2:
-            weatherType = .lightCloud
-        case 3:
-            weatherType = .cloud
         case 71...75:
             weatherType = .snow
         case 51...67:
@@ -309,7 +354,10 @@ func decodeOpenMeteoResponse(_ data: Data) -> WeatherSnapshot? {
         case 45...48:
             weatherType = .fog
         default:
-            weatherType = .unknown
+            // Clear/cloudy is driven by cloudcover %, not the coarse weathercode.
+            // Below the cutoff the sky is clear; above it we mark it cloudy and let
+            // the renderer shade the cloud continuously from the cloudCover value.
+            weatherType = cloudcover < clearCloudCoverCutoff ? .clear : .cloud
         }
 
         if windspeed > 20 {
@@ -323,7 +371,8 @@ func decodeOpenMeteoResponse(_ data: Data) -> WeatherSnapshot? {
             rainMillimeter: rainMillimeter,
             isDay: isDay,
             uvIndex: uvIndex,
-            apparentTemperature: apparentTemperature
+            apparentTemperature: apparentTemperature,
+            cloudCover: cloudcover
         )
     }
 
