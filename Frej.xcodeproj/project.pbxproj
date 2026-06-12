@@ -613,7 +613,7 @@
 				ASSETCATALOG_COMPILER_INCLUDE_ALL_APPICON_ASSETS = NO;
 				CODE_SIGN_ENTITLEMENTS = Frej/Frej.entitlements;
 				CODE_SIGN_STYLE = Automatic;
-				CURRENT_PROJECT_VERSION = 12;
+				CURRENT_PROJECT_VERSION = 13;
 				DEVELOPMENT_ASSET_PATHS = "\"Frej/Preview Content\"";
 				DEVELOPMENT_TEAM = B6FVY827P9;
 				ENABLE_PREVIEWS = YES;
@@ -624,7 +624,7 @@
 					"$(inherited)",
 					"@executable_path/Frameworks",
 				);
-				MARKETING_VERSION = 12;
+				MARKETING_VERSION = 13;
 				PRODUCT_BUNDLE_IDENTIFIER = net.kodare.sunhail;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				SUPPORTS_MACCATALYST = YES;
@@ -641,7 +641,7 @@
 				ASSETCATALOG_COMPILER_INCLUDE_ALL_APPICON_ASSETS = NO;
 				CODE_SIGN_ENTITLEMENTS = Frej/Frej.entitlements;
 				CODE_SIGN_STYLE = Automatic;
-				CURRENT_PROJECT_VERSION = 12;
+				CURRENT_PROJECT_VERSION = 13;
 				DEVELOPMENT_ASSET_PATHS = "\"Frej/Preview Content\"";
 				DEVELOPMENT_TEAM = B6FVY827P9;
 				ENABLE_PREVIEWS = YES;
@@ -652,7 +652,7 @@
 					"$(inherited)",
 					"@executable_path/Frameworks",
 				);
-				MARKETING_VERSION = 12;
+				MARKETING_VERSION = 13;
 				PRODUCT_BUNDLE_IDENTIFIER = net.kodare.sunhail;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				SUPPORTS_MACCATALYST = YES;
