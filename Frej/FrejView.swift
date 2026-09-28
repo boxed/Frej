@@ -651,6 +651,74 @@ func rainDegrees(date: Date) -> (Double, Double) {
     return (mid - 15.0, mid + 15.0 - x)
 }
 
+// A thin light rim along the outer edge of each cloud circle, varying in brightness from circle to circle so an evenly
+// overcast day isn't flat. The rim is left out where neighboring circles overlap, so it follows the scalloped outline.
+private let cloud_rim_width = 0.7
+private let cloud_rim_min_opacity = 0.1
+private let cloud_rim_max_opacity = 0.45
+// How far around the circle the rim reaches, in degrees either side of straight out from the dial
+private let cloud_rim_extent = 70.0
+
+struct CloudRims: View {
+    let from: Double
+    let to: Double
+    let cloudSize: CGFloat
+    // Picks this band's fixed variation in rim brightness
+    let seed: Int
+
+    var body: some View {
+        Canvas { context, size in
+            let start_degree = from + 0.5
+            let count = Int((to + 0.5 - start_degree) * cloud_ray_density)
+            if count <= 0 { return }
+
+            // Each circle is a round-capped line from `inner` to `outer`, like the rays drawn by CloudBand
+            let circles: [(inner: CGPoint, outer: CGPoint, outward: CGFloat)] = (0..<count).map { i in
+                let degree = start_degree + Double(i) / cloud_ray_density
+                let radians: CGFloat = .pi - degree.degreesToRadians
+                let radiusA = size.height / cloud_diameter
+                let radiusB = size.height / cloud_diameter2 * (wiggle_c_set.contains(i) ? cloud_wiggle_size : 1)
+                func point(_ radius: CGFloat) -> CGPoint {
+                    CGPoint(x: size.width / 2 + sin(radians) * radius, y: size.height / 2 + cos(radians) * radius)
+                }
+                return (point(min(radiusA, radiusB)), point(max(radiusA, radiusB)), atan2(cos(radians), sin(radians)))
+            }
+            let radius = cloudSize / 2
+
+            func distance(_ p: CGPoint, toLineFrom a: CGPoint, to b: CGPoint) -> CGFloat {
+                let ab = CGPoint(x: b.x - a.x, y: b.y - a.y)
+                let lengthSquared = ab.x * ab.x + ab.y * ab.y
+                let t = lengthSquared == 0 ? 0 : max(0, min(1, ((p.x - a.x) * ab.x + (p.y - a.y) * ab.y) / lengthSquared))
+                return hypot(p.x - (a.x + ab.x * t), p.y - (a.y + ab.y * t))
+            }
+
+            for (i, circle) in circles.enumerated() {
+                let r = star_field_random_numbers[(seed * 13 + i) % star_field_random_numbers.count]
+                let color = Color.white.opacity(cloud_rim_min_opacity + (cloud_rim_max_opacity - cloud_rim_min_opacity) * r)
+                let rimRadius = radius - cloud_rim_width / 2
+                func rimPoint(_ angle: CGFloat) -> CGPoint {
+                    CGPoint(x: circle.outer.x + cos(angle) * rimRadius, y: circle.outer.y + sin(angle) * rimRadius)
+                }
+                func isVisible(_ p: CGPoint) -> Bool {
+                    !circles.indices.contains { j in j != i && distance(p, toLineFrom: circles[j].inner, to: circles[j].outer) < radius }
+                }
+
+                let step: CGFloat = 4.0.degreesToRadians
+                var angle = circle.outward - cloud_rim_extent.degreesToRadians
+                while angle < circle.outward + cloud_rim_extent.degreesToRadians {
+                    let next = angle + step
+                    if isVisible(rimPoint(angle)) && isVisible(rimPoint(next)) {
+                        var arc = Path()
+                        arc.addArc(center: circle.outer, radius: rimRadius, startAngle: .radians(angle), endAngle: .radians(next), clockwise: false)
+                        context.stroke(arc, with: .color(color), lineWidth: cloud_rim_width)
+                    }
+                    angle = next
+                }
+            }
+        }
+    }
+}
+
 // The circles at each end of a band are pulled a third of the way towards the neighboring hour's shade, so adjacent
 // hours blend in even steps. A nil neighbor (no clouds, or across the break at the top of the dial) means no blending.
 struct CloudBand: View {
@@ -830,6 +898,7 @@ struct Clock : View {
                                 nextShade: neighborShade(id: id, time: startDatetime, offset: 1),
                                 cloudSize: cloud_size
                             )
+                            CloudRims(from: from, to: to, cloudSize: cloud_size, seed: id + start)
                         }
                         
 //                        if weather.weatherType == .wind {
