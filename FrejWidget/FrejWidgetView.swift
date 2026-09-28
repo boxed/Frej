@@ -94,7 +94,8 @@ struct FrejWidgetView: View {
             utcOffsetSeconds: snapshot.utcOffsetSeconds,
             useApparentTemperature: entry.useApparentTemperature,
             sunRayDensityScale: sunRayDensityScale,
-            rainDensityScale: rainDensityScale
+            rainDensityScale: rainDensityScale,
+            coordinate: entry.location?.coordinate
         )
         .aspectRatio(1, contentMode: .fit)
     }

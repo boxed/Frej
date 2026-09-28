@@ -45,6 +45,36 @@ private func equatorial(longitude: Double, latitude: Double, distance: Double, o
     return Vec3(x: x, y: y * cos(e) - z * sin(e), z: y * sin(e) + z * cos(e)) * distance
 }
 
+/// Days since J2000 and Julian centuries since J2000.
+private func julianTime(_ date: Date) -> (d: Double, t: Double) {
+    let d = 2440587.5 + date.timeIntervalSince1970 / 86400 - 2451545
+    return (d, d / 36525)
+}
+
+private func meanObliquity(t: Double) -> Double { 23.439291 - 0.0130042 * t }
+
+/// Geocentric equatorial position of the sun (km), from Meeus ch. 25 (largest terms only).
+private func sunPosition(t: Double) -> Vec3 {
+    let sunM = rad(357.52911 + 35999.05029 * t)
+    let sunL0 = 280.46646 + 36000.76983 * t
+    let sunC = (1.914602 - 0.004817 * t) * sin(sunM) + 0.019993 * sin(2 * sunM) + 0.000289 * sin(3 * sunM)
+    let sunDistance = 149597870.7 * (1.00014 - 0.01671 * cos(sunM) - 0.00014 * cos(2 * sunM))
+    return equatorial(longitude: sunL0 + sunC, latitude: 0, distance: sunDistance, obliquity: meanObliquity(t: t))
+}
+
+/// Unit vector from the earth's center through the observer, which is also the observer's zenith.
+private func zenith(d: Double, t: Double, coordinate: CLLocationCoordinate2D) -> Vec3 {
+    let localSiderealTime = rad(280.46061837 + 360.98564736629 * d + 0.000387933 * t * t + coordinate.longitude)
+    let lat = rad(coordinate.latitude)
+    return Vec3(x: cos(lat) * cos(localSiderealTime), y: cos(lat) * sin(localSiderealTime), z: sin(lat))
+}
+
+/// Height of the sun above the horizon in degrees, negative when it's below. Ignores refraction.
+func sunElevation(date: Date, coordinate: CLLocationCoordinate2D) -> Double {
+    let (d, t) = julianTime(date)
+    return asin(sunPosition(t: t).normalized.dot(zenith(d: d, t: t, coordinate: coordinate))) * 180 / .pi
+}
+
 /// What the moon looks like to an observer at a given moment.
 struct MoonAppearance {
     /// Fraction of the disc that is lit, 0 (new) to 1 (full).
@@ -62,22 +92,14 @@ struct MoonAppearance {
     /// (the "lunar terminator illusion"): the sun direction follows a great circle, not a straight line on the sky.
     /// Without a coordinate, celestial north is used as up.
     init(date: Date, coordinate: CLLocationCoordinate2D?) {
-        let jd = 2440587.5 + date.timeIntervalSince1970 / 86400
-        let d = jd - 2451545
-        let t = d / 36525
-        let obliquity = 23.439291 - 0.0130042 * t
-
-        // Sun
-        let sunM = rad(357.52911 + 35999.05029 * t)
-        let sunL0 = 280.46646 + 36000.76983 * t
-        let sunC = (1.914602 - 0.004817 * t) * sin(sunM) + 0.019993 * sin(2 * sunM) + 0.000289 * sin(3 * sunM)
-        let sunDistance = 149597870.7 * (1.00014 - 0.01671 * cos(sunM) - 0.00014 * cos(2 * sunM))
-        let sun = equatorial(longitude: sunL0 + sunC, latitude: 0, distance: sunDistance, obliquity: obliquity)
+        let (d, t) = julianTime(date)
+        let obliquity = meanObliquity(t: t)
+        let sun = sunPosition(t: t)
 
         // Moon
         let lp = 218.3164477 + 481267.88123421 * t
         let D = rad(297.8501921 + 445267.1114034 * t)
-        let M = sunM
+        let M = rad(357.52911 + 35999.05029 * t)
         let Mp = rad(134.9633964 + 477198.8675055 * t)
         let F = rad(93.2720950 + 483202.0175233 * t)
         let E = 1 - 0.002516 * t
@@ -138,9 +160,7 @@ struct MoonAppearance {
         let observer: Vec3
         let up: Vec3
         if let coordinate {
-            let localSiderealTime = rad(280.46061837 + 360.98564736629 * d + 0.000387933 * t * t + coordinate.longitude)
-            let lat = rad(coordinate.latitude)
-            up = Vec3(x: cos(lat) * cos(localSiderealTime), y: cos(lat) * sin(localSiderealTime), z: sin(lat))
+            up = zenith(d: d, t: t, coordinate: coordinate)
             observer = up * 6378.14
         }
         else {

@@ -25,6 +25,7 @@ let dark_cloud_border_offset = 0.05
 
 let snow_color = Color(#colorLiteral(red: 1, green: 1, blue: 1, alpha: 1))
 let lightning_color = Color(#colorLiteral(red: 0.9607843161, green: 0.908961656, blue: 0.6438163823, alpha: 1))
+let dial_gray = Color(white: 0.35)
 let fog_color = Color(#colorLiteral(red: 0.579559949, green: 0.579559949, blue: 0.579559949, alpha: 0.7122568295))
 
 let cold = #colorLiteral(red: 0.308781036, green: 0.6557458493, blue: 1, alpha: 1)
@@ -164,6 +165,10 @@ struct ColoredRays: View {
     var lineWidthBefore: CGFloat = 1
     var lineWidthCenter: CGFloat = 1
     var lineWidthAfter: CGFloat = 1
+    var lineCap: CGLineCap = .butt
+
+    // Opacity multiplier for the ray at a given degree
+    var rayOpacity: (Double) -> Double = { _ in 1 }
 
     var body: some View {
         Canvas { context, size in
@@ -175,6 +180,8 @@ struct ColoredRays: View {
 
             for i in 0..<number_of_rays {
                 let degree = start_degree + CGFloat(i) / ray_density
+                let opacity = rayOpacity(degree)
+                if opacity <= 0 { continue }
                 var size_a: CGFloat = rect.height / a
                 let size_b: CGFloat = rect.height / b
                 if wiggle_a && i % 2 == 0 {
@@ -206,56 +213,57 @@ struct ColoredRays: View {
                 path.move(to: CGPoint(x: x, y: y))
                 path.addLine(to: CGPoint(x: x2, y: y2))
 
-                context.stroke(path, with: .color(color), lineWidth: lineWidth)
+                context.stroke(path, with: .color(color.opacity(opacity)), style: StrokeStyle(lineWidth: lineWidth, lineCap: lineCap))
             }
         }
     }
 }
 
-struct StarRays: Shape {
+struct StarRays: View {
     let ray_density: Double
     var start_degree = 0.0
     var end_degree = 360.0
-    
-    func path(in rect: CGRect) -> Path {
-        let a = 2.5
-        let b = 3.5
 
-        var p = Path()
-        let degrees = end_degree - start_degree
+    // Opacity of the star at a given degree
+    var starOpacity: (Double) -> Double = { _ in 1 }
 
-        let number_of_rays = Int(Double(degrees) * ray_density)
-        
-        if number_of_rays < 0 {
-            return p
+    var body: some View {
+        Canvas { context, size in
+            let a = 2.5
+            let b = 3.5
+
+            let degrees = end_degree - start_degree
+            let number_of_rays = Int(Double(degrees) * ray_density)
+
+            if number_of_rays < 0 {
+                return
+            }
+
+            for i in 0..<number_of_rays {
+                let degree = start_degree + CGFloat(i) / ray_density
+                let opacity = starOpacity(degree)
+                if opacity <= 0 { continue }
+                let size_a : CGFloat = size.height/a
+                let size_b : CGFloat = size.height/b
+
+                let radians = .pi - degree.degreesToRadians
+                let x = sin(radians) * size_a + size.width / 2
+                let y = cos(radians) * size_a + size.height / 2
+                let x2 = sin(radians) * size_b + size.width / 2
+                let y2 = cos(radians) * size_b + size.height / 2
+
+                let r = star_field_random_numbers[i]
+                let s = star_field_random_numbers2[i]
+                assert(r >= 0 && r <= 1.0)
+
+                let sx = x2 + (x - x2) * r
+                let sy = y2 + (y - y2) * r
+
+                var p = Path()
+                addStar(p: &p, s: 70.0 * s, x: sx, y: sy)
+                context.fill(p, with: .color(Color.white.opacity(opacity)))
+            }
         }
-        
-        for i in 0..<number_of_rays {
-            let degree = start_degree + CGFloat(i) / ray_density
-            let size_a : CGFloat = rect.height/a
-            let size_b : CGFloat = rect.height/b
-            
-            let radians = .pi - degree.degreesToRadians
-            let x = sin(radians) * size_a + rect.width / 2
-            let y = cos(radians) * size_a + rect.height / 2
-            let x2 = sin(radians) * size_b + rect.width / 2
-            let y2 = cos(radians) * size_b + rect.height / 2
-            
-            let r = star_field_random_numbers[i]
-            let s = star_field_random_numbers2[i]
-            assert(r >= 0 && r <= 1.0)
-            
-            let sx = x2 + (x - x2) * r
-            let sy = y2 + (y - y2) * r
-
-//            p.move(to: CGPoint(x: x, y: y))
-//            p.addLine(to: CGPoint(x: x2, y: y2))
-
-            addStar(p: &p, s: 70.0 * s, x: sx, y: sy)
-            
-//            p.addLine(to: CGPoint(x: x2, y: y2))
-        }
-        return p
     }
 }
 
@@ -411,6 +419,32 @@ func blendColors(_ c1: Color, _ c2: Color, ratio: Double) -> Color {
     return Color(red: Double(red), green: Double(green), blue: Double(blue), opacity: Double(alpha))
 }
 
+// Sunlight fades in from when the sun is this many degrees below the horizon, and is at full strength once it's this high
+private let twilight_elevation = -4.0
+private let full_sun_elevation = 8.0
+
+// Stars are all out once the sun is this far below the horizon, and gone once it's this high
+private let all_stars_elevation = -8.0
+private let stars_gone_elevation = 0.0
+
+// The moment a point on a dial starting at hour `start` stands for
+func dialDate(startOfToday: Date, start: Int, degree: Double) -> Date {
+    startOfToday.addingTimeInterval((Double(start) + degree / 30) * 3600)
+}
+
+// 0 (no sun) to 1 (full sun), eased so the fade has no hard start or end
+func sunlightStrength(elevation: Double) -> Double {
+    let x = min(1, max(0, (elevation - twilight_elevation) / (full_sun_elevation - twilight_elevation)))
+    return x * x * (3 - 2 * x)
+}
+
+// Start and end degree of an hour on the dial, leaving a gap at the top
+func hourDegrees(_ hour: Int) -> (Double, Double) {
+    let k = (hour % 12 + 12) % 12
+    let mid = Double(k * 30)
+    return (mid - 15.0, mid + 15.0 - (k == 11 ? 2.1 : 0))
+}
+
 struct Daylight : View {
     var start : Int
     var sunrise: Date?
@@ -420,91 +454,79 @@ struct Daylight : View {
     var startOfToday: Date = Date()
     var utcOffsetSeconds: Int = 0
     var sunRayDensityScale: Double = 1.0
+    var coordinate: CLLocationCoordinate2D? = nil
+
+    // Sunrise to sunset in dial degrees
+    var litDegrees: (Double, Double)? {
+        guard let sunrise, let sunset else { return nil }
+        return datetime_to_degrees(sunrise: sunrise, sunset: sunset, start: start, utcOffsetSeconds: utcOffsetSeconds)
+    }
+
+    // How strong the sun is at a point on the dial, following its elevation so dawn and dusk fade gradually.
+    // Without a location it's just on from sunrise to sunset.
+    func sunlight(at degree: Double) -> Double {
+        if let coordinate {
+            return sunlightStrength(elevation: sunElevation(date: dialDate(startOfToday: startOfToday, start: start, degree: degree), coordinate: coordinate))
+        }
+        guard let lit = litDegrees else { return 0 }
+        return degree >= lit.0 && degree < lit.1 ? 1 : 0
+    }
+
+    func isLit(hour: Int) -> Bool {
+        if coordinate != nil {
+            return true
+        }
+        guard let lit = litDegrees else { return false }
+        let (hourFrom, hourTo) = hourDegrees(hour)
+        return hourTo > lit.0 && hourFrom < lit.1
+    }
 
     var body : some View {
-        if let sunrise = sunrise, let sunset = sunset {
-            let (from, to) = datetime_to_degrees(sunrise: sunrise, sunset: sunset, start: start, utcOffsetSeconds: utcOffsetSeconds)
-            if showUVRays {
-                // Draw individual rays per hour with UV-based thickness and color fading
-                ForEach(0..<12, id: \.self) { id in
-                    let startDatetime = startOfToday.addingTimeInterval(TimeInterval((id + start) * 60 * 60))
-                    let prevDatetime = startOfToday.addingTimeInterval(TimeInterval((id + start - 1) * 60 * 60))
-                    let nextDatetime = startOfToday.addingTimeInterval(TimeInterval((id + start + 1) * 60 * 60))
+        if coordinate == nil && litDegrees == nil {
+            Text("")
+        }
+        else if showUVRays {
+            // Draw individual rays per hour with UV-based thickness and color fading
+            ForEach(0..<12, id: \.self) { id in
+                let hour = id + start
+                let startDatetime = startOfToday.addingTimeInterval(TimeInterval(hour * 60 * 60))
+                let (hourFrom, hourTo) = hourDegrees(hour)
 
-                    // Compute hour degree range directly from id to avoid timezone issues
-                    let k = (id + start) % 12
-                    let mid = Double(k * 30)
-                    let hourFrom = mid - 15.0
-                    let hourTo = mid + 15.0 - (k == 11 ? 2.1 : 0)
+                if let hourWeather = weather[startDatetime], isLit(hour: hour) {
+                    let centerLineWidth = uvToLineWidth(hourWeather.uvIndex)
+                    let centerColor = uvToColor(hourWeather.uvIndex)
 
-                    // Check if this hour overlaps with daylight using degree ranges
-                    let isDuringDaylight = hourTo > from && hourFrom < to
+                    // Data from adjacent hours, if they get any sun
+                    let prevWeather = isLit(hour: hour - 1) ? weather[startDatetime.addingTimeInterval(-3600)] : nil
+                    let nextWeather = isLit(hour: hour + 1) ? weather[startDatetime.addingTimeInterval(3600)] : nil
 
-                    if let hourWeather = weather[startDatetime], isDuringDaylight {
-                        let centerLineWidth = uvToLineWidth(hourWeather.uvIndex)
-                        let centerColor = uvToColor(hourWeather.uvIndex)
+                    let prevColor = prevWeather.map { uvToColor($0.uvIndex) } ?? centerColor
+                    let nextColor = nextWeather.map { uvToColor($0.uvIndex) } ?? centerColor
+                    let prevLineWidth = prevWeather.map { uvToLineWidth($0.uvIndex) } ?? centerLineWidth
+                    let nextLineWidth = nextWeather.map { uvToLineWidth($0.uvIndex) } ?? centerLineWidth
 
-                        // Get data from adjacent hours
-                        let prevWeather = weather[prevDatetime]
-                        let nextWeather = weather[nextDatetime]
-
-                        // Check if prev/next hours are during daylight using degree ranges
-                        let prevK = (id + start - 1) % 12
-                        let prevMid = Double(prevK * 30)
-                        let prevHourTo = prevMid + 15.0 - (prevK == 11 ? 2.1 : 0)
-                        let prevHourFrom = prevMid - 15.0
-                        let prevIsDaylight = prevHourTo > from && prevHourFrom < to
-
-                        let nextK = (id + start + 1) % 12
-                        let nextMid = Double(nextK * 30)
-                        let nextHourTo = nextMid + 15.0 - (nextK == 11 ? 2.1 : 0)
-                        let nextHourFrom = nextMid - 15.0
-                        let nextIsDaylight = nextHourTo > from && nextHourFrom < to
-
-                        let prevColor = prevWeather != nil && prevIsDaylight
-                            ? uvToColor(prevWeather!.uvIndex)
-                            : centerColor
-                        let nextColor = nextWeather != nil && nextIsDaylight
-                            ? uvToColor(nextWeather!.uvIndex)
-                            : centerColor
-
-                        let prevLineWidth = prevWeather != nil && prevIsDaylight
-                            ? uvToLineWidth(prevWeather!.uvIndex)
-                            : centerLineWidth
-                        let nextLineWidth = nextWeather != nil && nextIsDaylight
-                            ? uvToLineWidth(nextWeather!.uvIndex)
-                            : centerLineWidth
-
-                        // Edge values are the midpoint between this hour and adjacent hours
-                        let beforeColor = blendColors(prevColor, centerColor, ratio: 0.5)
-                        let afterColor = blendColors(centerColor, nextColor, ratio: 0.5)
-                        let beforeLineWidth = (prevLineWidth + centerLineWidth) / 2
-                        let afterLineWidth = (centerLineWidth + nextLineWidth) / 2
-
-                        ColoredRays(
-                            a: 2.6,
-                            b: circle_inner_diameter,
-                            ray_density: sun_ray_density * sunRayDensityScale,
-                            wiggle_a: true,
-                            start_degree: hourFrom,
-                            end_degree: hourTo,
-                            colorBefore: beforeColor,
-                            colorCenter: centerColor,
-                            colorAfter: afterColor,
-                            lineWidthBefore: beforeLineWidth,
-                            lineWidthCenter: centerLineWidth,
-                            lineWidthAfter: afterLineWidth
-                        )
-                    }
+                    // Edge values are the midpoint between this hour and adjacent hours
+                    ColoredRays(
+                        a: 2.6,
+                        b: circle_inner_diameter,
+                        ray_density: sun_ray_density * sunRayDensityScale,
+                        wiggle_a: true,
+                        start_degree: hourFrom,
+                        end_degree: hourTo,
+                        colorBefore: blendColors(prevColor, centerColor, ratio: 0.5),
+                        colorCenter: centerColor,
+                        colorAfter: blendColors(centerColor, nextColor, ratio: 0.5),
+                        lineWidthBefore: (prevLineWidth + centerLineWidth) / 2,
+                        lineWidthCenter: centerLineWidth,
+                        lineWidthAfter: (centerLineWidth + nextLineWidth) / 2,
+                        rayOpacity: sunlight(at:)
+                    )
                 }
-            } else {
-                // Use the same approach as Night - draw rays based on sunrise/sunset degrees
-                Rays(a: 2.6, b: circle_inner_diameter, ray_density: sun_ray_density * sunRayDensityScale, wiggle_a: true, start_degree: from, end_degree: to)
-                    .stroke(Color.yellow, style: StrokeStyle(lineWidth: 1, lineCap: .butt))
             }
         }
         else {
-            Text("")
+            let (from, to) = coordinate == nil ? litDegrees! : (-15.0, 342.0)
+            ColoredRays(a: 2.6, b: circle_inner_diameter, ray_density: sun_ray_density * sunRayDensityScale, wiggle_a: true, start_degree: from, end_degree: to, rayOpacity: sunlight(at:))
         }
     }
 }
@@ -514,19 +536,28 @@ struct Night : View {
     var sunrise: Date?
     var sunset: Date?
     var utcOffsetSeconds: Int = 0
+    var startOfToday: Date = Date()
+    var coordinate: CLLocationCoordinate2D? = nil
+
+    // Stars fade out as the sky brightens, mirroring the sun rays fading in
+    func starOpacity(at degree: Double) -> Double {
+        guard let coordinate else { return 1 }
+        let elevation = sunElevation(date: dialDate(startOfToday: startOfToday, start: start, degree: degree), coordinate: coordinate)
+        let x = min(1, max(0, (elevation - stars_gone_elevation) / (all_stars_elevation - stars_gone_elevation)))
+        return x * x * (3 - 2 * x)
+    }
 
     var body : some View {
-        if let sunrise = sunrise, let sunset = sunset {
+        if coordinate != nil {
+            StarRays(ray_density: star_density, start_degree: -15, end_degree: 360 - 15, starOpacity: starOpacity(at:))
+        }
+        else if let sunrise = sunrise, let sunset = sunset {
             let (from, to) = datetime_to_degrees(sunrise: sunrise, sunset: sunset, start: start, utcOffsetSeconds: utcOffsetSeconds)
             if start % 24 == 0 {
                 StarRays(ray_density: star_density, start_degree: -15, end_degree: from)
-                //.stroke(Color.white, style: StrokeStyle(lineWidth: 1, lineCap: .butt))
-                .fill(Color.white)
             }
             else {
                 StarRays(ray_density: star_density, start_degree: to, end_degree: 360 - 15)
-                //.stroke(Color.white, style: StrokeStyle(lineWidth: 1, lineCap: .butt))
-                .fill(Color.white)
             }
         }
         else {
@@ -535,23 +566,25 @@ struct Night : View {
     }
 }
 
+// Temperature color is blended linearly between these stops, and clamped outside them
+let temperature_color_stops: [(Float, Color)] = [
+    (-5, Color(cold)),
+    (3, Color(coldish)),
+    (20, Color(nice)),
+    (24, Color(nice)),
+    (27, Color(warm)),
+    (29, Color(warmer)),
+    (32, Color(hot)),
+]
+
 func color_from_temperature(_ temp: Float) -> Color {
-    if temp < 0 {
-        return Color(cold)
+    guard temp > temperature_color_stops[0].0 else {
+        return temperature_color_stops[0].1
     }
-    if temp < 18 {
-        return Color(coldish)
+    for (lower, upper) in zip(temperature_color_stops, temperature_color_stops.dropFirst()) where temp <= upper.0 {
+        return blendColors(lower.1, upper.1, ratio: Double((temp - lower.0) / (upper.0 - lower.0)))
     }
-    if temp > 30 {
-        return Color(hot)
-    }
-    if temp > 26 {
-        return Color(warmer)
-    }
-    if temp > 25 {
-        return Color(warm)
-    }
-    return Color(nice)
+    return temperature_color_stops.last!.1
 }
 
 struct Temperature : View {
@@ -659,6 +692,7 @@ struct Clock : View {
     var useApparentTemperature: Bool = false
     var sunRayDensityScale: Double = 1.0
     var rainDensityScale: Double = 1.0
+    var coordinate: CLLocationCoordinate2D? = nil
 
 
     // Shade of the hour `offset` hours away, if it's on this dial and has clouds
@@ -666,6 +700,14 @@ struct Clock : View {
         let neighborId = id + offset
         guard neighborId >= 0 && neighborId < 12 else { return nil }
         return cloudShade(weather[time.addingTimeInterval(TimeInterval(offset * 3600))])
+    }
+
+    // Shade of the cloud mask over the sun rays `offset` hours away: clear hours have none, and across the break at
+    // the top of the dial the mask just continues as it is
+    func neighborMaskShade(id: Int, time: Date, offset: Int, shade: Double) -> Double {
+        let neighborId = id + offset
+        guard neighborId >= 0 && neighborId < 12 else { return shade }
+        return cloudShade(weather[time.addingTimeInterval(TimeInterval(offset * 3600))]) ?? 0
     }
 
     func cloudShade(_ weather: Weather?) -> Double? {
@@ -682,7 +724,8 @@ struct Clock : View {
             let minutes = Double(components.minute!)
             let hour = now.fractionalHour(utcOffsetSeconds: utcOffsetSeconds)
     //        let seconds = Double(components.second!) + Double(components.nanosecond!) / 1_000_000_000.0
-            let strokeWidth = frame.height / 70
+            let hourHandWidth = frame.height / 55
+            let minuteHandWidth = frame.height / 95
             let weekday = calendar.dateComponents([.weekday], from: startTime).weekday!
             let weekdayStr: String = start == 0 ? "Today" : start % 24 == 0 ? weekday_number_to_string[weekday]! : ""
             
@@ -690,8 +733,8 @@ struct Clock : View {
 
             
             ZStack {
-                Night(start: start, sunrise: sunrise[startTime.getNaiveDate(utcOffsetSeconds: utcOffsetSeconds)], sunset: sunset[startTime.getNaiveDate(utcOffsetSeconds: utcOffsetSeconds)], utcOffsetSeconds: utcOffsetSeconds)
-                Daylight(start: start, sunrise: sunrise[startTime.getNaiveDate(utcOffsetSeconds: utcOffsetSeconds)], sunset: sunset[startTime.getNaiveDate(utcOffsetSeconds: utcOffsetSeconds)], weather: weather, showUVRays: showUVRays, startOfToday: startOfToday, utcOffsetSeconds: utcOffsetSeconds, sunRayDensityScale: sunRayDensityScale)
+                Night(start: start, sunrise: sunrise[startTime.getNaiveDate(utcOffsetSeconds: utcOffsetSeconds)], sunset: sunset[startTime.getNaiveDate(utcOffsetSeconds: utcOffsetSeconds)], utcOffsetSeconds: utcOffsetSeconds, startOfToday: startOfToday, coordinate: coordinate)
+                Daylight(start: start, sunrise: sunrise[startTime.getNaiveDate(utcOffsetSeconds: utcOffsetSeconds)], sunset: sunset[startTime.getNaiveDate(utcOffsetSeconds: utcOffsetSeconds)], weather: weather, showUVRays: showUVRays, startOfToday: startOfToday, utcOffsetSeconds: utcOffsetSeconds, sunRayDensityScale: sunRayDensityScale, coordinate: coordinate)
                 #if !os(watchOS) && !WIDGET_EXTENSION
                 VStack {
                     Text("\(weekdayStr)").frame(maxWidth: .infinity, alignment: .leading)
@@ -737,9 +780,25 @@ struct Clock : View {
                         }
 
                         if let shade = cloudShade {
-                            // black anti-rays — fade in with cloudiness so thin clouds still let the sun through
-                            Rays(a: cloud_diameter, b: circle_inner_diameter, ray_density: sun_ray_density * sunRayDensityScale, start_degree: from, end_degree: to )
-                                .stroke(Color.black.opacity(shade), style: StrokeStyle(lineWidth: min(geometry.size.height/2, geometry.size.width) / 50, lineCap: .round))
+                            // black anti-rays — fade in with cloudiness so thin clouds still let the sun through. Blended
+                            // towards the neighboring hours, so the light doesn't jump at the hour boundaries.
+                            let previousMask = neighborMaskShade(id: id, time: startDatetime, offset: -1, shade: shade)
+                            let nextMask = neighborMaskShade(id: id, time: startDatetime, offset: 1, shade: shade)
+                            let maskWidth = min(geometry.size.height/2, geometry.size.width) / 50
+                            ColoredRays(
+                                a: cloud_diameter,
+                                b: circle_inner_diameter,
+                                ray_density: sun_ray_density * sunRayDensityScale,
+                                start_degree: from,
+                                end_degree: to,
+                                colorBefore: Color.black.opacity((previousMask + shade) / 2),
+                                colorCenter: Color.black.opacity(shade),
+                                colorAfter: Color.black.opacity((shade + nextMask) / 2),
+                                lineWidthBefore: maskWidth,
+                                lineWidthCenter: maskWidth,
+                                lineWidthAfter: maskWidth,
+                                lineCap: .round
+                            )
                         }
                         if rain {
                             if weather.weatherType == .snow {
@@ -791,7 +850,7 @@ struct Clock : View {
                     .trim(from: 0.0, to: 0.99)
                     .rotation(Angle.degrees(-105))
                     .fill(Color.black)
-                    .stroke(Color.init(white: 0.3), lineWidth: 1)
+                    .stroke(dial_gray, lineWidth: 1)
                     .padding(frame.height * 0.2)
                     .scaleEffect(0.9)
                 
@@ -804,13 +863,17 @@ struct Clock : View {
                     let x = sin(radians) * size + frame.width / 2
                     let y = cos(radians) * size + frame.height / 2
                     Text("\(hour)").position(x: x, y: y)
-                    .foregroundColor(Color.init(white: 0.4))
+                    .foregroundColor(dial_gray)
                     .font(Font.system(size: frame.height / 25.0))
                 }
                 // Hour and minute dials
                 if showDials {
-                    ClockDial(now: now, progress: hour / 12.0, extraSize: 0.25).stroke(Color.white, style: StrokeStyle(lineWidth: strokeWidth, lineCap: .round))
-                    ClockDial(now: now, progress: minutes / 60.0, extraSize: 0.45).stroke(Color.white, style: StrokeStyle(lineWidth: strokeWidth, lineCap: .round))
+                    ClockDial(now: now, progress: hour / 12.0, extraSize: 0.25).stroke(Color.white, style: StrokeStyle(lineWidth: hourHandWidth, lineCap: .round))
+                    ClockDial(now: now, progress: minutes / 60.0, extraSize: 0.38).stroke(Color.white, style: StrokeStyle(lineWidth: minuteHandWidth, lineCap: .round))
+                    Circle()
+                        .fill(Color.white)
+                        .frame(width: hourHandWidth * 1.8, height: hourHandWidth * 1.8)
+                        .position(x: frame.width / 2, y: frame.height / 2)
                     // second
     //                ClockDial(now: now, progress: seconds / 60.0, extraSize: 0.5).stroke(color, style: StrokeStyle(lineWidth: 2, lineCap: .round))
                 }
@@ -936,7 +999,8 @@ struct Foo : View {
                         unit: unit,
                         showUVRays: showUVRays,
                         utcOffsetSeconds: utcOffsetSeconds,
-                        useApparentTemperature: useApparentTemperature
+                        useApparentTemperature: useApparentTemperature,
+                        coordinate: coordinate
                     )
                     .tag(id)
                 }
@@ -967,7 +1031,8 @@ struct Foo : View {
                                 unit: unit,
                                 showUVRays: showUVRays,
                                 utcOffsetSeconds: utcOffsetSeconds,
-                                useApparentTemperature: useApparentTemperature
+                                useApparentTemperature: useApparentTemperature,
+                                coordinate: coordinate
                             ).frame(height: height)
                             Clock(
                                 now: now,
@@ -980,7 +1045,8 @@ struct Foo : View {
                                 unit: unit,
                                 showUVRays: showUVRays,
                                 utcOffsetSeconds: utcOffsetSeconds,
-                                useApparentTemperature: useApparentTemperature
+                                useApparentTemperature: useApparentTemperature,
+                                coordinate: coordinate
                             ).frame(height: height)
                         }
                     }
@@ -1183,7 +1249,7 @@ struct FrejView: View {
                                     VStack(spacing: 0) {
 #if !os(watchOS)
                                         Spacer()
-                                        Text(prevLocation.name).font(Font.system(size: 25)).padding(.bottom, -10)
+                                        Text(prevLocation.name).font(Font.system(size: 25, weight: .semibold)).padding(.bottom, -10)
 #endif
                                         Foo(
                                             weather: weatherForLocation(prevLocation.id),
@@ -1211,7 +1277,7 @@ struct FrejView: View {
                                     VStack(spacing: 0) {
 #if !os(watchOS)
                                         Spacer()
-                                        Text(location.name).font(Font.system(size: 25)).padding(.bottom, -10)
+                                        Text(location.name).font(Font.system(size: 25, weight: .semibold)).padding(.bottom, -10)
 #endif
                                         Foo(
                                             weather: weatherForLocation(location.id),
@@ -1239,7 +1305,7 @@ struct FrejView: View {
                                     VStack(spacing: 0) {
 #if !os(watchOS)
                                         Spacer()
-                                        Text(nextLocation.name).font(Font.system(size: 25)).padding(.bottom, -10)
+                                        Text(nextLocation.name).font(Font.system(size: 25, weight: .semibold)).padding(.bottom, -10)
 #endif
                                         Foo(
                                             weather: weatherForLocation(nextLocation.id),
@@ -1310,7 +1376,7 @@ struct FrejView: View {
                             VStack(spacing: 0) {
 #if !os(watchOS)
                                 Spacer()
-                                Text(location.name).font(Font.system(size: 25)).padding(.bottom, -10)
+                                Text(location.name).font(Font.system(size: 25, weight: .semibold)).padding(.bottom, -10)
 #endif
                                 Foo(
                                     weather: weatherForLocation(location.id),
@@ -1334,7 +1400,7 @@ struct FrejView: View {
                             VStack(spacing: 0) {
 #if !os(watchOS)
                                 Spacer()
-                                Text(currentLocation).font(Font.system(size: 25)).padding(.bottom, -10)
+                                Text(currentLocation).font(Font.system(size: 25, weight: .semibold)).padding(.bottom, -10)
 #endif
                                 Foo(
                                     weather: [:],
