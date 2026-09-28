@@ -82,13 +82,4 @@ extension Date {
         let dc = utcCalendar.dateComponents([.year, .month, .day], from: date)
         return NaiveDate(year: dc.year!, month: dc.month!, day: dc.day!)
     }
-    
-    var jd: Double {
-        let julianEpoch = 2440587.542
-        return julianEpoch + timeIntervalSince1970 / (24 * 60 * 60)
-    }
-    
-    var moonPhase: Double {
-        return (jd - Date.from(year: 2000, month: 1, day: 6).jd).truncatingRemainder(dividingBy: 29.530588853)
-    }
 }
