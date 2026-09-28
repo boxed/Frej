@@ -1843,6 +1843,12 @@ struct FrejView: View {
                 }
 
                 DispatchQueue.main.async {
+                    // The GPS location keeps its id when it moves, so a slow response for where we used to be
+                    // must not overwrite the weather for where we are now. The fetch for the new position handles it.
+                    if location.isGPS, let gps = self.gpsLocation,
+                       gps.latitude != location.latitude || gps.longitude != location.longitude {
+                        return
+                    }
                     if let snapshot = snapshot, let data = data {
                         print("Parsed for \(location.name)!")
                         SharedStore.saveWeatherJSON(data, for: location.id)
