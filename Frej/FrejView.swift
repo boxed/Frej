@@ -88,6 +88,10 @@ let wiggle_c_set: Set = [
 ]
 
 
+enum RaySelection {
+    case all, first, last, inner
+}
+
 struct Rays: Shape {
     let a: CGFloat
     let b: CGFloat
@@ -98,6 +102,8 @@ struct Rays: Shape {
     var start_degree = 0.0
     var end_degree = 360.0
     var wiggle_size = 1.01
+    // Draw only some of the rays, so the edges of a section can get a different color
+    var selection: RaySelection = .all
 
     func path(in rect: CGRect) -> Path {
         var p = Path()
@@ -110,6 +116,12 @@ struct Rays: Shape {
         }
 
         for i in 0..<number_of_rays {
+            switch selection {
+            case .all: break
+            case .first: if i != 0 { continue }
+            case .last: if i != number_of_rays - 1 { continue }
+            case .inner: if i == 0 || i == number_of_rays - 1 { continue }
+            }
             let degree = start_degree + CGFloat(i) / ray_density
             var size_a : CGFloat = rect.height/a
             var size_b : CGFloat = rect.height/b
@@ -606,6 +618,32 @@ func rainDegrees(date: Date) -> (Double, Double) {
     return (mid - 15.0, mid + 15.0 - x)
 }
 
+// The circles at each end of a band are pulled a third of the way towards the neighboring hour's shade, so adjacent
+// hours blend in even steps. A nil neighbor (no clouds, or across the break at the top of the dial) means no blending.
+struct CloudBand: View {
+    let from: Double
+    let to: Double
+    let shade: Double
+    let previousShade: Double?
+    let nextShade: Double?
+    let cloudSize: CGFloat
+
+    func color(towards neighborShade: Double?) -> Color {
+        cloudBandColor(shade: shade + ((neighborShade ?? shade) - shade) / 3)
+    }
+
+    func band(_ selection: RaySelection, _ color: Color) -> some View {
+        Rays(a: cloud_diameter, b: cloud_diameter2, ray_density: cloud_ray_density, wiggle_c: true, start_degree: from + 0.5, end_degree: to + 0.5, wiggle_size: cloud_wiggle_size, selection: selection)
+            .stroke(color, style: StrokeStyle(lineWidth: cloudSize, lineCap: .round))
+    }
+
+    var body: some View {
+        band(.first, color(towards: previousShade))
+        band(.inner, color(towards: nil))
+        band(.last, color(towards: nextShade))
+    }
+}
+
 struct Clock : View {
     var now: Date;
     var startOfToday: Date;
@@ -622,6 +660,19 @@ struct Clock : View {
     var sunRayDensityScale: Double = 1.0
     var rainDensityScale: Double = 1.0
 
+
+    // Shade of the hour `offset` hours away, if it's on this dial and has clouds
+    func neighborShade(id: Int, time: Date, offset: Int) -> Double? {
+        let neighborId = id + offset
+        guard neighborId >= 0 && neighborId < 12 else { return nil }
+        return cloudShade(weather[time.addingTimeInterval(TimeInterval(offset * 3600))])
+    }
+
+    func cloudShade(_ weather: Weather?) -> Double? {
+        guard let weather else { return nil }
+        let rain = weather.rainMillimeter > 0 || weather.weatherType == .rain
+        return cloudBandShade(weatherType: weather.weatherType, cloudCover: weather.cloudCover, rain: rain)
+    }
 
     var body : some View {
         GeometryReader { (geometry) in
@@ -712,8 +763,14 @@ struct Clock : View {
                                 .stroke(Color.black, style: StrokeStyle(lineWidth: cloud_size, lineCap: .round))
 
                             // cloud band, shaded continuously from white to dark grey by cloud cover
-                            Rays(a: cloud_diameter, b: cloud_diameter2, ray_density: cloud_ray_density, wiggle_c: true, start_degree: from + 0.5, end_degree: to + 0.5, wiggle_size: cloud_wiggle_size)
-                                .stroke(cloudBandColor(shade: shade), style: StrokeStyle(lineWidth: cloud_size, lineCap: .round))
+                            CloudBand(
+                                from: from,
+                                to: to,
+                                shade: shade,
+                                previousShade: neighborShade(id: id, time: startDatetime, offset: -1),
+                                nextShade: neighborShade(id: id, time: startDatetime, offset: 1),
+                                cloudSize: cloud_size
+                            )
                         }
                         
 //                        if weather.weatherType == .wind {
