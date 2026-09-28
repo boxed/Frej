@@ -60,7 +60,7 @@ struct ClockIcon : View {
                     let startDatetime = startOfToday.addingTimeInterval(TimeInterval((id + start) * 60 * 60))
                     if let weather = weather[startDatetime] {
                         // Rain
-                        let (from, to) = rainDegrees(date: startDatetime)
+                        let (from, to) = hourDegrees(id + start)
                         
                         let rain = weather.rainMillimeter > 0 || weather.weatherType == .rain
                         // nil = no cloud band; otherwise 0 (thin white) ... 1 (dark overcast)

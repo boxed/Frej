@@ -337,8 +337,9 @@ func decodeOpenMeteoResponse(_ data: Data) -> WeatherSnapshot? {
         let rainMillimeter = result.hourly.precipitation[i]
         let windspeed = result.hourly.windspeed_10m[i]
         let uvIndex = result.hourly.uv_index[i]
-        guard let sunrise = sunriseDict[time.getNaiveDate()] else { continue }
-        guard let sunset = sunsetDict[time.getNaiveDate()] else { continue }
+        let day = time.getNaiveDate(utcOffsetSeconds: result.utc_offset_seconds)
+        guard let sunrise = sunriseDict[day] else { continue }
+        guard let sunset = sunsetDict[day] else { continue }
         let isDay = time > sunrise && time < sunset
 
         var weatherType: WeatherType

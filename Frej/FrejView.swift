@@ -559,7 +559,7 @@ struct Night : View {
             let date = startOfToday.addingTimeInterval(TimeInterval((id + start) * 3600))
             guard weather[date]?.weatherType == .fog else { return false }
             // Same span as the fog drawn by Clock
-            let (from, to) = rainDegrees(date: date)
+            let (from, to) = hourDegrees(id + start)
             return degree >= from - 1 && degree <= to + 1
         }
     }
@@ -670,13 +670,6 @@ func hourToEndDegree(hour: Int) -> Int {
     return hourToStartDegree(hour: hour) + hour_slice
 }
 
-func rainDegrees(date: Date) -> (Double, Double) {
-    let k = date.hour() % 12
-    let mid = Double(k * 30)
-    let x: Double = k == 11 ? 2.1 : 0
-    return (mid - 15.0, mid + 15.0 - x)
-}
-
 // A thin light rim along the outer edge of each cloud circle, varying in brightness from circle to circle so an evenly
 // overcast day isn't flat. The rim is left out where neighboring circles overlap, so it follows the scalloped outline.
 private let cloud_rim_width = 0.7
@@ -777,7 +770,6 @@ struct Clock : View {
     var showDials: Bool
     var start : Int
     var weather : [Date: Weather]
-    let calendar = Calendar.current
     var sunrise : [NaiveDate: Date]
     var sunset : [NaiveDate: Date]
     let unit : String
@@ -825,13 +817,17 @@ struct Clock : View {
         GeometryReader { (geometry) in
             let frame = geometry.size
             let startTime = startOfToday.addingTimeInterval(TimeInterval(start * 60 * 60))
-            let components = calendar.dateComponents([.hour, .minute, .second, .nanosecond], from: now)
-            let minutes = Double(components.minute!)
+            // Hours and minutes at the location, which can be in a different time zone than the phone
             let hour = now.fractionalHour(utcOffsetSeconds: utcOffsetSeconds)
-    //        let seconds = Double(components.second!) + Double(components.nanosecond!) / 1_000_000_000.0
+            let minutes = floor((hour - floor(hour)) * 60)
             let hourHandWidth = frame.height / 55
             let minuteHandWidth = frame.height / 95
-            let weekday = calendar.dateComponents([.weekday], from: startTime).weekday!
+            let locationCalendar: Calendar = {
+                var calendar = Calendar(identifier: .gregorian)
+                calendar.timeZone = TimeZone(secondsFromGMT: utcOffsetSeconds) ?? .current
+                return calendar
+            }()
+            let weekday = locationCalendar.component(.weekday, from: startTime)
             let weekdayStr: String = start == 0 ? "Today" : start % 24 == 0 ? weekday_number_to_string[weekday]! : ""
             
             let cloud_size: CGFloat = geometry.size.height / 23
@@ -853,7 +849,7 @@ struct Clock : View {
                 ForEach(0..<12, id: \.self) { id in
                     let startDatetime = startOfToday.addingTimeInterval(TimeInterval((id + start) * 60 * 60))
                     if let weather = weather[startDatetime] {
-                        let (from, to) = rainDegrees(date: startDatetime)
+                        let (from, to) = hourDegrees(id + start)
 
                         let isNightTime = true
                         // Bool = (
@@ -994,8 +990,7 @@ struct Clock : View {
                 
                 // Hours strings
                 ForEach(0..<12, id: \.self) { id in
-                    let time = datetimeToday(hour: id + start)
-                    let hour = Calendar.current.dateComponents([.hour], from: time).hour!
+                    let hour = (id + start) % 24
                     let radians : CGFloat = CGFloat.pi - 2.0 * CGFloat.pi / 12.0 * CGFloat(id)
                     let size : CGFloat = frame.height * 0.225
                     let x = sin(radians) * size + frame.width / 2
