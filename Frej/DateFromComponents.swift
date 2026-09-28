@@ -31,12 +31,21 @@ extension Date {
         return result
     }
 
-    func startOfDay(utcOffsetSeconds: Int) -> Date {
-        // Calculate midnight in a timezone specified by UTC offset
-        let localTimestamp = self.timeIntervalSince1970 + Double(utcOffsetSeconds)
-        let secondsInDay: Double = 86400
-        let midnightLocalTimestamp = floor(localTimestamp / secondsInDay) * secondsInDay
-        return Date(timeIntervalSince1970: midnightLocalTimestamp - Double(utcOffsetSeconds))
+    // Midnight at the start of this date's day in the given time zone
+    func startOfDay(in timeZone: TimeZone) -> Date {
+        Calendar.gregorian(in: timeZone).startOfDay(for: self)
+    }
+
+    // The start of local clock hour `hours` counted from this midnight. Counting clock hours rather than adding
+    // 3600 seconds per hour keeps later days lined up across a daylight saving change.
+    func addingLocalHours(_ hours: Int, in timeZone: TimeZone) -> Date {
+        let calendar = Calendar.gregorian(in: timeZone)
+        let days = Int(floor(Double(hours) / 24))
+        guard let day = calendar.date(byAdding: .day, value: days, to: self),
+              let date = calendar.date(bySettingHour: hours - days * 24, minute: 0, second: 0, of: day) else {
+            return addingTimeInterval(TimeInterval(hours * 3600))
+        }
+        return date
     }
     
     static func from(year: Int, month: Int, day: Int) -> Date {
@@ -60,12 +69,10 @@ extension Date {
         return Double(dc.hour!) + Double(dc.minute!) / 60.0
     }
 
-    func fractionalHour(utcOffsetSeconds: Int) -> Double {
-        // Calculate fractional hour in a timezone specified by UTC offset
-        let localTimestamp = self.timeIntervalSince1970 + Double(utcOffsetSeconds)
-        let secondsInDay: Double = 86400
-        let secondsSinceMidnight = localTimestamp.truncatingRemainder(dividingBy: secondsInDay)
-        return secondsSinceMidnight / 3600.0
+    // Hours since midnight on the local clock in the given time zone
+    func fractionalHour(in timeZone: TimeZone) -> Double {
+        let dc = Calendar.gregorian(in: timeZone).dateComponents([.hour, .minute, .second, .nanosecond], from: self)
+        return Double(dc.hour!) + Double(dc.minute!) / 60 + (Double(dc.second!) + Double(dc.nanosecond!) / 1e9) / 3600
     }
     
     func getNaiveDate() -> NaiveDate {
@@ -73,13 +80,16 @@ extension Date {
         return NaiveDate(year: dc.year!, month: dc.month!, day: dc.day!)
     }
 
-    func getNaiveDate(utcOffsetSeconds: Int) -> NaiveDate {
-        // Get the date in a specific timezone
-        let localTimestamp = self.timeIntervalSince1970 + Double(utcOffsetSeconds)
-        let date = Date(timeIntervalSince1970: localTimestamp)
-        var utcCalendar = Calendar(identifier: .gregorian)
-        utcCalendar.timeZone = TimeZone(identifier: "UTC")!
-        let dc = utcCalendar.dateComponents([.year, .month, .day], from: date)
+    func getNaiveDate(in timeZone: TimeZone) -> NaiveDate {
+        let dc = Calendar.gregorian(in: timeZone).dateComponents([.year, .month, .day], from: self)
         return NaiveDate(year: dc.year!, month: dc.month!, day: dc.day!)
+    }
+}
+
+extension Calendar {
+    static func gregorian(in timeZone: TimeZone) -> Calendar {
+        var calendar = Calendar(identifier: .gregorian)
+        calendar.timeZone = timeZone
+        return calendar
     }
 }

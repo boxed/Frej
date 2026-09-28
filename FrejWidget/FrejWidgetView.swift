@@ -21,8 +21,8 @@ struct FrejWidgetView: View {
     @ViewBuilder
     private func content(snapshot: WeatherSnapshot) -> some View {
         let now = entry.date
-        let fractionalHour = now.fractionalHour(utcOffsetSeconds: snapshot.utcOffsetSeconds)
-        let startOfToday = now.startOfDay(utcOffsetSeconds: snapshot.utcOffsetSeconds)
+        let fractionalHour = now.fractionalHour(in: snapshot.timeZone)
+        let startOfToday = now.startOfDay(in: snapshot.timeZone)
 
         let firstStart = fractionalHour < 12 ? 0 : 12
         let secondStart = firstStart + 12
@@ -91,7 +91,7 @@ struct FrejWidgetView: View {
             sunset: snapshot.sunset,
             unit: entry.unit,
             showUVRays: entry.showUVRays,
-            utcOffsetSeconds: snapshot.utcOffsetSeconds,
+            timeZone: snapshot.timeZone,
             useApparentTemperature: entry.useApparentTemperature,
             sunRayDensityScale: sunRayDensityScale,
             rainDensityScale: rainDensityScale,

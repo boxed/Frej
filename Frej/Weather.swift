@@ -280,6 +280,7 @@ struct OMWeatherData : Decodable {
     let hourly: OMHourly
     let daily: OMDaily
     let utc_offset_seconds: Int
+    let timezone: String
 }
 
 struct OMHourly : Decodable {
@@ -304,7 +305,7 @@ struct WeatherSnapshot {
     let weather: [Date: Weather]
     let sunrise: [NaiveDate: Date]
     let sunset: [NaiveDate: Date]
-    let utcOffsetSeconds: Int
+    let timeZone: TimeZone
 }
 
 func decodeOpenMeteoResponse(_ data: Data) -> WeatherSnapshot? {
@@ -314,12 +315,15 @@ func decodeOpenMeteoResponse(_ data: Data) -> WeatherSnapshot? {
         return nil
     }
 
+    // The time zone name follows daylight saving changes during the forecast, the offset is only the current one
+    let timeZone = TimeZone(identifier: result.timezone) ?? TimeZone(secondsFromGMT: result.utc_offset_seconds) ?? .current
+
     var sunsetDict: [NaiveDate: Date] = [:]
     var sunriseDict: [NaiveDate: Date] = [:]
     var weatherDict: [Date: Weather] = [:]
 
     for i in 0..<result.daily.time.count {
-        let date = result.daily.time[i].getNaiveDate(utcOffsetSeconds: result.utc_offset_seconds)
+        let date = result.daily.time[i].getNaiveDate(in: timeZone)
         if i < result.daily.sunset.count {
             sunsetDict[date] = result.daily.sunset[i]
         }
@@ -337,7 +341,7 @@ func decodeOpenMeteoResponse(_ data: Data) -> WeatherSnapshot? {
         let rainMillimeter = result.hourly.precipitation[i]
         let windspeed = result.hourly.windspeed_10m[i]
         let uvIndex = result.hourly.uv_index[i]
-        let day = time.getNaiveDate(utcOffsetSeconds: result.utc_offset_seconds)
+        let day = time.getNaiveDate(in: timeZone)
         guard let sunrise = sunriseDict[day] else { continue }
         guard let sunset = sunsetDict[day] else { continue }
         let isDay = time > sunrise && time < sunset
@@ -381,6 +385,6 @@ func decodeOpenMeteoResponse(_ data: Data) -> WeatherSnapshot? {
         weather: weatherDict,
         sunrise: sunriseDict,
         sunset: sunsetDict,
-        utcOffsetSeconds: result.utc_offset_seconds
+        timeZone: timeZone
     )
 }

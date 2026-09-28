@@ -370,10 +370,10 @@ let weekday_number_to_string = [
 ]
 
 
-func datetime_to_degrees(sunrise: Date, sunset: Date, start: Int, utcOffsetSeconds: Int = 0) -> (Double, Double) {
+func datetime_to_degrees(sunrise: Date, sunset: Date, start: Int, timeZone: TimeZone = .current) -> (Double, Double) {
     let myStart = Double(start).truncatingRemainder(dividingBy: 24) - 0.5
-    let from = 1/12 * max(0, Double(sunrise.fractionalHour(utcOffsetSeconds: utcOffsetSeconds) - myStart))
-    let to = 1/12 * min(11.9, Double(sunset.fractionalHour(utcOffsetSeconds: utcOffsetSeconds) - myStart))
+    let from = 1/12 * max(0, Double(sunrise.fractionalHour(in: timeZone) - myStart))
+    let to = 1/12 * min(11.9, Double(sunset.fractionalHour(in: timeZone) - myStart))
     let x = 360/12.0/2
     return (360 * from - x, 360 * to - x)
 }
@@ -441,8 +441,10 @@ private let all_stars_elevation = -8.0
 private let stars_gone_elevation = 0.0
 
 // The moment a point on a dial starting at hour `start` stands for
-func dialDate(startOfToday: Date, start: Int, degree: Double) -> Date {
-    startOfToday.addingTimeInterval((Double(start) + degree / 30) * 3600)
+func dialDate(startOfToday: Date, start: Int, degree: Double, timeZone: TimeZone) -> Date {
+    let hours = Double(start) + degree / 30
+    let hour = floor(hours)
+    return startOfToday.addingLocalHours(Int(hour), in: timeZone).addingTimeInterval((hours - hour) * 3600)
 }
 
 // 0 (no sun) to 1 (full sun), eased so the fade has no hard start or end
@@ -465,21 +467,21 @@ struct Daylight : View {
     var weather: [Date: Weather] = [:]
     var showUVRays: Bool = false
     var startOfToday: Date = Date()
-    var utcOffsetSeconds: Int = 0
+    var timeZone: TimeZone = .current
     var sunRayDensityScale: Double = 1.0
     var coordinate: CLLocationCoordinate2D? = nil
 
     // Sunrise to sunset in dial degrees
     var litDegrees: (Double, Double)? {
         guard let sunrise, let sunset else { return nil }
-        return datetime_to_degrees(sunrise: sunrise, sunset: sunset, start: start, utcOffsetSeconds: utcOffsetSeconds)
+        return datetime_to_degrees(sunrise: sunrise, sunset: sunset, start: start, timeZone: timeZone)
     }
 
     // How strong the sun is at a point on the dial, following its elevation so dawn and dusk fade gradually.
     // Without a location it's just on from sunrise to sunset.
     func sunlight(at degree: Double) -> Double {
         if let coordinate {
-            return sunlightStrength(elevation: sunElevation(date: dialDate(startOfToday: startOfToday, start: start, degree: degree), coordinate: coordinate))
+            return sunlightStrength(elevation: sunElevation(date: dialDate(startOfToday: startOfToday, start: start, degree: degree, timeZone: timeZone), coordinate: coordinate))
         }
         guard let lit = litDegrees else { return 0 }
         return degree >= lit.0 && degree < lit.1 ? 1 : 0
@@ -502,7 +504,7 @@ struct Daylight : View {
             // Draw individual rays per hour with UV-based thickness and color fading
             ForEach(0..<12, id: \.self) { id in
                 let hour = id + start
-                let startDatetime = startOfToday.addingTimeInterval(TimeInterval(hour * 60 * 60))
+                let startDatetime = startOfToday.addingLocalHours(hour, in: timeZone)
                 let (hourFrom, hourTo) = hourDegrees(hour)
 
                 if let hourWeather = weather[startDatetime], isLit(hour: hour) {
@@ -510,8 +512,8 @@ struct Daylight : View {
                     let centerColor = uvToColor(hourWeather.uvIndex)
 
                     // Data from adjacent hours, if they get any sun
-                    let prevWeather = isLit(hour: hour - 1) ? weather[startDatetime.addingTimeInterval(-3600)] : nil
-                    let nextWeather = isLit(hour: hour + 1) ? weather[startDatetime.addingTimeInterval(3600)] : nil
+                    let prevWeather = isLit(hour: hour - 1) ? weather[startOfToday.addingLocalHours(hour - 1, in: timeZone)] : nil
+                    let nextWeather = isLit(hour: hour + 1) ? weather[startOfToday.addingLocalHours(hour + 1, in: timeZone)] : nil
 
                     let prevColor = prevWeather.map { uvToColor($0.uvIndex) } ?? centerColor
                     let nextColor = nextWeather.map { uvToColor($0.uvIndex) } ?? centerColor
@@ -548,7 +550,7 @@ struct Night : View {
     var start : Int
     var sunrise: Date?
     var sunset: Date?
-    var utcOffsetSeconds: Int = 0
+    var timeZone: TimeZone = .current
     var startOfToday: Date = Date()
     var coordinate: CLLocationCoordinate2D? = nil
     var weather: [Date: Weather] = [:]
@@ -556,7 +558,7 @@ struct Night : View {
     // Fog hides the sky
     func isFoggy(at degree: Double) -> Bool {
         (0..<12).contains { id in
-            let date = startOfToday.addingTimeInterval(TimeInterval((id + start) * 3600))
+            let date = startOfToday.addingLocalHours(id + start, in: timeZone)
             guard weather[date]?.weatherType == .fog else { return false }
             // Same span as the fog drawn by Clock
             let (from, to) = hourDegrees(id + start)
@@ -568,7 +570,7 @@ struct Night : View {
     func starOpacity(at degree: Double) -> Double {
         if isFoggy(at: degree) { return 0 }
         guard let coordinate else { return 1 }
-        let elevation = sunElevation(date: dialDate(startOfToday: startOfToday, start: start, degree: degree), coordinate: coordinate)
+        let elevation = sunElevation(date: dialDate(startOfToday: startOfToday, start: start, degree: degree, timeZone: timeZone), coordinate: coordinate)
         let x = min(1, max(0, (elevation - stars_gone_elevation) / (all_stars_elevation - stars_gone_elevation)))
         return x * x * (3 - 2 * x)
     }
@@ -578,7 +580,7 @@ struct Night : View {
             StarRays(ray_density: star_density, start_degree: -15, end_degree: 360 - 15, starOpacity: starOpacity(at:))
         }
         else if let sunrise = sunrise, let sunset = sunset {
-            let (from, to) = datetime_to_degrees(sunrise: sunrise, sunset: sunset, start: start, utcOffsetSeconds: utcOffsetSeconds)
+            let (from, to) = datetime_to_degrees(sunrise: sunrise, sunset: sunset, start: start, timeZone: timeZone)
             if start % 24 == 0 {
                 StarRays(ray_density: star_density, start_degree: -15, end_degree: from, starOpacity: starOpacity(at:))
             }
@@ -774,7 +776,7 @@ struct Clock : View {
     var sunset : [NaiveDate: Date]
     let unit : String
     var showUVRays : Bool = false
-    var utcOffsetSeconds: Int = 0
+    var timeZone: TimeZone = .current
     var useApparentTemperature: Bool = false
     var sunRayDensityScale: Double = 1.0
     var rainDensityScale: Double = 1.0
@@ -782,26 +784,26 @@ struct Clock : View {
 
 
     // Shade of the hour `offset` hours away, if it's on this dial and has clouds
-    func neighborShade(id: Int, time: Date, offset: Int) -> Double? {
+    func neighborShade(id: Int, offset: Int) -> Double? {
         let neighborId = id + offset
         guard neighborId >= 0 && neighborId < 12 else { return nil }
-        return cloudShade(weather[time.addingTimeInterval(TimeInterval(offset * 3600))])
+        return cloudShade(weather[startOfToday.addingLocalHours(id + start + offset, in: timeZone)])
     }
 
     // Shade of the cloud mask over the sun rays `offset` hours away: clear hours have none, and across the break at
     // the top of the dial the mask just continues as it is
-    func neighborMaskShade(id: Int, time: Date, offset: Int, shade: Double) -> Double {
+    func neighborMaskShade(id: Int, offset: Int, shade: Double) -> Double {
         let neighborId = id + offset
         guard neighborId >= 0 && neighborId < 12 else { return shade }
-        return cloudShade(weather[time.addingTimeInterval(TimeInterval(offset * 3600))]) ?? 0
+        return cloudShade(weather[startOfToday.addingLocalHours(id + start + offset, in: timeZone)]) ?? 0
     }
 
     // Rain line width `offset` hours away: dry (or snowy) hours have none, and across the break at the top of the dial
     // the rain just continues as it is
-    func neighborRainWidth(id: Int, time: Date, offset: Int, width: CGFloat) -> CGFloat {
+    func neighborRainWidth(id: Int, offset: Int, width: CGFloat) -> CGFloat {
         let neighborId = id + offset
         guard neighborId >= 0 && neighborId < 12 else { return width }
-        guard let neighbor = weather[time.addingTimeInterval(TimeInterval(offset * 3600))],
+        guard let neighbor = weather[startOfToday.addingLocalHours(id + start + offset, in: timeZone)],
               neighbor.weatherType != .snow,
               neighbor.rainMillimeter > 0 || neighbor.weatherType == .rain else { return 0 }
         return rainIntensityToLineWidth(neighbor.rainIntensity)
@@ -816,26 +818,21 @@ struct Clock : View {
     var body : some View {
         GeometryReader { (geometry) in
             let frame = geometry.size
-            let startTime = startOfToday.addingTimeInterval(TimeInterval(start * 60 * 60))
+            let startTime = startOfToday.addingLocalHours(start, in: timeZone)
             // Hours and minutes at the location, which can be in a different time zone than the phone
-            let hour = now.fractionalHour(utcOffsetSeconds: utcOffsetSeconds)
+            let hour = now.fractionalHour(in: timeZone)
             let minutes = floor((hour - floor(hour)) * 60)
             let hourHandWidth = frame.height / 55
             let minuteHandWidth = frame.height / 95
-            let locationCalendar: Calendar = {
-                var calendar = Calendar(identifier: .gregorian)
-                calendar.timeZone = TimeZone(secondsFromGMT: utcOffsetSeconds) ?? .current
-                return calendar
-            }()
-            let weekday = locationCalendar.component(.weekday, from: startTime)
+            let weekday = Calendar.gregorian(in: timeZone).component(.weekday, from: startTime)
             let weekdayStr: String = start == 0 ? "Today" : start % 24 == 0 ? weekday_number_to_string[weekday]! : ""
             
             let cloud_size: CGFloat = geometry.size.height / 23
 
             
             ZStack {
-                Night(start: start, sunrise: sunrise[startTime.getNaiveDate(utcOffsetSeconds: utcOffsetSeconds)], sunset: sunset[startTime.getNaiveDate(utcOffsetSeconds: utcOffsetSeconds)], utcOffsetSeconds: utcOffsetSeconds, startOfToday: startOfToday, coordinate: coordinate, weather: weather)
-                Daylight(start: start, sunrise: sunrise[startTime.getNaiveDate(utcOffsetSeconds: utcOffsetSeconds)], sunset: sunset[startTime.getNaiveDate(utcOffsetSeconds: utcOffsetSeconds)], weather: weather, showUVRays: showUVRays, startOfToday: startOfToday, utcOffsetSeconds: utcOffsetSeconds, sunRayDensityScale: sunRayDensityScale, coordinate: coordinate)
+                Night(start: start, sunrise: sunrise[startTime.getNaiveDate(in: timeZone)], sunset: sunset[startTime.getNaiveDate(in: timeZone)], timeZone: timeZone, startOfToday: startOfToday, coordinate: coordinate, weather: weather)
+                Daylight(start: start, sunrise: sunrise[startTime.getNaiveDate(in: timeZone)], sunset: sunset[startTime.getNaiveDate(in: timeZone)], weather: weather, showUVRays: showUVRays, startOfToday: startOfToday, timeZone: timeZone, sunRayDensityScale: sunRayDensityScale, coordinate: coordinate)
                 #if !os(watchOS) && !WIDGET_EXTENSION
                 VStack {
                     Text("\(weekdayStr)").frame(maxWidth: .infinity, alignment: .leading)
@@ -847,7 +844,7 @@ struct Clock : View {
                 #endif
                 
                 ForEach(0..<12, id: \.self) { id in
-                    let startDatetime = startOfToday.addingTimeInterval(TimeInterval((id + start) * 60 * 60))
+                    let startDatetime = startOfToday.addingLocalHours(id + start, in: timeZone)
                     if let weather = weather[startDatetime] {
                         let (from, to) = hourDegrees(id + start)
 
@@ -883,8 +880,8 @@ struct Clock : View {
                         if let shade = cloudShade {
                             // black anti-rays — fade in with cloudiness so thin clouds still let the sun through. Blended
                             // towards the neighboring hours, so the light doesn't jump at the hour boundaries.
-                            let previousMask = neighborMaskShade(id: id, time: startDatetime, offset: -1, shade: shade)
-                            let nextMask = neighborMaskShade(id: id, time: startDatetime, offset: 1, shade: shade)
+                            let previousMask = neighborMaskShade(id: id, offset: -1, shade: shade)
+                            let nextMask = neighborMaskShade(id: id, offset: 1, shade: shade)
                             let maskWidth = min(geometry.size.height/2, geometry.size.width) / 50
                             ColoredRays(
                                 a: cloud_diameter,
@@ -921,8 +918,8 @@ struct Clock : View {
                             else {
                                 // rain, its thickness blended towards the neighboring hours so it doesn't jump at the hour boundaries
                                 let width = rainIntensityToLineWidth(weather.rainIntensity)
-                                let previousWidth = neighborRainWidth(id: id, time: startDatetime, offset: -1, width: width)
-                                let nextWidth = neighborRainWidth(id: id, time: startDatetime, offset: 1, width: width)
+                                let previousWidth = neighborRainWidth(id: id, offset: -1, width: width)
+                                let nextWidth = neighborRainWidth(id: id, offset: 1, width: width)
                                 ColoredRays(
                                     a: cloud_diameter,
                                     b: circle_inner_diameter,
@@ -959,8 +956,8 @@ struct Clock : View {
                                 from: from,
                                 to: to,
                                 shade: shade,
-                                previousShade: neighborShade(id: id, time: startDatetime, offset: -1),
-                                nextShade: neighborShade(id: id, time: startDatetime, offset: 1),
+                                previousShade: neighborShade(id: id, offset: -1),
+                                nextShade: neighborShade(id: id, offset: 1),
                                 cloudSize: cloud_size
                             )
                             CloudRims(from: from, to: to, cloudSize: cloud_size, seed: id + start)
@@ -1058,7 +1055,7 @@ struct Foo : View {
     let coordinate: CLLocationCoordinate2D?
     @Binding var selectedDay: Int
     var showUVRays: Bool = false
-    var utcOffsetSeconds: Int = 0
+    var timeZone: TimeZone = .current
     var useApparentTemperature: Bool = false
     var loadState: LoadState = .loaded
     var onRetry: () -> Void = {}
@@ -1114,8 +1111,8 @@ struct Foo : View {
     }
 
     var clock: some View {
-        let fractionalHour: Double = now.fractionalHour(utcOffsetSeconds: utcOffsetSeconds)
-        let startOfToday = now.startOfDay(utcOffsetSeconds: utcOffsetSeconds)
+        let fractionalHour: Double = now.fractionalHour(in: timeZone)
+        let startOfToday = now.startOfDay(in: timeZone)
         return GeometryReader { (geometry) in
             TabView(selection: $selectedDay) {
 #if os(watchOS)
@@ -1131,7 +1128,7 @@ struct Foo : View {
                         sunset: sunset,
                         unit: unit,
                         showUVRays: showUVRays,
-                        utcOffsetSeconds: utcOffsetSeconds,
+                        timeZone: timeZone,
                         useApparentTemperature: useApparentTemperature,
                         coordinate: coordinate
                     )
@@ -1163,7 +1160,7 @@ struct Foo : View {
                                 sunset: sunset,
                                 unit: unit,
                                 showUVRays: showUVRays,
-                                utcOffsetSeconds: utcOffsetSeconds,
+                                timeZone: timeZone,
                                 useApparentTemperature: useApparentTemperature,
                                 coordinate: coordinate
                             ).frame(height: height)
@@ -1177,7 +1174,7 @@ struct Foo : View {
                                 sunset: sunset,
                                 unit: unit,
                                 showUVRays: showUVRays,
-                                utcOffsetSeconds: utcOffsetSeconds,
+                                timeZone: timeZone,
                                 useApparentTemperature: useApparentTemperature,
                                 coordinate: coordinate
                             ).frame(height: height)
@@ -1285,7 +1282,7 @@ struct FrejView: View {
     @State var weatherByLocation: [UUID: [Date: Weather]] = [:]
     @State var sunriseByLocation: [UUID: [NaiveDate: Date]] = [:]
     @State var sunsetByLocation: [UUID: [NaiveDate: Date]] = [:]
-    @State var utcOffsetByLocation: [UUID: Int] = [:]
+    @State var timeZoneByLocation: [UUID: TimeZone] = [:]
     @State var lastFetchedByLocation: [UUID: Date] = [:]
     @State var loadStateByLocation: [UUID: LoadState] = [:]
     @State var cancellableLocation: AnyCancellable?
@@ -1327,8 +1324,8 @@ struct FrejView: View {
         sunsetByLocation[id] ?? [:]
     }
 
-    func utcOffsetForLocation(_ id: UUID) -> Int {
-        utcOffsetByLocation[id] ?? 0
+    func timeZoneForLocation(_ id: UUID) -> TimeZone {
+        timeZoneByLocation[id] ?? .current
     }
 
     func loadStateForLocation(_ id: UUID) -> LoadState {
@@ -1396,7 +1393,7 @@ struct FrejView: View {
                                             coordinate: prevLocation.coordinate,
                                             selectedDay: $selectedDay,
                                             showUVRays: userSettings.showUVRays,
-                                            utcOffsetSeconds: utcOffsetForLocation(prevLocation.id),
+                                            timeZone: timeZoneForLocation(prevLocation.id),
                                             useApparentTemperature: userSettings.useApparentTemperature,
                                             loadState: loadStateForLocation(prevLocation.id),
                                             onRetry: { fetchWeatherForLocation(prevLocation) }
@@ -1424,7 +1421,7 @@ struct FrejView: View {
                                             coordinate: location.coordinate,
                                             selectedDay: $selectedDay,
                                             showUVRays: userSettings.showUVRays,
-                                            utcOffsetSeconds: utcOffsetForLocation(location.id),
+                                            timeZone: timeZoneForLocation(location.id),
                                             useApparentTemperature: userSettings.useApparentTemperature,
                                             loadState: loadStateForLocation(location.id),
                                             onRetry: { fetchWeatherForLocation(location) }
@@ -1452,7 +1449,7 @@ struct FrejView: View {
                                             coordinate: nextLocation.coordinate,
                                             selectedDay: $selectedDay,
                                             showUVRays: userSettings.showUVRays,
-                                            utcOffsetSeconds: utcOffsetForLocation(nextLocation.id),
+                                            timeZone: timeZoneForLocation(nextLocation.id),
                                             useApparentTemperature: userSettings.useApparentTemperature,
                                             loadState: loadStateForLocation(nextLocation.id),
                                             onRetry: { fetchWeatherForLocation(nextLocation) }
@@ -1523,7 +1520,7 @@ struct FrejView: View {
                                     coordinate: location.coordinate,
                                     selectedDay: $selectedDay,
                                     showUVRays: userSettings.showUVRays,
-                                    utcOffsetSeconds: utcOffsetForLocation(location.id),
+                                    timeZone: timeZoneForLocation(location.id),
                                     useApparentTemperature: userSettings.useApparentTemperature,
                                     loadState: loadStateForLocation(location.id),
                                     onRetry: { fetchWeatherForLocation(location) }
@@ -1855,7 +1852,7 @@ struct FrejView: View {
                         self.weatherByLocation[location.id] = snapshot.weather
                         self.sunriseByLocation[location.id] = snapshot.sunrise
                         self.sunsetByLocation[location.id] = snapshot.sunset
-                        self.utcOffsetByLocation[location.id] = snapshot.utcOffsetSeconds
+                        self.timeZoneByLocation[location.id] = snapshot.timeZone
                         self.lastFetchedByLocation[location.id] = Date()
                         self.loadStateByLocation[location.id] = .loaded
                         WidgetReloader.reload()
