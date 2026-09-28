@@ -1504,35 +1504,56 @@ struct FrejView: View {
 
             guard movedFar else { return }
 
+            // Reuse the existing GPS UUID so per-location caches survive across updates.
+            let id = self.gpsLocation?.id ?? UUID()
+
+            // Persist the new coordinates, clear the cache, and refetch immediately
+            // — before (and independent of) the reverse geocode. Reverse geocoding
+            // is slow, rate-limited, and often fails in the background, which is
+            // exactly when a significant location change happens. Gating the refresh
+            // on it would leave the widget stuck on stale data for the old location.
+            // The successful fetch calls WidgetReloader.reload(), so the widget
+            // refreshes as soon as fresh weather for the new location arrives. The
+            // name carries over from the previous fix until the geocode refines it.
+            let newGPSLocation = SavedLocation(
+                id: id,
+                name: self.gpsLocation?.name ?? "",
+                latitude: loc.coordinate.latitude,
+                longitude: loc.coordinate.longitude,
+                isGPS: true
+            )
+            self.gpsLocation = newGPSLocation
+            SharedStore.saveGPSLocation(newGPSLocation)
+            self.lastFetchedByLocation[id] = nil
+
+            self.fetchWeatherForLocation(newGPSLocation)
+
+            for location in self.userSettings.savedLocations {
+                self.fetchWeatherForLocation(location)
+            }
+
             let geocoder = CLGeocoder()
             geocoder.reverseGeocodeLocation(loc) { (placemarks, error) in
-                if error == nil {
-                    let firstLocation = placemarks?[0]
-                    let locationName = firstLocation?.locality ?? ""
-                    currentLocation = locationName
+                guard error == nil, let firstLocation = placemarks?.first else { return }
+                let locationName = firstLocation.locality ?? ""
+                currentLocation = locationName
 
-                    // Reuse the existing GPS UUID so per-location caches survive across updates.
-                    let id = self.gpsLocation?.id ?? UUID()
-                    let newGPSLocation = SavedLocation(
-                        id: id,
-                        name: locationName,
-                        latitude: loc.coordinate.latitude,
-                        longitude: loc.coordinate.longitude,
-                        isGPS: true
-                    )
-                    self.gpsLocation = newGPSLocation
-                    SharedStore.saveGPSLocation(newGPSLocation)
-                    self.lastFetchedByLocation[id] = nil
+                // Update just the display name, keeping the coordinates already saved
+                // above. Persist to the shared store and nudge the widget so it picks
+                // up the new location name.
+                let named = SavedLocation(
+                    id: id,
+                    name: locationName,
+                    latitude: loc.coordinate.latitude,
+                    longitude: loc.coordinate.longitude,
+                    isGPS: true
+                )
+                self.gpsLocation = named
+                SharedStore.saveGPSLocation(named)
+                WidgetReloader.reload()
 
-                    self.fetchWeatherForLocation(newGPSLocation)
-
-                    for location in self.userSettings.savedLocations {
-                        self.fetchWeatherForLocation(location)
-                    }
-
-                    if firstLocation?.country ?? "unknown" == "United States" && !userSettings.hasChosenUnit {
-                        showUnitChooser = true
-                    }
+                if firstLocation.country ?? "unknown" == "United States" && !userSettings.hasChosenUnit {
+                    showUnitChooser = true
                 }
             }
         }
