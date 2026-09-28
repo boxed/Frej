@@ -152,6 +152,7 @@ struct ColoredRays: View {
     let b: CGFloat
     let ray_density: Double
     var wiggle_a: Bool = false
+    var wiggle_b: Bool = false
     var start_degree = 0.0
     var end_degree = 360.0
     var wiggle_size = 1.01
@@ -170,6 +171,10 @@ struct ColoredRays: View {
     // Opacity multiplier for the ray at a given degree
     var rayOpacity: (Double) -> Double = { _ in 1 }
 
+    // Dash pattern, and the dash phase for the ray with a given index
+    var dash: [CGFloat] = []
+    var dashPhase: (Int) -> CGFloat = { _ in 0 }
+
     var body: some View {
         Canvas { context, size in
             let rect = CGRect(origin: .zero, size: size)
@@ -183,9 +188,12 @@ struct ColoredRays: View {
                 let opacity = rayOpacity(degree)
                 if opacity <= 0 { continue }
                 var size_a: CGFloat = rect.height / a
-                let size_b: CGFloat = rect.height / b
+                var size_b: CGFloat = rect.height / b
                 if wiggle_a && i % 2 == 0 {
                     size_a *= wiggle_size
+                }
+                if wiggle_b && i % 2 == 1 {
+                    size_b *= wiggle_size
                 }
                 let radians = CGFloat.pi - degree.degreesToRadians
                 let x = sin(radians) * size_a + rect.width / 2
@@ -213,7 +221,7 @@ struct ColoredRays: View {
                 path.move(to: CGPoint(x: x, y: y))
                 path.addLine(to: CGPoint(x: x2, y: y2))
 
-                context.stroke(path, with: .color(color.opacity(opacity)), style: StrokeStyle(lineWidth: lineWidth, lineCap: lineCap))
+                context.stroke(path, with: .color(color.opacity(opacity)), style: StrokeStyle(lineWidth: lineWidth, lineCap: lineCap, dash: dash, dashPhase: dashPhase(i)))
             }
         }
     }
@@ -344,6 +352,11 @@ func rainIntensityToLineWidth(_ rain_intensity: RainIntensity) -> Double {
     case .violent:
         return 5
     }
+}
+
+// Offsets each rain or snow ray's dashes by a fixed random amount, so the drops are scattered instead of lining up in rings
+func dropDashPhase(seed: Int, ray: Int, period: CGFloat) -> CGFloat {
+    star_field_random_numbers[(seed * 31 + ray) % star_field_random_numbers.count] * period
 }
 
 let weekday_number_to_string = [
@@ -538,9 +551,22 @@ struct Night : View {
     var utcOffsetSeconds: Int = 0
     var startOfToday: Date = Date()
     var coordinate: CLLocationCoordinate2D? = nil
+    var weather: [Date: Weather] = [:]
+
+    // Fog hides the sky
+    func isFoggy(at degree: Double) -> Bool {
+        (0..<12).contains { id in
+            let date = startOfToday.addingTimeInterval(TimeInterval((id + start) * 3600))
+            guard weather[date]?.weatherType == .fog else { return false }
+            // Same span as the fog drawn by Clock
+            let (from, to) = rainDegrees(date: date)
+            return degree >= from - 1 && degree <= to + 1
+        }
+    }
 
     // Stars fade out as the sky brightens, mirroring the sun rays fading in
     func starOpacity(at degree: Double) -> Double {
+        if isFoggy(at: degree) { return 0 }
         guard let coordinate else { return 1 }
         let elevation = sunElevation(date: dialDate(startOfToday: startOfToday, start: start, degree: degree), coordinate: coordinate)
         let x = min(1, max(0, (elevation - stars_gone_elevation) / (all_stars_elevation - stars_gone_elevation)))
@@ -554,10 +580,10 @@ struct Night : View {
         else if let sunrise = sunrise, let sunset = sunset {
             let (from, to) = datetime_to_degrees(sunrise: sunrise, sunset: sunset, start: start, utcOffsetSeconds: utcOffsetSeconds)
             if start % 24 == 0 {
-                StarRays(ray_density: star_density, start_degree: -15, end_degree: from)
+                StarRays(ray_density: star_density, start_degree: -15, end_degree: from, starOpacity: starOpacity(at:))
             }
             else {
-                StarRays(ray_density: star_density, start_degree: to, end_degree: 360 - 15)
+                StarRays(ray_density: star_density, start_degree: to, end_degree: 360 - 15, starOpacity: starOpacity(at:))
             }
         }
         else {
@@ -778,6 +804,17 @@ struct Clock : View {
         return cloudShade(weather[time.addingTimeInterval(TimeInterval(offset * 3600))]) ?? 0
     }
 
+    // Rain line width `offset` hours away: dry (or snowy) hours have none, and across the break at the top of the dial
+    // the rain just continues as it is
+    func neighborRainWidth(id: Int, time: Date, offset: Int, width: CGFloat) -> CGFloat {
+        let neighborId = id + offset
+        guard neighborId >= 0 && neighborId < 12 else { return width }
+        guard let neighbor = weather[time.addingTimeInterval(TimeInterval(offset * 3600))],
+              neighbor.weatherType != .snow,
+              neighbor.rainMillimeter > 0 || neighbor.weatherType == .rain else { return 0 }
+        return rainIntensityToLineWidth(neighbor.rainIntensity)
+    }
+
     func cloudShade(_ weather: Weather?) -> Double? {
         guard let weather else { return nil }
         let rain = weather.rainMillimeter > 0 || weather.weatherType == .rain
@@ -801,7 +838,7 @@ struct Clock : View {
 
             
             ZStack {
-                Night(start: start, sunrise: sunrise[startTime.getNaiveDate(utcOffsetSeconds: utcOffsetSeconds)], sunset: sunset[startTime.getNaiveDate(utcOffsetSeconds: utcOffsetSeconds)], utcOffsetSeconds: utcOffsetSeconds, startOfToday: startOfToday, coordinate: coordinate)
+                Night(start: start, sunrise: sunrise[startTime.getNaiveDate(utcOffsetSeconds: utcOffsetSeconds)], sunset: sunset[startTime.getNaiveDate(utcOffsetSeconds: utcOffsetSeconds)], utcOffsetSeconds: utcOffsetSeconds, startOfToday: startOfToday, coordinate: coordinate, weather: weather)
                 Daylight(start: start, sunrise: sunrise[startTime.getNaiveDate(utcOffsetSeconds: utcOffsetSeconds)], sunset: sunset[startTime.getNaiveDate(utcOffsetSeconds: utcOffsetSeconds)], weather: weather, showUVRays: showUVRays, startOfToday: startOfToday, utcOffsetSeconds: utcOffsetSeconds, sunRayDensityScale: sunRayDensityScale, coordinate: coordinate)
                 #if !os(watchOS) && !WIDGET_EXTENSION
                 VStack {
@@ -870,17 +907,49 @@ struct Clock : View {
                         }
                         if rain {
                             if weather.weatherType == .snow {
-                                Rays(a: cloud_diameter, b: circle_inner_diameter, ray_density: rain_density * rainDensityScale, wiggle_a: true, wiggle_b: true, start_degree: from, end_degree: to)
-                                    .stroke(snow_color, style: StrokeStyle(lineWidth: 1, lineCap: .butt, dash: [1, 4, 1, 4]))
+                                ColoredRays(
+                                    a: cloud_diameter,
+                                    b: circle_inner_diameter,
+                                    ray_density: rain_density * rainDensityScale,
+                                    wiggle_a: true,
+                                    wiggle_b: true,
+                                    start_degree: from,
+                                    end_degree: to,
+                                    colorBefore: snow_color,
+                                    colorCenter: snow_color,
+                                    colorAfter: snow_color,
+                                    dash: [1, 4, 1, 4],
+                                    dashPhase: { dropDashPhase(seed: id + start, ray: $0, period: 10) }
+                                )
                             }
                             else {
-                                // rain
-                                Rays(a: cloud_diameter, b: circle_inner_diameter, ray_density: rain_density * rainDensityScale, wiggle_a: true, wiggle_b: true, start_degree: from, end_degree: to)
-                                    .stroke(rainColor, style: StrokeStyle(lineWidth: rainIntensityToLineWidth(weather.rainIntensity), lineCap: .butt, dash: [2]))
+                                // rain, its thickness blended towards the neighboring hours so it doesn't jump at the hour boundaries
+                                let width = rainIntensityToLineWidth(weather.rainIntensity)
+                                let previousWidth = neighborRainWidth(id: id, time: startDatetime, offset: -1, width: width)
+                                let nextWidth = neighborRainWidth(id: id, time: startDatetime, offset: 1, width: width)
+                                ColoredRays(
+                                    a: cloud_diameter,
+                                    b: circle_inner_diameter,
+                                    ray_density: rain_density * rainDensityScale,
+                                    wiggle_a: true,
+                                    wiggle_b: true,
+                                    start_degree: from,
+                                    end_degree: to,
+                                    colorBefore: rainColor,
+                                    colorCenter: rainColor,
+                                    colorAfter: rainColor,
+                                    lineWidthBefore: (previousWidth + width) / 2,
+                                    lineWidthCenter: width,
+                                    lineWidthAfter: (width + nextWidth) / 2,
+                                    dash: [2],
+                                    dashPhase: { dropDashPhase(seed: id + start, ray: $0, period: 4) }
+                                )
                             }
                         }
                         
                         if weather.weatherType == .lightning {
+                            // black outline, so the bolts stand out from the rain
+                            Bolt(a: bolt_diameter, b: bolt_diameter2, start_degree: from, end_degree: to).stroke(Color.black, style: StrokeStyle(lineWidth: 3, lineCap: .round, lineJoin: .round))
                             Bolt(a: bolt_diameter, b: bolt_diameter2, start_degree: from, end_degree: to).stroke(lightning_color)
                         }
                         
