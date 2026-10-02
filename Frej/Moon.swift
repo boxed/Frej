@@ -5,6 +5,11 @@ import CoreLocation
 private let moon_bg_color = Color(#colorLiteral(red: 0.2549019754, green: 0.2745098174, blue: 0.3019607961, alpha: 1))
 private let moon_slice_color = Color(#colorLiteral(red: 0.7179528061, green: 0.7179528061, blue: 0.7179528061, alpha: 1))
 private let moon_maria_color = Color(#colorLiteral(red: 0.6315254227, green: 0.6354416913, blue: 0.6432933126, alpha: 1))
+// Multiplied onto the lit surface inside the earth's umbra: sunlight reddened by passing through the earth's atmosphere.
+private let moon_umbra_edge_tint = (red: 0.75, green: 0.40, blue: 0.28)
+private let moon_umbra_center_tint = (red: 0.60, green: 0.28, blue: 0.18)
+// The penumbra only dims the sunlight, from the umbra edge's brightness at its inner edge.
+private let moon_penumbra_tint = (red: 0.47, green: 0.47, blue: 0.47)
 private let moon_dark_maria_color = Color(#colorLiteral(red: 0.2078431373, green: 0.2274509804, blue: 0.2549019608, alpha: 1))
 
 /// Outlines of the near side maria on a unit disc, north up, as seen from Earth. Generated from the LROC global mare
@@ -83,6 +88,14 @@ struct MoonAppearance {
     let brightLimbAngle: Double
     /// Direction of the moon's north pole on screen, same convention as `brightLimbAngle`.
     let northAngle: Double
+    /// Center of the earth's shadow relative to the moon's center, in moon radii, screen oriented (y down).
+    let shadowCenter: CGPoint
+    /// Radii of the earth's umbra and penumbra where they fall on the moon, in moon radii.
+    let umbraRadius: Double
+    let penumbraRadius: Double
+    /// Distance from the moon's center to the shadow's axis, in moon radii. Infinite when the moon is on the sun's
+    /// side of the earth.
+    let shadowSeparation: Double
 
     /// Low precision positions from Meeus, "Astronomical Algorithms", ch. 25 and 47 (largest terms only),
     /// good to a fraction of a degree which is plenty for drawing.
@@ -183,6 +196,48 @@ struct MoonAppearance {
         let e = rad(obliquity)
         let eclipticPole = Vec3(x: 0, y: -sin(e), z: cos(e))
         northAngle = atan2(-eclipticPole.dot(screenUp), eclipticPole.dot(screenRight))
+
+        // The earth's shadow is a cone pointing away from the sun, cut at the moon's distance along its axis. The
+        // earth's radius is enlarged by 1/85 for the atmosphere (Danjon), which matches observed shadow sizes.
+        let earthRadius = 6378.14 * (1 + 1.0 / 85), sunRadius = 696000.0, moonRadius = 1737.4
+        let shadowAxis = sun.normalized * -1
+        let alongAxis = moon.dot(shadowAxis)
+        umbraRadius = (earthRadius - alongAxis * (sunRadius - earthRadius) / sun.length) / moonRadius
+        penumbraRadius = (earthRadius + alongAxis * (sunRadius + earthRadius) / sun.length) / moonRadius
+        let toShadow = (shadowAxis * alongAxis - moon) * (1 / moonRadius)
+        shadowCenter = CGPoint(x: toShadow.dot(screenRight), y: -toShadow.dot(screenUp))
+        shadowSeparation = alongAxis > 0 ? toShadow.length : .infinity
+    }
+
+    /// Whether any part of the moon is in the earth's shadow.
+    var isEclipsed: Bool {
+        shadowSeparation < penumbraRadius + 1
+    }
+
+    /// The moment between `start` and `end` when the moon is deepest in the earth's shadow, if it enters the shadow.
+    static func greatestEclipse(from start: Date, to end: Date, coordinate: CLLocationCoordinate2D?) -> Date? {
+        // Eclipses only happen within hours of full moon, skip the search otherwise.
+        let middle = start.addingTimeInterval(end.timeIntervalSince(start) / 2)
+        guard MoonAppearance(date: middle, coordinate: coordinate).illuminatedFraction > 0.9 else {
+            return nil
+        }
+        func separation(_ date: Date) -> Double {
+            MoonAppearance(date: date, coordinate: coordinate).shadowSeparation
+        }
+
+        // The separation has a single minimum within a day: find the closest half hour, then narrow it down.
+        let step: TimeInterval = 30 * 60
+        let samples = Int(end.timeIntervalSince(start) / step)
+        var best = (0...samples).map { start.addingTimeInterval(Double($0) * step) }.min { separation($0) < separation($1) }!
+        var low = max(start, best.addingTimeInterval(-step)), high = min(end, best.addingTimeInterval(step))
+        while high.timeIntervalSince(low) > 30 {
+            let a = low.addingTimeInterval(high.timeIntervalSince(low) / 3)
+            let b = high.addingTimeInterval(-high.timeIntervalSince(low) / 3)
+            if separation(a) < separation(b) { high = b } else { low = a }
+        }
+        best = low.addingTimeInterval(high.timeIntervalSince(low) / 2)
+
+        return MoonAppearance(date: best, coordinate: coordinate).isEclipsed ? best : nil
     }
 }
 
@@ -255,6 +310,46 @@ struct MoonMaria : Shape {
     }
 }
 
+/// Darkens the lit moon where the earth's shadow falls, meant to be multiplied onto it.
+struct EarthShadow: View {
+    let appearance: MoonAppearance
+
+    var body: some View {
+        GeometryReader { geometry in
+            let radius = min(geometry.size.width, geometry.size.height) / 2
+            let umbraEnd = max(0, appearance.umbraRadius) / appearance.penumbraRadius
+            Rectangle().fill(RadialGradient(
+                stops: [
+                    Gradient.Stop(color: tint(moon_umbra_center_tint, light: 0), location: 0),
+                    Gradient.Stop(color: tint(moon_umbra_edge_tint, light: 0), location: umbraEnd),
+                ] + (0...8).map { i in
+                    // Across the penumbra the earth's edge slides over the sun's disc, so the light is the visible
+                    // fraction of the disc: a circular segment. Raised to 1/2.2 to go from light to sRGB.
+                    let x = Double(i) / 8
+                    let theta = 2 * acos(1 - 2 * x)
+                    let light = pow((theta - sin(theta)) / (2 * .pi), 1 / 2.2)
+                    return Gradient.Stop(color: tint(moon_penumbra_tint, light: light), location: umbraEnd + (1 - umbraEnd) * x)
+                },
+                center: UnitPoint(
+                    x: (radius + appearance.shadowCenter.x * radius) / geometry.size.width,
+                    y: (radius + appearance.shadowCenter.y * radius) / geometry.size.height
+                ),
+                startRadius: 0,
+                endRadius: appearance.penumbraRadius * radius
+            ))
+        }
+    }
+
+    /// The shadow tint lightened towards white (no change when multiplied) by the fraction of sunlight reaching the moon.
+    private func tint(_ shadow: (red: Double, green: Double, blue: Double), light: Double) -> Color {
+        Color(
+            red: shadow.red + (1 - shadow.red) * light,
+            green: shadow.green + (1 - shadow.green) * light,
+            blue: shadow.blue + (1 - shadow.blue) * light
+        )
+    }
+}
+
 struct Moon: View {
     let date: Date
     var coordinate: CLLocationCoordinate2D? = nil
@@ -267,7 +362,11 @@ struct Moon: View {
             ZStack {
                 MoonPhase(appearance: appearance).fill(moon_slice_color)
                 MoonMaria(appearance: appearance).fill(moon_maria_color, style: FillStyle(eoFill: true))
+                if appearance.isEclipsed {
+                    EarthShadow(appearance: appearance).blendMode(.multiply)
+                }
             }
+            .compositingGroup()
             .mask(MoonPhase(appearance: appearance))
         }
     }
@@ -283,6 +382,20 @@ struct Previews_Moon_Previews: PreviewProvider {
             ForEach(1..<8) { i in
                 let date = Date.from(year: 2024, month: 1, day: i * 4).set(hour: 20)!
                 Moon(date: date, coordinate: coordinate).frame(width: 100, height: 100)
+            }
+        }.preferredColorScheme(ColorScheme.dark)
+    }
+}
+
+struct Previews_Moon_Eclipse_Previews: PreviewProvider {
+    static var previews: some View {
+        // Sollentuna, through the total lunar eclipse of 2025-03-14
+        let coordinate = CLLocationCoordinate2D(latitude: 59.41769, longitude: 17.95)
+        let start = Date(timeIntervalSince1970: 1741924800) // 04:00 UTC
+
+        VStack {
+            ForEach(0..<8) { i in
+                Moon(date: start.addingTimeInterval(TimeInterval(i * 30 * 60)), coordinate: coordinate).frame(width: 100, height: 100)
             }
         }.preferredColorScheme(ColorScheme.dark)
     }

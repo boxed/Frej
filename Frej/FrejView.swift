@@ -1141,7 +1141,15 @@ struct Foo : View {
                             Spacer()
                             let moon_size = min(geometry.size.height/2, geometry.size.width) / 6.0
 
-                            Moon(date: now.addingTimeInterval(TimeInterval(day * 24 * 60 * 60)), coordinate: coordinate).frame(width: moon_size, height: moon_size).padding(.trailing, 10).padding([.top, .leading], 20)
+                            let date = now.addingTimeInterval(TimeInterval(day * 24 * 60 * 60))
+                            // On a day with a lunar eclipse, show it at its greatest so it can be seen ahead of time.
+                            let eclipse = MoonAppearance.greatestEclipse(
+                                from: startOfToday.addingLocalHours(day * 24, in: timeZone),
+                                to: startOfToday.addingLocalHours((day + 1) * 24, in: timeZone),
+                                coordinate: coordinate
+                            )
+
+                            Moon(date: eclipse ?? date, coordinate: coordinate).frame(width: moon_size, height: moon_size).padding(.trailing, 10).padding([.top, .leading], 20)
                         }
 
                         VStack {
