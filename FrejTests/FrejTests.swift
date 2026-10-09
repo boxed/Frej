@@ -109,12 +109,7 @@ class DrawingBenchmarkTests: XCTestCase {
                 Precipitation(a: 3.0, b: 3.7, ray_density: 0.6, start_degree: from, end_degree: to, snow: id % 2 == 0, heavinessBefore: 0.5, heavinessCenter: 0.5, heavinessAfter: 0.5, seed: id)
             }
         })
-        time("cloud mask x12", ZStack {
-            ForEach(0..<12, id: \.self) { id in
-                let (from, to) = hourDegrees(id)
-                ColoredRays(a: 3.0, b: 3.7, ray_density: 0.6, start_degree: from, end_degree: to, colorBefore: .black.opacity(0.3), colorCenter: .black.opacity(0.5), colorAfter: .black.opacity(0.7), lineWidthBefore: 7, lineWidthCenter: 7, lineWidthAfter: 7, lineCap: .round)
-            }
-        })
+        time("cloud shadow", CloudShadow(shades: (0..<12).map { $0 == 4 ? nil : Double($0) / 11 }))
         time("cloud bands x12", ZStack {
             ForEach(0..<12, id: \.self) { id in
                 let (from, to) = hourDegrees(id)

@@ -901,6 +901,55 @@ struct CloudRims: View {
     }
 }
 
+// The shadow clouds cast on the sun rays and stars beneath them: a ring under the cloud band, as dark as the clouds are
+// heavy, and blended into the neighboring hours so the light doesn't jump at the hour boundaries. Each run of cloudy
+// hours is filled once, with a gradient around the dial.
+struct CloudShadow: View {
+    // Shade of each hour's clouds, from the top of the dial, nil where there are none
+    let shades: [Double?]
+
+    var body: some View {
+        Canvas { context, size in
+            let center = CGPoint(x: size.width / 2, y: size.height / 2)
+            let outer = size.height / cloud_diameter
+            let inner = size.height / circle_inner_diameter
+            // Gradient locations go around the dial from the middle of the gap at the top, so the seam where the gradient
+            // wraps around is where nothing is drawn
+            let seam = (hourDegrees(11).1 - 360 + hourDegrees(0).0) / 2
+            func location(_ degree: Double) -> Double { (degree - seam) / 360 }
+            func angle(_ degree: Double) -> Angle { .degrees(degree - 90) }
+
+            var stops: [Gradient.Stop] = []
+            var path = Path()
+            var runStart: Double? = nil
+            for id in shades.indices {
+                guard let shade = shades[id] else { continue }
+                let (from, to) = hourDegrees(id)
+                // Halfway to the neighboring hour's shade, or to no shadow next to a clear hour. Across the break at
+                // the top of the dial the shadow just continues as it is.
+                func edge(_ neighbor: Int) -> Double {
+                    guard shades.indices.contains(neighbor) else { return shade }
+                    return (shade + (shades[neighbor] ?? 0)) / 2
+                }
+                stops += [
+                    .init(color: .black.opacity(edge(id - 1)), location: location(from)),
+                    .init(color: .black.opacity(shade), location: location((from + to) / 2)),
+                    .init(color: .black.opacity(edge(id + 1)), location: location(to)),
+                ]
+
+                runStart = runStart ?? from
+                if shades.indices.contains(id + 1) && shades[id + 1] != nil { continue }
+                path.addArc(center: center, radius: outer, startAngle: angle(runStart!), endAngle: angle(to), clockwise: false)
+                path.addArc(center: center, radius: inner, startAngle: angle(to), endAngle: angle(runStart!), clockwise: true)
+                path.closeSubpath()
+                runStart = nil
+            }
+            if stops.isEmpty { return }
+            context.fill(path, with: .conicGradient(Gradient(stops: stops), center: center, angle: angle(seam)))
+        }
+    }
+}
+
 // The circles at each end of a band are pulled a third of the way towards the neighboring hour's shade, so adjacent
 // hours blend in even steps. A nil neighbor (no clouds, or across the break at the top of the dial) means no blending.
 struct CloudBand: View {
@@ -951,14 +1000,6 @@ struct Clock : View {
         return cloudShade(weather[hours.date(hour: id + start + offset)])
     }
 
-    // Shade of the cloud mask over the sun rays `offset` hours away: clear hours have none, and across the break at
-    // the top of the dial the mask just continues as it is
-    func neighborMaskShade(id: Int, offset: Int, shade: Double, hours: DialHours) -> Double {
-        let neighborId = id + offset
-        guard neighborId >= 0 && neighborId < 12 else { return shade }
-        return cloudShade(weather[hours.date(hour: id + start + offset)]) ?? 0
-    }
-
     // Rain (or snow) heaviness `offset` hours away: dry hours, and hours with the other kind of precipitation, have
     // none, and across the break at the top of the dial the precipitation just continues as it is
     func neighborHeaviness(id: Int, offset: Int, heaviness: Double, snow: Bool, hours: DialHours) -> Double {
@@ -1004,7 +1045,10 @@ struct Clock : View {
                     Spacer()
                 }
                 #endif
-                
+
+                // fades in with cloudiness, so thin clouds still let the sun through
+                CloudShadow(shades: (0..<12).map { cloudShade(weather[hours.date(hour: $0 + start)]) })
+
                 ForEach(0..<12, id: \.self) { id in
                     let startDatetime = hours.date(hour: id + start)
                     if let weather = weather[startDatetime] {
@@ -1039,27 +1083,6 @@ struct Clock : View {
                                 .stroke(fog_color, style: StrokeStyle(lineWidth: 1, lineCap: .butt, dash: [1, 1])).blur(radius: blur_radius)
                         }
 
-                        if let shade = cloudShade {
-                            // black anti-rays — fade in with cloudiness so thin clouds still let the sun through. Blended
-                            // towards the neighboring hours, so the light doesn't jump at the hour boundaries.
-                            let previousMask = neighborMaskShade(id: id, offset: -1, shade: shade, hours: hours)
-                            let nextMask = neighborMaskShade(id: id, offset: 1, shade: shade, hours: hours)
-                            let maskWidth = min(geometry.size.height/2, geometry.size.width) / 50
-                            ColoredRays(
-                                a: cloud_diameter,
-                                b: circle_inner_diameter,
-                                ray_density: sun_ray_density * sunRayDensityScale,
-                                start_degree: from,
-                                end_degree: to,
-                                colorBefore: Color.black.opacity((previousMask + shade) / 2),
-                                colorCenter: Color.black.opacity(shade),
-                                colorAfter: Color.black.opacity((shade + nextMask) / 2),
-                                lineWidthBefore: maskWidth,
-                                lineWidthCenter: maskWidth,
-                                lineWidthAfter: maskWidth,
-                                lineCap: .round
-                            )
-                        }
                         if rain {
                             // bigger drops the heavier it is, blended towards the neighboring hours so it doesn't jump at
                             // the hour boundaries
