@@ -176,13 +176,9 @@ struct ColoredRays: View {
     // evenly spaced
     var densityScale: ((Double) -> Double)? = nil
 
-    // Dash pattern, and the dash phase for the ray with a given index, as a fraction of the ray's dash pattern length.
-    // If dashBefore and dashAfter are given, the pattern is blended from dashBefore (start edge) through dash (center)
-    // to dashAfter (end edge).
+    // Dash pattern, and the dash phase for the ray with a given index, as a fraction of the dash pattern length
     var dash: [CGFloat] = []
     var dashPhase: (Int) -> CGFloat = { _ in 0 }
-    var dashBefore: [CGFloat]? = nil
-    var dashAfter: [CGFloat]? = nil
 
     var body: some View {
         Canvas { context, size in
@@ -223,31 +219,112 @@ struct ColoredRays: View {
                 let progress = Double(i) / Double(max(1, number_of_rays - 1))
                 let color: Color
                 let lineWidth: CGFloat
-                var rayDash = dash
                 if progress < 0.5 {
                     // Blend from before to center
                     let ratio = progress * 2
                     color = blendColors(colorBefore, colorCenter, ratio: ratio)
                     lineWidth = lineWidthBefore + (lineWidthCenter - lineWidthBefore) * CGFloat(ratio)
-                    if let dashBefore {
-                        rayDash = zip(dashBefore, dash).map { $0 + ($1 - $0) * CGFloat(ratio) }
-                    }
                 } else {
                     // Blend from center to after
                     let ratio = (progress - 0.5) * 2
                     color = blendColors(colorCenter, colorAfter, ratio: ratio)
                     lineWidth = lineWidthCenter + (lineWidthAfter - lineWidthCenter) * CGFloat(ratio)
-                    if let dashAfter {
-                        rayDash = zip(dash, dashAfter).map { $0 + ($1 - $0) * CGFloat(ratio) }
-                    }
                 }
 
                 var path = Path()
                 path.move(to: CGPoint(x: x, y: y))
                 path.addLine(to: CGPoint(x: x2, y: y2))
 
-                context.stroke(path, with: .color(color.opacity(opacity)), style: StrokeStyle(lineWidth: lineWidth, lineCap: lineCap, dash: rayDash, dashPhase: dashPhase(i) * rayDash.reduce(0, +)))
+                context.stroke(path, with: .color(color.opacity(opacity)), style: StrokeStyle(lineWidth: lineWidth, lineCap: lineCap, dash: dash, dashPhase: dashPhase(i) * dash.reduce(0, +)))
             }
+        }
+    }
+}
+
+// Rain falling from the cloud towards the dial, as evenly spaced rays of drops. The drops are small teardrops in drizzle
+// and grow into long tapered streaks in heavy rain. All the drops go into one path that is filled once, so drawing them
+// individually stays cheap.
+struct RainDrops: View {
+    let a: CGFloat
+    let b: CGFloat
+    let ray_density: Double
+    var start_degree = 0.0
+    var end_degree = 360.0
+    var wiggle_size = 1.01
+    var color: Color = rainColor
+
+    // Heaviness at the start edge, center, and end edge, blended in between
+    var heavinessBefore: Double = 0
+    var heavinessCenter: Double = 0
+    var heavinessAfter: Double = 0
+
+    // Seed for the drop offsets along each ray
+    var seed = 0
+
+    func heaviness(at degree: Double) -> Double {
+        let progress = (degree - start_degree) / (end_degree - start_degree)
+        if progress < 0.5 {
+            return heavinessBefore + (heavinessCenter - heavinessBefore) * progress * 2
+        }
+        return heavinessCenter + (heavinessAfter - heavinessCenter) * (progress - 0.5) * 2
+    }
+
+    var body: some View {
+        Canvas { context, size in
+            let center = CGPoint(x: size.width / 2, y: size.height / 2)
+            var path = Path()
+            var degree = start_degree
+            var ray = 0
+            while degree < end_degree {
+                let heaviness = heaviness(at: degree)
+                var outer = size.height / a
+                var inner = size.height / b
+                if ray % 2 == 0 {
+                    outer *= wiggle_size
+                } else {
+                    inner *= wiggle_size
+                }
+
+                // u points inwards along the ray, the direction the rain falls, and v across it
+                let radians = CGFloat.pi - degree.degreesToRadians
+                let u = CGPoint(x: -sin(radians), y: -cos(radians))
+                let v = CGPoint(x: -u.y, y: u.x)
+                func point(_ distance: CGFloat, _ across: CGFloat = 0) -> CGPoint {
+                    CGPoint(
+                        x: center.x + u.x * (distance - outer) + v.x * across,
+                        y: center.y + u.y * (distance - outer) + v.y * across
+                    )
+                }
+
+                let width = rainDropWidth(heaviness: heaviness, dialHeight: size.height)
+                let dash = rainDash(heaviness: heaviness, dialHeight: size.height)
+                let length = max(dash[0], width)
+                let period = length + dash[1]
+                let rayLength = outer - inner
+
+                var tail = -rainDashPhase(seed: seed, ray: ray) * period
+                while tail < rayLength {
+                    // Drops crossing the ends of the ray are cut off, like the dashes were
+                    let start = max(tail, 0)
+                    let end = min(tail + length, rayLength)
+                    if end - start > width / 2 {
+                        // Pointed tail, round head
+                        let r = min(width / 2, (end - start) / 2)
+                        let k = 0.5523 * r
+                        let head = end - r
+                        path.move(to: point(start))
+                        path.addLine(to: point(head, r))
+                        path.addCurve(to: point(head + r), control1: point(head + k, r), control2: point(head + r, k))
+                        path.addCurve(to: point(head, -r), control1: point(head + r, -k), control2: point(head + k, -r))
+                        path.closeSubpath()
+                    }
+                    tail += period
+                }
+
+                degree += 1 / (ray_density * dropDensityScale(heaviness: heaviness))
+                ray += 1
+            }
+            context.fill(path, with: .color(color))
         }
     }
 }
@@ -368,8 +445,8 @@ func rainDropWidth(heaviness: Double, dialHeight: CGFloat) -> CGFloat {
     max(0.6, (0.7 + 1.5 * heaviness) * dialHeight / 350)
 }
 
-// Dash pattern of the rain on a dial of the given height: drizzle is short drops with gaps between them, heavy rain
-// long streaks
+// Length of the rain drops and the gap between them along a ray, on a dial of the given height: drizzle is short drops
+// with gaps between them, heavy rain long streaks
 func rainDash(heaviness: Double, dialHeight: CGFloat) -> [CGFloat] {
     let scale = dialHeight / 350
     return [(1 + 6 * heaviness) * scale, (3 - 0.5 * heaviness) * scale]
@@ -387,7 +464,7 @@ func dropDashPhase(seed: Int, ray: Int) -> CGFloat {
     star_field_random_numbers[(seed * 31 + ray) % star_field_random_numbers.count]
 }
 
-// Offsets each rain ray's dashes, as a fraction of the dash pattern, by roughly half a pattern from the ray beside it, so
+// Offsets each rain ray's drops, as a fraction of drop plus gap, by roughly half of that from the ray beside it, so
 // neighboring streaks always alternate cleanly. The step is jittered so that every other ray doesn't line up in rings.
 func rainDashPhase(seed: Int, ray: Int) -> CGFloat {
     var phase = dropDashPhase(seed: seed, ray: 0)
@@ -955,35 +1032,21 @@ struct Clock : View {
                                 )
                             }
                             else {
-                                // rain, with thicker and longer streaks the heavier it is, blended towards the neighboring hours so
+                                // rain, with bigger and longer drops the heavier it is, blended towards the neighboring hours so
                                 // it doesn't jump at the hour boundaries
                                 let heaviness = weather.rainHeaviness
                                 let heavinessBefore = (neighborRainHeaviness(id: id, offset: -1, heaviness: heaviness) + heaviness) / 2
                                 let heavinessAfter = (heaviness + neighborRainHeaviness(id: id, offset: 1, heaviness: heaviness)) / 2
-                                ColoredRays(
+                                RainDrops(
                                     a: cloud_diameter,
                                     b: circle_inner_diameter,
                                     ray_density: rain_density * rainDensityScale,
-                                    wiggle_a: true,
-                                    wiggle_b: true,
                                     start_degree: from,
                                     end_degree: to,
-                                    colorBefore: rainColor,
-                                    colorCenter: rainColor,
-                                    colorAfter: rainColor,
-                                    lineWidthBefore: rainDropWidth(heaviness: heavinessBefore, dialHeight: frame.height),
-                                    lineWidthCenter: rainDropWidth(heaviness: heaviness, dialHeight: frame.height),
-                                    lineWidthAfter: rainDropWidth(heaviness: heavinessAfter, dialHeight: frame.height),
-                                    densityScale: { degree in
-                                        let progress = (degree - from) / (to - from)
-                                        return dropDensityScale(heaviness: progress < 0.5
-                                            ? heavinessBefore + (heaviness - heavinessBefore) * progress * 2
-                                            : heaviness + (heavinessAfter - heaviness) * (progress - 0.5) * 2)
-                                    },
-                                    dash: rainDash(heaviness: heaviness, dialHeight: frame.height),
-                                    dashPhase: { rainDashPhase(seed: id + start, ray: $0) },
-                                    dashBefore: rainDash(heaviness: heavinessBefore, dialHeight: frame.height),
-                                    dashAfter: rainDash(heaviness: heavinessAfter, dialHeight: frame.height)
+                                    heavinessBefore: heavinessBefore,
+                                    heavinessCenter: heaviness,
+                                    heavinessAfter: heavinessAfter,
+                                    seed: id + start
                                 )
                             }
                         }
