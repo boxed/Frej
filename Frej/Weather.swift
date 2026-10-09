@@ -15,14 +15,6 @@ enum WeatherType {
     case unknown
 }
 
-enum RainIntensity {
-    case none
-    case light
-    case moderate
-    case heavy
-    case violent
-}
-
 private func _textColor(isDay: Bool, weatherType: WeatherType) -> Color {
     switch weatherType {
     case .clear:
@@ -87,27 +79,11 @@ private func _iconColor(weatherType : WeatherType, isDay : Bool) -> Color {
     }
 }
 
-private func _rainIntensity(rainMillimeter : Float) -> RainIntensity {
-    switch rainMillimeter {
-    case 0...0.01:
-        return .none
-    case 0...4.5:
-        return .light
-    case 4.5...8.5:
-        return .moderate
-    case 8.5...50:
-        return .heavy
-    default:
-        if rainMillimeter < 0 {
-            return .none
-        }
-        if rainMillimeter > 50 {
-            return .violent
-        }
-                    
-        assert(false)
-        return .none
-    }
+// How heavy the precipitation is, from 0 (a trace, 0.1 mm/h or less) to 1 (a cloudburst, 30 mm/h or more). Logarithmic,
+// since going from drizzle to a shower is as big a change as going from a shower to a downpour.
+func precipitationHeaviness(rainMillimeter: Float) -> Double {
+    guard rainMillimeter > 0.1 else { return 0 }
+    return min(1, log10(Double(rainMillimeter) / 0.1) / log10(30 / 0.1))
 }
 
 
@@ -162,7 +138,7 @@ struct Weather {
     let circleSegmentWidth : CGFloat
     let isDay : Bool
     let iconColor : Color
-    let rainIntensity : RainIntensity
+    let rainHeaviness : Double
     let uvIndex : Float
     let cloudCover : Int
 
@@ -195,7 +171,7 @@ struct Weather {
         } else {
             self.iconColor = _iconColor(weatherType: weatherType, isDay: isDay)
         }
-        self.rainIntensity = _rainIntensity(rainMillimeter: self.rainMillimeter)
+        self.rainHeaviness = precipitationHeaviness(rainMillimeter: rainMillimeter)
     }
     
     @ViewBuilder
@@ -348,11 +324,11 @@ func decodeOpenMeteoResponse(_ data: Data) -> WeatherSnapshot? {
 
         var weatherType: WeatherType
         switch weatherSymbol {
-        case 71...75:
+        case 71...77, 85...86:
             weatherType = .snow
         case 51...67:
             weatherType = .rain
-        case 80...86:
+        case 80...82:
             weatherType = .rain
         case 95...99:
             weatherType = .lightning

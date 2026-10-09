@@ -10,7 +10,8 @@ extension Collection {
 
 private let sun_ray_density = 0.6
 private let star_density = 0.3
-private let rain_density = 0.5
+// Rain and snow drop rays per degree in the heaviest precipitation; lighter precipitation spaces them out a little
+private let rain_density = 0.6
 private let fog_density = 1.27
 private let circle_inner_diameter = 3.7
 private let cloud_ray_density = 0.20
@@ -171,20 +172,37 @@ struct ColoredRays: View {
     // Opacity multiplier for the ray at a given degree
     var rayOpacity: (Double) -> Double = { _ in 1 }
 
-    // Dash pattern, and the dash phase for the ray with a given index
+    // Multiplier for ray_density at a given degree, so the rays can be spaced out more in some places while staying
+    // evenly spaced
+    var densityScale: ((Double) -> Double)? = nil
+
+    // Dash pattern, and the dash phase for the ray with a given index, as a fraction of the ray's dash pattern length.
+    // If dashBefore and dashAfter are given, the pattern is blended from dashBefore (start edge) through dash (center)
+    // to dashAfter (end edge).
     var dash: [CGFloat] = []
     var dashPhase: (Int) -> CGFloat = { _ in 0 }
+    var dashBefore: [CGFloat]? = nil
+    var dashAfter: [CGFloat]? = nil
 
     var body: some View {
         Canvas { context, size in
             let rect = CGRect(origin: .zero, size: size)
             let degrees = end_degree - start_degree
-            let number_of_rays = Int(Double(degrees) * ray_density)
+            var rayDegrees: [Double] = []
+            if let densityScale {
+                var degree = start_degree
+                while degree < end_degree {
+                    rayDegrees.append(degree)
+                    degree += 1 / (ray_density * densityScale(degree))
+                }
+            } else {
+                rayDegrees = (0..<max(0, Int(Double(degrees) * ray_density))).map { start_degree + Double($0) / ray_density }
+            }
+            let number_of_rays = rayDegrees.count
 
             if number_of_rays <= 0 { return }
 
-            for i in 0..<number_of_rays {
-                let degree = start_degree + CGFloat(i) / ray_density
+            for (i, degree) in rayDegrees.enumerated() {
                 let opacity = rayOpacity(degree)
                 if opacity <= 0 { continue }
                 var size_a: CGFloat = rect.height / a
@@ -205,23 +223,30 @@ struct ColoredRays: View {
                 let progress = Double(i) / Double(max(1, number_of_rays - 1))
                 let color: Color
                 let lineWidth: CGFloat
+                var rayDash = dash
                 if progress < 0.5 {
                     // Blend from before to center
                     let ratio = progress * 2
                     color = blendColors(colorBefore, colorCenter, ratio: ratio)
                     lineWidth = lineWidthBefore + (lineWidthCenter - lineWidthBefore) * CGFloat(ratio)
+                    if let dashBefore {
+                        rayDash = zip(dashBefore, dash).map { $0 + ($1 - $0) * CGFloat(ratio) }
+                    }
                 } else {
                     // Blend from center to after
                     let ratio = (progress - 0.5) * 2
                     color = blendColors(colorCenter, colorAfter, ratio: ratio)
                     lineWidth = lineWidthCenter + (lineWidthAfter - lineWidthCenter) * CGFloat(ratio)
+                    if let dashAfter {
+                        rayDash = zip(dash, dashAfter).map { $0 + ($1 - $0) * CGFloat(ratio) }
+                    }
                 }
 
                 var path = Path()
                 path.move(to: CGPoint(x: x, y: y))
                 path.addLine(to: CGPoint(x: x2, y: y2))
 
-                context.stroke(path, with: .color(color.opacity(opacity)), style: StrokeStyle(lineWidth: lineWidth, lineCap: lineCap, dash: dash, dashPhase: dashPhase(i)))
+                context.stroke(path, with: .color(color.opacity(opacity)), style: StrokeStyle(lineWidth: lineWidth, lineCap: lineCap, dash: rayDash, dashPhase: dashPhase(i) * rayDash.reduce(0, +)))
             }
         }
     }
@@ -338,25 +363,38 @@ func datetimeToday(hour: Int) -> Date{
     return components.date!
 }
 
-func rainIntensityToLineWidth(_ rain_intensity: RainIntensity) -> Double {
-    switch rain_intensity {
-        
-    case .none:
-        return 0
-    case .light:
-        return 1
-    case .moderate:
-        return 2
-    case .heavy:
-        return 3
-    case .violent:
-        return 5
-    }
+// Width of the rain drops on a dial of the given height: heavier rain has bigger drops
+func rainDropWidth(heaviness: Double, dialHeight: CGFloat) -> CGFloat {
+    max(0.6, (0.7 + 1.5 * heaviness) * dialHeight / 350)
 }
 
-// Offsets each rain or snow ray's dashes by a fixed random amount, so the drops are scattered instead of lining up in rings
-func dropDashPhase(seed: Int, ray: Int, period: CGFloat) -> CGFloat {
-    star_field_random_numbers[(seed * 31 + ray) % star_field_random_numbers.count] * period
+// Dash pattern of the rain on a dial of the given height: drizzle is short drops with gaps between them, heavy rain
+// long streaks
+func rainDash(heaviness: Double, dialHeight: CGFloat) -> [CGFloat] {
+    let scale = dialHeight / 350
+    return [(1 + 6 * heaviness) * scale, (3 - 0.5 * heaviness) * scale]
+}
+
+// Fraction of the full rain_density drawn: the drops are only a little sparser in light precipitation, so the rain
+// still reads as rain
+func dropDensityScale(heaviness: Double) -> Double {
+    0.8 + 0.2 * heaviness
+}
+
+// Offsets each snow ray's dashes by a fixed random fraction of the dash pattern, so the flakes are scattered instead of
+// lining up in rings
+func dropDashPhase(seed: Int, ray: Int) -> CGFloat {
+    star_field_random_numbers[(seed * 31 + ray) % star_field_random_numbers.count]
+}
+
+// Offsets each rain ray's dashes, as a fraction of the dash pattern, by roughly half a pattern from the ray beside it, so
+// neighboring streaks always alternate cleanly. The step is jittered so that every other ray doesn't line up in rings.
+func rainDashPhase(seed: Int, ray: Int) -> CGFloat {
+    var phase = dropDashPhase(seed: seed, ray: 0)
+    for i in 0..<ray {
+        phase += 0.35 + 0.3 * dropDashPhase(seed: seed, ray: i + 1)
+    }
+    return phase.truncatingRemainder(dividingBy: 1)
 }
 
 let weekday_number_to_string = [
@@ -798,15 +836,15 @@ struct Clock : View {
         return cloudShade(weather[startOfToday.addingLocalHours(id + start + offset, in: timeZone)]) ?? 0
     }
 
-    // Rain line width `offset` hours away: dry (or snowy) hours have none, and across the break at the top of the dial
+    // Rain heaviness `offset` hours away: dry (or snowy) hours have none, and across the break at the top of the dial
     // the rain just continues as it is
-    func neighborRainWidth(id: Int, offset: Int, width: CGFloat) -> CGFloat {
+    func neighborRainHeaviness(id: Int, offset: Int, heaviness: Double) -> Double {
         let neighborId = id + offset
-        guard neighborId >= 0 && neighborId < 12 else { return width }
+        guard neighborId >= 0 && neighborId < 12 else { return heaviness }
         guard let neighbor = weather[startOfToday.addingLocalHours(id + start + offset, in: timeZone)],
               neighbor.weatherType != .snow,
               neighbor.rainMillimeter > 0 || neighbor.weatherType == .rain else { return 0 }
-        return rainIntensityToLineWidth(neighbor.rainIntensity)
+        return neighbor.rainHeaviness
     }
 
     func cloudShade(_ weather: Weather?) -> Double? {
@@ -911,15 +949,17 @@ struct Clock : View {
                                     colorBefore: snow_color,
                                     colorCenter: snow_color,
                                     colorAfter: snow_color,
+                                    densityScale: { _ in dropDensityScale(heaviness: weather.rainHeaviness) },
                                     dash: [1, 4, 1, 4],
-                                    dashPhase: { dropDashPhase(seed: id + start, ray: $0, period: 10) }
+                                    dashPhase: { dropDashPhase(seed: id + start, ray: $0) }
                                 )
                             }
                             else {
-                                // rain, its thickness blended towards the neighboring hours so it doesn't jump at the hour boundaries
-                                let width = rainIntensityToLineWidth(weather.rainIntensity)
-                                let previousWidth = neighborRainWidth(id: id, offset: -1, width: width)
-                                let nextWidth = neighborRainWidth(id: id, offset: 1, width: width)
+                                // rain, with thicker and longer streaks the heavier it is, blended towards the neighboring hours so
+                                // it doesn't jump at the hour boundaries
+                                let heaviness = weather.rainHeaviness
+                                let heavinessBefore = (neighborRainHeaviness(id: id, offset: -1, heaviness: heaviness) + heaviness) / 2
+                                let heavinessAfter = (heaviness + neighborRainHeaviness(id: id, offset: 1, heaviness: heaviness)) / 2
                                 ColoredRays(
                                     a: cloud_diameter,
                                     b: circle_inner_diameter,
@@ -931,11 +971,19 @@ struct Clock : View {
                                     colorBefore: rainColor,
                                     colorCenter: rainColor,
                                     colorAfter: rainColor,
-                                    lineWidthBefore: (previousWidth + width) / 2,
-                                    lineWidthCenter: width,
-                                    lineWidthAfter: (width + nextWidth) / 2,
-                                    dash: [2],
-                                    dashPhase: { dropDashPhase(seed: id + start, ray: $0, period: 4) }
+                                    lineWidthBefore: rainDropWidth(heaviness: heavinessBefore, dialHeight: frame.height),
+                                    lineWidthCenter: rainDropWidth(heaviness: heaviness, dialHeight: frame.height),
+                                    lineWidthAfter: rainDropWidth(heaviness: heavinessAfter, dialHeight: frame.height),
+                                    densityScale: { degree in
+                                        let progress = (degree - from) / (to - from)
+                                        return dropDensityScale(heaviness: progress < 0.5
+                                            ? heavinessBefore + (heaviness - heavinessBefore) * progress * 2
+                                            : heaviness + (heavinessAfter - heaviness) * (progress - 0.5) * 2)
+                                    },
+                                    dash: rainDash(heaviness: heaviness, dialHeight: frame.height),
+                                    dashPhase: { rainDashPhase(seed: id + start, ray: $0) },
+                                    dashBefore: rainDash(heaviness: heavinessBefore, dialHeight: frame.height),
+                                    dashAfter: rainDash(heaviness: heavinessAfter, dialHeight: frame.height)
                                 )
                             }
                         }
@@ -1440,7 +1488,7 @@ struct FrejView: View {
 
                                 // Next location (below)
                                 if currentIndex < allLocations.count - 1, let nextLocation = allLocations[safe: currentIndex + 1] {
-                                    VStack(spacing: 0) {
+                                    VStack(spacing: 0) {    
 #if !os(watchOS)
                                         Spacer()
                                         Text(nextLocation.name).font(Font.system(size: 25, weight: .semibold)).padding(.bottom, -10)
@@ -1673,14 +1721,14 @@ struct FrejView: View {
         weatherDict[now.set(hour:  9)!] = Weather(time: now.set(hour:  9)!, temperature:   9, weatherType:       .cloud, rainMillimeter:  0, isDay:  true)
         weatherDict[now.set(hour: 10)!] = Weather(time: now.set(hour: 10)!, temperature:  10, weatherType:   .lightning, rainMillimeter:  0, isDay:  true)
         weatherDict[now.set(hour: 11)!] = Weather(time: now.set(hour: 11)!, temperature:  11, weatherType:         .fog, rainMillimeter: 10, isDay:  true)
-        // PM
+        // PM, with rain going from a trace to a cloudburst
         weatherDict[now.set(hour: 12)!] = Weather(time: now.set(hour: 12)!, temperature:  12, weatherType:         .fog, rainMillimeter:  0, isDay:  true)
-        weatherDict[now.set(hour: 13)!] = Weather(time: now.set(hour: 13)!, temperature:  13, weatherType:   .lightning, rainMillimeter: 10, isDay:  true)
-        weatherDict[now.set(hour: 14)!] = Weather(time: now.set(hour: 14)!, temperature:  14, weatherType:       .clear, rainMillimeter: 10, isDay:  true)
-        weatherDict[now.set(hour: 15)!] = Weather(time: now.set(hour: 15)!, temperature:  16, weatherType:  .lightCloud, rainMillimeter:  10, isDay:  true)
-        weatherDict[now.set(hour: 16)!] = Weather(time: now.set(hour: 16)!, temperature: -23, weatherType:  .lightCloud, rainMillimeter: 10, isDay:  true)
-        weatherDict[now.set(hour: 17)!] = Weather(time: now.set(hour: 17)!, temperature: -12, weatherType:  .lightCloud, rainMillimeter:  0, isDay:  true)
-        weatherDict[now.set(hour: 18)!] = Weather(time: now.set(hour: 18)!, temperature:  17, weatherType:        .wind, rainMillimeter: 10, isDay:  true)
+        weatherDict[now.set(hour: 13)!] = Weather(time: now.set(hour: 13)!, temperature:  13, weatherType:   .rain, rainMillimeter: 0.1, isDay:  true)
+        weatherDict[now.set(hour: 14)!] = Weather(time: now.set(hour: 14)!, temperature:  14, weatherType:       .rain, rainMillimeter: 0.5, isDay:  true)
+        weatherDict[now.set(hour: 15)!] = Weather(time: now.set(hour: 15)!, temperature:  16, weatherType:  .rain, rainMillimeter:  2, isDay:  true)
+        weatherDict[now.set(hour: 16)!] = Weather(time: now.set(hour: 16)!, temperature: -23, weatherType:  .rain, rainMillimeter: 5, isDay:  true)
+        weatherDict[now.set(hour: 17)!] = Weather(time: now.set(hour: 17)!, temperature: -12, weatherType:  .rain, rainMillimeter:  15, isDay:  true)
+        weatherDict[now.set(hour: 18)!] = Weather(time: now.set(hour: 18)!, temperature:  17, weatherType:        .rain, rainMillimeter: 40, isDay:  true)
         weatherDict[now.set(hour: 19)!] = Weather(time: now.set(hour: 19)!, temperature:  24, weatherType:       .cloud, rainMillimeter:  0, isDay: false)
         weatherDict[now.set(hour: 20)!] = Weather(time: now.set(hour: 20)!, temperature:  35, weatherType:   .lightning, rainMillimeter:  1, isDay: false)
         weatherDict[now.set(hour: 21)!] = Weather(time: now.set(hour: 21)!, temperature:   1, weatherType:          .fog, rainMillimeter:  0, isDay: false)
