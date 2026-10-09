@@ -582,7 +582,15 @@ struct DialHours {
         self.startOfToday = startOfToday
         self.start = start
         self.timeZone = timeZone
-        dates = (-1...13).map { startOfToday.addingLocalHours(start + $0, in: timeZone) }
+        let hours = Array(-1...13)
+        let first = startOfToday.addingLocalHours(start + hours.first!, in: timeZone)
+        let last = startOfToday.addingLocalHours(start + hours.last!, in: timeZone)
+        if last.timeIntervalSince(first) == Double(hours.count - 1) * 3600 {
+            // No daylight saving change in between, so the hours are simply an hour apart
+            dates = hours.indices.map { first.addingTimeInterval(Double($0) * 3600) }
+        } else {
+            dates = hours.map { startOfToday.addingLocalHours(start + $0, in: timeZone) }
+        }
     }
 
     // The start of local clock hour `hour`, counted from midnight today
@@ -763,12 +771,14 @@ let temperature_color_stops: [(Float, Color)] = [
     (32, Color(hot)),
 ]
 
+private let temperature_color_stops_rgba = temperature_color_stops.map { ($0.0, RGBA($0.1)) }
+
 func color_from_temperature(_ temp: Float) -> Color {
     guard temp > temperature_color_stops[0].0 else {
         return temperature_color_stops[0].1
     }
-    for (lower, upper) in zip(temperature_color_stops, temperature_color_stops.dropFirst()) where temp <= upper.0 {
-        return blendColors(lower.1, upper.1, ratio: Double((temp - lower.0) / (upper.0 - lower.0)))
+    for (lower, upper) in zip(temperature_color_stops_rgba, temperature_color_stops_rgba.dropFirst()) where temp <= upper.0 {
+        return lower.1.blended(with: upper.1, ratio: Double((temp - lower.0) / (upper.0 - lower.0)))
     }
     return temperature_color_stops.last!.1
 }
@@ -819,7 +829,8 @@ struct Temperatures : View {
                 let size : CGFloat = frame.height * 0.45
                 let x: CGFloat = sin(radians) * size + frame.width / 2 - 2 + 3
                 let y: CGFloat = cos(radians) * size + frame.height / 2 - 2 + 4
-                let text = Text("\(self.temperature(weather: weather))°")
+                // verbatim, since a localized Text looks itself up in the string tables, which is most of its cost
+                let text = Text(verbatim: "\(self.temperature(weather: weather))°")
                     .font(font)
                     .foregroundColor(color_from_temperature(weather.apparentTemperature))
                 drawSnapped(text, centeredAt: CGPoint(x: x, y: y), in: context)
@@ -840,7 +851,7 @@ struct HourLabels : View {
                 let size : CGFloat = frame.height * 0.225
                 let x = sin(radians) * size + frame.width / 2
                 let y = cos(radians) * size + frame.height / 2
-                let text = Text("\(hour)")
+                let text = Text(verbatim: "\(hour)")
                     .foregroundColor(dial_gray)
                     .font(Font.system(size: frame.height / 25.0))
                 drawSnapped(text, centeredAt: CGPoint(x: x, y: y), in: context)

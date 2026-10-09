@@ -55,7 +55,8 @@ class DrawingBenchmarkTests: XCTestCase {
     }
 
     // Average milliseconds to render the view, after a warm up render
-    func time<V: View>(_ name: String, iterations: Int = 20, _ view: V) -> Double {
+    func time<V: View>(_ name: String, iterations: Int = 20, size: CGSize? = nil, _ view: V) -> Double {
+        let size = size ?? self.size
         let renderer = ImageRenderer(content: view.frame(width: size.width, height: size.height).background(Color.black))
         renderer.scale = 3
         _ = renderer.cgImage
@@ -88,6 +89,32 @@ class DrawingBenchmarkTests: XCTestCase {
                 renderer.scale = 3
                 let data = UIImage(cgImage: renderer.cgImage!).pngData()!
                 try data.write(to: URL(fileURLWithPath: dir).appendingPathComponent("\(name)\(suffix).png"))
+            }
+        }
+    }
+
+    // Renders the busy clock over and over while FREJ_PROFILE_SECONDS is set, for sampling with a profiler
+    func testProfileLoop() throws {
+        guard let seconds = ProcessInfo.processInfo.environment["FREJ_PROFILE_SECONDS"].flatMap(Double.init) else { throw XCTSkip("FREJ_PROFILE_SECONDS not set") }
+        let busy = busyWeather()
+        let end = Date().addingTimeInterval(seconds)
+        while Date() < end {
+            let renderer = ImageRenderer(content: clock(busy, start: 0).frame(width: size.width, height: size.height).background(Color.black))
+            renderer.scale = 3
+            _ = renderer.cgImage
+        }
+    }
+
+    // DialHours skips the calendar when there's no daylight saving change on the dial, which must give the same hours
+    func testDialHoursMatchesCalendar() {
+        let calendar = Calendar.gregorian(in: timeZone)
+        for (month, day) in [(3, 29), (10, 25), (6, 15)] {
+            let midnight = calendar.date(from: DateComponents(year: 2026, month: month, day: day))!
+            for start in stride(from: -24, through: 132, by: 12) {
+                let hours = DialHours(startOfToday: midnight, start: start, timeZone: timeZone)
+                for hour in (start - 1)...(start + 13) {
+                    XCTAssertEqual(hours.date(hour: hour), midnight.addingLocalHours(hour, in: timeZone), "\(month)-\(day) start \(start) hour \(hour)")
+                }
             }
         }
     }
@@ -136,6 +163,47 @@ class DrawingBenchmarkTests: XCTestCase {
         })
         time("temperatures", Temperatures(weather: (0..<12).map { busy[startOfToday.addingLocalHours($0, in: timeZone)] }, unit: "C"))
         time("hour labels", HourLabels(start: 0))
+        time("cloud borders x12", ZStack {
+            ForEach(0..<12, id: \.self) { id in
+                let (from, to) = hourDegrees(id)
+                Rays(a: 3.0 - 0.05, b: 2.98 - 0.05, ray_density: 0.2, wiggle_c: true, start_degree: from + 0.5, end_degree: to + 0.5, wiggle_size: 1.02)
+                    .stroke(Color.black, style: StrokeStyle(lineWidth: self.size.height / 23, lineCap: .round))
+            }
+        })
+        time("bolts x12", ZStack {
+            ForEach(0..<12, id: \.self) { id in
+                let (from, to) = hourDegrees(id)
+                Bolt(a: 3.1, b: 3.7, start_degree: from, end_degree: to).stroke(Color.black, style: StrokeStyle(lineWidth: 3, lineCap: .round, lineJoin: .round))
+                Bolt(a: 3.1, b: 3.7, start_degree: from, end_degree: to).stroke(Color.yellow)
+            }
+        })
+        time("dial and hands", ZStack {
+            Circle()
+                .trim(from: 0.0, to: 0.99)
+                .rotation(Angle.degrees(-105))
+                .fill(Color.black)
+                .stroke(Color.gray, lineWidth: 1)
+                .padding(self.size.height * 0.2)
+                .scaleEffect(0.9)
+            ClockDial(now: Date(), progress: 10 / 12.0, extraSize: 0.25).stroke(Color.white, style: StrokeStyle(lineWidth: 6, lineCap: .round))
+            ClockDial(now: Date(), progress: 0.5, extraSize: 0.38).stroke(Color.white, style: StrokeStyle(lineWidth: 4, lineCap: .round))
+        })
+        let fullMoon = (0..<30).map { startOfToday.addingTimeInterval(Double($0) * 86400) }
+            .max { MoonAppearance(date: $0, coordinate: coordinate).illuminatedFraction < MoonAppearance(date: $1, coordinate: coordinate).illuminatedFraction }!
+        time("moon", Moon(date: fullMoon, coordinate: coordinate).frame(width: 60, height: 60))
+        time("page (2 clocks + moon)", size: CGSize(width: size.width, height: size.height * 2), ZStack {
+            VStack(spacing: 0) {
+                clock(busy, start: 0).frame(height: self.size.height)
+                clock(busy, start: 12).frame(height: self.size.height)
+            }
+            Moon(date: fullMoon, coordinate: coordinate).frame(width: 60, height: 60)
+        })
+        timeCode("greatestEclipse, full moon day", iterations: 100) {
+            _ = MoonAppearance.greatestEclipse(from: fullMoon, to: fullMoon.addingTimeInterval(86400), coordinate: coordinate)
+        }
+        timeCode("greatestEclipse, other day", iterations: 100) {
+            _ = MoonAppearance.greatestEclipse(from: startOfToday, to: startOfToday.addingTimeInterval(86400), coordinate: coordinate)
+        }
 
         // Helpers that run per ray
         timeCode("blendColors", iterations: 10_000) { _ = blendColors(.red, .blue, ratio: 0.3) }
