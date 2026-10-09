@@ -773,11 +773,24 @@ func color_from_temperature(_ temp: Float) -> Color {
     return temperature_color_stops.last!.1
 }
 
-struct Temperature : View {
-    var weather : Weather
-    var start : Int
-    var frame : CGSize
-    let id : Int
+// Draws text centered on a point, with its frame snapped to the pixel grid the way a Text view's is, so it renders as
+// crisply as one
+func drawSnapped(_ text: Text, centeredAt center: CGPoint, in context: GraphicsContext) {
+    let resolved = context.resolve(text)
+    let scale = context.environment.displayScale
+    let size = resolved.measure(in: CGSize(width: CGFloat.infinity, height: .infinity))
+    let origin = CGPoint(
+        x: ((center.x - size.width / 2) * scale).rounded() / scale,
+        y: ((center.y - size.height / 2) * scale).rounded() / scale
+    )
+    context.draw(resolved, at: origin, anchor: .topLeading)
+}
+
+// The temperature of each hour around the outside of the dial. All the labels are drawn in one Canvas, which is about
+// twice as fast as a Text view per hour.
+struct Temperatures : View {
+    // Weather of each hour, from the top of the dial, nil where there is none
+    let weather : [Weather?]
     let unit: String
     var useApparentTemperature: Bool = false
 
@@ -792,25 +805,47 @@ struct Temperature : View {
     }
 
     var body : some View {
-        let radians : CGFloat = CGFloat.pi - 2.0 * CGFloat.pi / 12.0 * CGFloat(id)
-        let size : CGFloat = frame.height * 0.45
-        let x: CGFloat = sin(radians) * size + frame.width / 2 - 2
-        let y: CGFloat = cos(radians) * size + frame.height / 2 - 2 + 4
-        
-        #if os(watchOS)
-        let iconSize = frame.height / 4.5
-        #else
-        let iconSize = frame.height / 5.0
-        #endif
+        Canvas { context, frame in
+            #if os(watchOS)
+            let iconSize = frame.height / 4.5
+            #else
+            let iconSize = frame.height / 5.0
+            #endif
+            let font = Font.system(size: iconSize / 3.2)
 
-        let textX = x + 3.0
-    
-        let font = Font.system(size: iconSize / 3.2)
-        let temperature = Text("\(self.temperature(weather: weather))°")
-        temperature
-            .font(font)
-            .position(x: textX, y: y)
-            .foregroundColor(color_from_temperature(self.weather.apparentTemperature))
+            for (id, weather) in weather.enumerated() {
+                guard let weather else { continue }
+                let radians : CGFloat = CGFloat.pi - 2.0 * CGFloat.pi / 12.0 * CGFloat(id)
+                let size : CGFloat = frame.height * 0.45
+                let x: CGFloat = sin(radians) * size + frame.width / 2 - 2 + 3
+                let y: CGFloat = cos(radians) * size + frame.height / 2 - 2 + 4
+                let text = Text("\(self.temperature(weather: weather))°")
+                    .font(font)
+                    .foregroundColor(color_from_temperature(weather.apparentTemperature))
+                drawSnapped(text, centeredAt: CGPoint(x: x, y: y), in: context)
+            }
+        }
+    }
+}
+
+// The hour numbers inside the dial, drawn in one Canvas like Temperatures
+struct HourLabels : View {
+    let start : Int
+
+    var body : some View {
+        Canvas { context, frame in
+            for id in 0..<12 {
+                let hour = (id + start) % 24
+                let radians : CGFloat = CGFloat.pi - 2.0 * CGFloat.pi / 12.0 * CGFloat(id)
+                let size : CGFloat = frame.height * 0.225
+                let x = sin(radians) * size + frame.width / 2
+                let y = cos(radians) * size + frame.height / 2
+                let text = Text("\(hour)")
+                    .foregroundColor(dial_gray)
+                    .font(Font.system(size: frame.height / 25.0))
+                drawSnapped(text, centeredAt: CGPoint(x: x, y: y), in: context)
+            }
+        }
     }
 }
 
@@ -1135,9 +1170,10 @@ struct Clock : View {
 //                            Wind().stroke(Color.black, lineWidth: 44).fill(Color.gray).rotationEffect(Angle.degrees(Double(hour) * 30.0)).scaleEffect(0.07).position(x: x, y: y)
 //                        }
 
-                        Temperature(weather: weather, start: start, frame: frame, id: id, unit: unit, useApparentTemperature: useApparentTemperature)
                     }
                 }
+                Temperatures(weather: (0..<12).map { weather[hours.date(hour: $0 + start)] }, unit: unit, useApparentTemperature: useApparentTemperature)
+
                 // ground, or circle showing the break in the timeline
                 Circle()
                     .trim(from: 0.0, to: 0.99)
@@ -1147,17 +1183,7 @@ struct Clock : View {
                     .padding(frame.height * 0.2)
                     .scaleEffect(0.9)
                 
-                // Hours strings
-                ForEach(0..<12, id: \.self) { id in
-                    let hour = (id + start) % 24
-                    let radians : CGFloat = CGFloat.pi - 2.0 * CGFloat.pi / 12.0 * CGFloat(id)
-                    let size : CGFloat = frame.height * 0.225
-                    let x = sin(radians) * size + frame.width / 2
-                    let y = cos(radians) * size + frame.height / 2
-                    Text("\(hour)").position(x: x, y: y)
-                    .foregroundColor(dial_gray)
-                    .font(Font.system(size: frame.height / 25.0))
-                }
+                HourLabels(start: start)
                 // Hour and minute dials
                 if showDials {
                     ClockDial(now: now, progress: hour / 12.0, extraSize: 0.25).stroke(Color.white, style: StrokeStyle(lineWidth: hourHandWidth, lineCap: .round))

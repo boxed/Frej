@@ -82,10 +82,13 @@ class DrawingBenchmarkTests: XCTestCase {
     func testRenderSnapshots() throws {
         guard let dir = ProcessInfo.processInfo.environment["FREJ_RENDER_DIR"] else { throw XCTSkip("FREJ_RENDER_DIR not set") }
         for (name, view) in [("busy-am", clock(busyWeather(), start: 0)), ("busy-pm", clock(busyWeather(), start: 12)), ("clear-am", clock(clearWeather(), start: 0))] {
-            let renderer = ImageRenderer(content: view.frame(width: size.width, height: size.height).background(Color.black))
-            renderer.scale = 3
-            let data = UIImage(cgImage: renderer.cgImage!).pngData()!
-            try data.write(to: URL(fileURLWithPath: dir).appendingPathComponent("\(name).png"))
+            // Full size, and widget size, where the labels come closest to the edges
+            for (suffix, side) in [("", size.width), ("-small", CGFloat(150))] {
+                let renderer = ImageRenderer(content: view.frame(width: side, height: side).background(Color.black))
+                renderer.scale = 3
+                let data = UIImage(cgImage: renderer.cgImage!).pngData()!
+                try data.write(to: URL(fileURLWithPath: dir).appendingPathComponent("\(name)\(suffix).png"))
+            }
         }
     }
 
@@ -131,11 +134,8 @@ class DrawingBenchmarkTests: XCTestCase {
             Rays(a: 3.0, b: 3.7, ray_density: 1.27, wiggle_a: true, wiggle_b: true, start_degree: from-1, end_degree: to)
                 .stroke(Color.gray, style: StrokeStyle(lineWidth: 1, lineCap: .butt, dash: [1, 1])).blur(radius: self.size.height / 60)
         })
-        time("temperatures x12", ZStack {
-            ForEach(0..<12, id: \.self) { id in
-                Temperature(weather: busy.values.first!, start: 0, frame: self.size, id: id, unit: "C")
-            }
-        })
+        time("temperatures", Temperatures(weather: (0..<12).map { busy[startOfToday.addingLocalHours($0, in: timeZone)] }, unit: "C"))
+        time("hour labels", HourLabels(start: 0))
 
         // Helpers that run per ray
         timeCode("blendColors", iterations: 10_000) { _ = blendColors(.red, .blue, ratio: 0.3) }
