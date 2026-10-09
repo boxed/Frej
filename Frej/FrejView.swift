@@ -172,11 +172,7 @@ struct ColoredRays: View {
     // Opacity multiplier for the ray at a given degree
     var rayOpacity: (Double) -> Double = { _ in 1 }
 
-    // Multiplier for ray_density at a given degree, so the rays can be spaced out more in some places while staying
-    // evenly spaced
-    var densityScale: ((Double) -> Double)? = nil
-
-    // Dash pattern, and the dash phase for the ray with a given index, as a fraction of the dash pattern length
+    // Dash pattern, and the dash phase for the ray with a given index
     var dash: [CGFloat] = []
     var dashPhase: (Int) -> CGFloat = { _ in 0 }
 
@@ -184,21 +180,12 @@ struct ColoredRays: View {
         Canvas { context, size in
             let rect = CGRect(origin: .zero, size: size)
             let degrees = end_degree - start_degree
-            var rayDegrees: [Double] = []
-            if let densityScale {
-                var degree = start_degree
-                while degree < end_degree {
-                    rayDegrees.append(degree)
-                    degree += 1 / (ray_density * densityScale(degree))
-                }
-            } else {
-                rayDegrees = (0..<max(0, Int(Double(degrees) * ray_density))).map { start_degree + Double($0) / ray_density }
-            }
-            let number_of_rays = rayDegrees.count
+            let number_of_rays = Int(Double(degrees) * ray_density)
 
             if number_of_rays <= 0 { return }
 
-            for (i, degree) in rayDegrees.enumerated() {
+            for i in 0..<number_of_rays {
+                let degree = start_degree + CGFloat(i) / ray_density
                 let opacity = rayOpacity(degree)
                 if opacity <= 0 { continue }
                 var size_a: CGFloat = rect.height / a
@@ -235,23 +222,23 @@ struct ColoredRays: View {
                 path.move(to: CGPoint(x: x, y: y))
                 path.addLine(to: CGPoint(x: x2, y: y2))
 
-                context.stroke(path, with: .color(color.opacity(opacity)), style: StrokeStyle(lineWidth: lineWidth, lineCap: lineCap, dash: dash, dashPhase: dashPhase(i) * dash.reduce(0, +)))
+                context.stroke(path, with: .color(color.opacity(opacity)), style: StrokeStyle(lineWidth: lineWidth, lineCap: lineCap, dash: dash, dashPhase: dashPhase(i)))
             }
         }
     }
 }
 
-// Rain falling from the cloud towards the dial, as evenly spaced rays of drops. The drops are small teardrops in drizzle
-// and grow into long tapered streaks in heavy rain. All the drops go into one path that is filled once, so drawing them
-// individually stays cheap.
-struct RainDrops: View {
+// Rain or snow falling from the cloud towards the dial, as evenly spaced rays of drops. Rain drops are small teardrops
+// in drizzle and grow into long tapered streaks in heavy rain; snowflakes are round and grow with the snowfall. All the
+// drops go into one path that is filled once, so drawing them individually stays cheap.
+struct Precipitation: View {
     let a: CGFloat
     let b: CGFloat
     let ray_density: Double
     var start_degree = 0.0
     var end_degree = 360.0
     var wiggle_size = 1.01
-    var color: Color = rainColor
+    var snow = false
 
     // Heaviness at the start edge, center, and end edge, blended in between
     var heavinessBefore: Double = 0
@@ -285,7 +272,7 @@ struct RainDrops: View {
                     inner *= wiggle_size
                 }
 
-                // u points inwards along the ray, the direction the rain falls, and v across it
+                // u points inwards along the ray, the direction the drops fall, and v across it
                 let radians = CGFloat.pi - degree.degreesToRadians
                 let u = CGPoint(x: -sin(radians), y: -cos(radians))
                 let v = CGPoint(x: -u.y, y: u.x)
@@ -296,11 +283,27 @@ struct RainDrops: View {
                     )
                 }
 
+                let rayLength = outer - inner
+
+                if snow {
+                    // Flakes scattered along the ray at random, the way snow drifts
+                    let diameter = snowFlakeDiameter(heaviness: heaviness, dialHeight: size.height)
+                    let period = diameter + snowFlakeGap(heaviness: heaviness, dialHeight: size.height)
+                    var flake = dropDashPhase(seed: seed, ray: ray) * period
+                    while flake < rayLength {
+                        let p = point(flake)
+                        path.addEllipse(in: CGRect(x: p.x - diameter / 2, y: p.y - diameter / 2, width: diameter, height: diameter))
+                        flake += period
+                    }
+                    degree += 1 / (ray_density * dropDensityScale(heaviness: heaviness))
+                    ray += 1
+                    continue
+                }
+
                 let width = rainDropWidth(heaviness: heaviness, dialHeight: size.height)
                 let dash = rainDash(heaviness: heaviness, dialHeight: size.height)
                 let length = max(dash[0], width)
                 let period = length + dash[1]
-                let rayLength = outer - inner
 
                 var tail = -rainDashPhase(seed: seed, ray: ray) * period
                 while tail < rayLength {
@@ -324,7 +327,7 @@ struct RainDrops: View {
                 degree += 1 / (ray_density * dropDensityScale(heaviness: heaviness))
                 ray += 1
             }
-            context.fill(path, with: .color(color))
+            context.fill(path, with: .color(snow ? snow_color : rainColor))
         }
     }
 }
@@ -452,13 +455,23 @@ func rainDash(heaviness: Double, dialHeight: CGFloat) -> [CGFloat] {
     return [(1 + 6 * heaviness) * scale, (3 - 0.5 * heaviness) * scale]
 }
 
+// Diameter of the snowflakes, and the gap between them along a ray, on a dial of the given height: heavier snowfall has
+// bigger and more tightly packed flakes
+func snowFlakeDiameter(heaviness: Double, dialHeight: CGFloat) -> CGFloat {
+    max(0.8, (1.1 + 1.4 * heaviness) * dialHeight / 350)
+}
+
+func snowFlakeGap(heaviness: Double, dialHeight: CGFloat) -> CGFloat {
+    (3.5 - 1.5 * heaviness) * dialHeight / 350
+}
+
 // Fraction of the full rain_density drawn: the drops are only a little sparser in light precipitation, so the rain
 // still reads as rain
 func dropDensityScale(heaviness: Double) -> Double {
     0.8 + 0.2 * heaviness
 }
 
-// Offsets each snow ray's dashes by a fixed random fraction of the dash pattern, so the flakes are scattered instead of
+// Offsets each snow ray's flakes by a fixed random fraction of flake plus gap, so the flakes are scattered instead of
 // lining up in rings
 func dropDashPhase(seed: Int, ray: Int) -> CGFloat {
     star_field_random_numbers[(seed * 31 + ray) % star_field_random_numbers.count]
@@ -913,13 +926,13 @@ struct Clock : View {
         return cloudShade(weather[startOfToday.addingLocalHours(id + start + offset, in: timeZone)]) ?? 0
     }
 
-    // Rain heaviness `offset` hours away: dry (or snowy) hours have none, and across the break at the top of the dial
-    // the rain just continues as it is
-    func neighborRainHeaviness(id: Int, offset: Int, heaviness: Double) -> Double {
+    // Rain (or snow) heaviness `offset` hours away: dry hours, and hours with the other kind of precipitation, have
+    // none, and across the break at the top of the dial the precipitation just continues as it is
+    func neighborHeaviness(id: Int, offset: Int, heaviness: Double, snow: Bool) -> Double {
         let neighborId = id + offset
         guard neighborId >= 0 && neighborId < 12 else { return heaviness }
         guard let neighbor = weather[startOfToday.addingLocalHours(id + start + offset, in: timeZone)],
-              neighbor.weatherType != .snow,
+              (neighbor.weatherType == .snow) == snow,
               neighbor.rainMillimeter > 0 || neighbor.weatherType == .rain else { return 0 }
         return neighbor.rainHeaviness
     }
@@ -1014,41 +1027,22 @@ struct Clock : View {
                             )
                         }
                         if rain {
-                            if weather.weatherType == .snow {
-                                ColoredRays(
-                                    a: cloud_diameter,
-                                    b: circle_inner_diameter,
-                                    ray_density: rain_density * rainDensityScale,
-                                    wiggle_a: true,
-                                    wiggle_b: true,
-                                    start_degree: from,
-                                    end_degree: to,
-                                    colorBefore: snow_color,
-                                    colorCenter: snow_color,
-                                    colorAfter: snow_color,
-                                    densityScale: { _ in dropDensityScale(heaviness: weather.rainHeaviness) },
-                                    dash: [1, 4, 1, 4],
-                                    dashPhase: { dropDashPhase(seed: id + start, ray: $0) }
-                                )
-                            }
-                            else {
-                                // rain, with bigger and longer drops the heavier it is, blended towards the neighboring hours so
-                                // it doesn't jump at the hour boundaries
-                                let heaviness = weather.rainHeaviness
-                                let heavinessBefore = (neighborRainHeaviness(id: id, offset: -1, heaviness: heaviness) + heaviness) / 2
-                                let heavinessAfter = (heaviness + neighborRainHeaviness(id: id, offset: 1, heaviness: heaviness)) / 2
-                                RainDrops(
-                                    a: cloud_diameter,
-                                    b: circle_inner_diameter,
-                                    ray_density: rain_density * rainDensityScale,
-                                    start_degree: from,
-                                    end_degree: to,
-                                    heavinessBefore: heavinessBefore,
-                                    heavinessCenter: heaviness,
-                                    heavinessAfter: heavinessAfter,
-                                    seed: id + start
-                                )
-                            }
+                            // bigger drops the heavier it is, blended towards the neighboring hours so it doesn't jump at
+                            // the hour boundaries
+                            let snow = weather.weatherType == .snow
+                            let heaviness = weather.rainHeaviness
+                            Precipitation(
+                                a: cloud_diameter,
+                                b: circle_inner_diameter,
+                                ray_density: rain_density * rainDensityScale,
+                                start_degree: from,
+                                end_degree: to,
+                                snow: snow,
+                                heavinessBefore: (neighborHeaviness(id: id, offset: -1, heaviness: heaviness, snow: snow) + heaviness) / 2,
+                                heavinessCenter: heaviness,
+                                heavinessAfter: (heaviness + neighborHeaviness(id: id, offset: 1, heaviness: heaviness, snow: snow)) / 2,
+                                seed: id + start
+                            )
                         }
                         
                         if weather.weatherType == .lightning {
