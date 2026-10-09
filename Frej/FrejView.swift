@@ -184,6 +184,10 @@ struct ColoredRays: View {
 
             if number_of_rays <= 0 { return }
 
+            let before = RGBA(colorBefore)
+            let center = RGBA(colorCenter)
+            let after = RGBA(colorAfter)
+
             for i in 0..<number_of_rays {
                 let degree = start_degree + CGFloat(i) / ray_density
                 let opacity = rayOpacity(degree)
@@ -209,12 +213,12 @@ struct ColoredRays: View {
                 if progress < 0.5 {
                     // Blend from before to center
                     let ratio = progress * 2
-                    color = blendColors(colorBefore, colorCenter, ratio: ratio)
+                    color = before.blended(with: center, ratio: ratio)
                     lineWidth = lineWidthBefore + (lineWidthCenter - lineWidthBefore) * CGFloat(ratio)
                 } else {
                     // Blend from center to after
                     let ratio = (progress - 0.5) * 2
-                    color = blendColors(colorCenter, colorAfter, ratio: ratio)
+                    color = center.blended(with: after, ratio: ratio)
                     lineWidth = lineWidthCenter + (lineWidthAfter - lineWidthCenter) * CGFloat(ratio)
                 }
 
@@ -527,37 +531,35 @@ func uvToColor(_ uvIndex: Float) -> Color {
     }
 }
 
+// A color's sRGB components, for blending. Getting them goes through UIKit and CoreGraphics, which is slow enough that
+// code blending colors for every ray should get them once up front.
+struct RGBA {
+    var red, green, blue, alpha: CGFloat
+
+    init(_ color: Color) {
+        red = 0; green = 0; blue = 0; alpha = 0
+        if let srgb = UIColor(color).cgColor.converted(to: CGColorSpace(name: CGColorSpace.sRGB)!, intent: .defaultIntent, options: nil) {
+            let components = srgb.components ?? [0, 0, 0, 1]
+            red = components.count > 0 ? components[0] : 0
+            green = components.count > 1 ? components[1] : 0
+            blue = components.count > 2 ? components[2] : 0
+            alpha = components.count > 3 ? components[3] : 1
+        }
+    }
+
+    func blended(with other: RGBA, ratio: Double) -> Color {
+        let r = CGFloat(min(1, max(0, ratio)))
+        return Color(
+            red: Double(red + (other.red - red) * r),
+            green: Double(green + (other.green - green) * r),
+            blue: Double(blue + (other.blue - blue) * r),
+            opacity: Double(alpha + (other.alpha - alpha) * r)
+        )
+    }
+}
+
 func blendColors(_ c1: Color, _ c2: Color, ratio: Double) -> Color {
-    let r = min(1, max(0, ratio))
-
-    let ui1 = UIColor(c1)
-    let ui2 = UIColor(c2)
-
-    var r1: CGFloat = 0, g1: CGFloat = 0, b1: CGFloat = 0, a1: CGFloat = 0
-    var r2: CGFloat = 0, g2: CGFloat = 0, b2: CGFloat = 0, a2: CGFloat = 0
-
-    if let srgb1 = ui1.cgColor.converted(to: CGColorSpace(name: CGColorSpace.sRGB)!, intent: .defaultIntent, options: nil) {
-        let components1 = srgb1.components ?? [0, 0, 0, 1]
-        r1 = components1.count > 0 ? components1[0] : 0
-        g1 = components1.count > 1 ? components1[1] : 0
-        b1 = components1.count > 2 ? components1[2] : 0
-        a1 = components1.count > 3 ? components1[3] : 1
-    }
-
-    if let srgb2 = ui2.cgColor.converted(to: CGColorSpace(name: CGColorSpace.sRGB)!, intent: .defaultIntent, options: nil) {
-        let components2 = srgb2.components ?? [0, 0, 0, 1]
-        r2 = components2.count > 0 ? components2[0] : 0
-        g2 = components2.count > 1 ? components2[1] : 0
-        b2 = components2.count > 2 ? components2[2] : 0
-        a2 = components2.count > 3 ? components2[3] : 1
-    }
-
-    let red = r1 + (r2 - r1) * r
-    let green = g1 + (g2 - g1) * r
-    let blue = b1 + (b2 - b1) * r
-    let alpha = a1 + (a2 - a1) * r
-
-    return Color(red: Double(red), green: Double(green), blue: Double(blue), opacity: Double(alpha))
+    RGBA(c1).blended(with: RGBA(c2), ratio: ratio)
 }
 
 // Sunlight fades in from when the sun is this many degrees below the horizon, and is at full strength once it's this high
@@ -568,11 +570,34 @@ private let full_sun_elevation = 8.0
 private let all_stars_elevation = -8.0
 private let stars_gone_elevation = 0.0
 
-// The moment a point on a dial starting at hour `start` stands for
-func dialDate(startOfToday: Date, start: Int, degree: Double, timeZone: TimeZone) -> Date {
-    let hours = Double(start) + degree / 30
-    let hour = floor(hours)
-    return startOfToday.addingLocalHours(Int(hour), in: timeZone).addingTimeInterval((hours - hour) * 3600)
+// The start of each local clock hour around a dial starting at hour `start`, plus the hours on either side. Calendar
+// math takes several microseconds per call, far too slow to do for every ray and star, so it's done once per dial here.
+struct DialHours {
+    let startOfToday: Date
+    let start: Int
+    let timeZone: TimeZone
+    private let dates: [Date]
+
+    init(startOfToday: Date, start: Int, timeZone: TimeZone) {
+        self.startOfToday = startOfToday
+        self.start = start
+        self.timeZone = timeZone
+        dates = (-1...13).map { startOfToday.addingLocalHours(start + $0, in: timeZone) }
+    }
+
+    // The start of local clock hour `hour`, counted from midnight today
+    func date(hour: Int) -> Date {
+        let index = hour - start + 1
+        guard dates.indices.contains(index) else { return startOfToday.addingLocalHours(hour, in: timeZone) }
+        return dates[index]
+    }
+
+    // The moment a point on the dial stands for
+    func date(degree: Double) -> Date {
+        let hours = Double(start) + degree / 30
+        let hour = floor(hours)
+        return date(hour: Int(hour)).addingTimeInterval((hours - hour) * 3600)
+    }
 }
 
 // 0 (no sun) to 1 (full sun), eased so the fade has no hard start or end
@@ -599,6 +624,8 @@ struct Daylight : View {
     var sunRayDensityScale: Double = 1.0
     var coordinate: CLLocationCoordinate2D? = nil
 
+    var dialHours: DialHours { DialHours(startOfToday: startOfToday, start: start, timeZone: timeZone) }
+
     // Sunrise to sunset in dial degrees
     var litDegrees: (Double, Double)? {
         guard let sunrise, let sunset else { return nil }
@@ -607,9 +634,9 @@ struct Daylight : View {
 
     // How strong the sun is at a point on the dial, following its elevation so dawn and dusk fade gradually.
     // Without a location it's just on from sunrise to sunset.
-    func sunlight(at degree: Double) -> Double {
+    func sunlight(at degree: Double, hours: DialHours) -> Double {
         if let coordinate {
-            return sunlightStrength(elevation: sunElevation(date: dialDate(startOfToday: startOfToday, start: start, degree: degree, timeZone: timeZone), coordinate: coordinate))
+            return sunlightStrength(elevation: sunElevation(date: hours.date(degree: degree), coordinate: coordinate))
         }
         guard let lit = litDegrees else { return 0 }
         return degree >= lit.0 && degree < lit.1 ? 1 : 0
@@ -629,10 +656,11 @@ struct Daylight : View {
             Text("")
         }
         else if showUVRays {
+            let hours = dialHours
             // Draw individual rays per hour with UV-based thickness and color fading
             ForEach(0..<12, id: \.self) { id in
                 let hour = id + start
-                let startDatetime = startOfToday.addingLocalHours(hour, in: timeZone)
+                let startDatetime = hours.date(hour: hour)
                 let (hourFrom, hourTo) = hourDegrees(hour)
 
                 if let hourWeather = weather[startDatetime], isLit(hour: hour) {
@@ -640,8 +668,8 @@ struct Daylight : View {
                     let centerColor = uvToColor(hourWeather.uvIndex)
 
                     // Data from adjacent hours, if they get any sun
-                    let prevWeather = isLit(hour: hour - 1) ? weather[startOfToday.addingLocalHours(hour - 1, in: timeZone)] : nil
-                    let nextWeather = isLit(hour: hour + 1) ? weather[startOfToday.addingLocalHours(hour + 1, in: timeZone)] : nil
+                    let prevWeather = isLit(hour: hour - 1) ? weather[hours.date(hour: hour - 1)] : nil
+                    let nextWeather = isLit(hour: hour + 1) ? weather[hours.date(hour: hour + 1)] : nil
 
                     let prevColor = prevWeather.map { uvToColor($0.uvIndex) } ?? centerColor
                     let nextColor = nextWeather.map { uvToColor($0.uvIndex) } ?? centerColor
@@ -662,14 +690,15 @@ struct Daylight : View {
                         lineWidthBefore: (prevLineWidth + centerLineWidth) / 2,
                         lineWidthCenter: centerLineWidth,
                         lineWidthAfter: (centerLineWidth + nextLineWidth) / 2,
-                        rayOpacity: sunlight(at:)
+                        rayOpacity: { sunlight(at: $0, hours: hours) }
                     )
                 }
             }
         }
         else {
             let (from, to) = coordinate == nil ? litDegrees! : (-15.0, 342.0)
-            ColoredRays(a: 2.6, b: circle_inner_diameter, ray_density: sun_ray_density * sunRayDensityScale, wiggle_a: true, start_degree: from, end_degree: to, rayOpacity: sunlight(at:))
+            let hours = dialHours
+            ColoredRays(a: 2.6, b: circle_inner_diameter, ray_density: sun_ray_density * sunRayDensityScale, wiggle_a: true, start_degree: from, end_degree: to, rayOpacity: { sunlight(at: $0, hours: hours) })
         }
     }
 }
@@ -683,37 +712,38 @@ struct Night : View {
     var coordinate: CLLocationCoordinate2D? = nil
     var weather: [Date: Weather] = [:]
 
-    // Fog hides the sky
-    func isFoggy(at degree: Double) -> Bool {
-        (0..<12).contains { id in
-            let date = startOfToday.addingLocalHours(id + start, in: timeZone)
-            guard weather[date]?.weatherType == .fog else { return false }
-            // Same span as the fog drawn by Clock
+    // The spans of the dial hidden by fog, the same spans as the fog drawn by Clock
+    func fogSpans(hours: DialHours) -> [(Double, Double)] {
+        (0..<12).compactMap { id in
+            guard weather[hours.date(hour: id + start)]?.weatherType == .fog else { return nil }
             let (from, to) = hourDegrees(id + start)
-            return degree >= from - 1 && degree <= to + 1
+            return (from - 1, to + 1)
         }
     }
 
-    // Stars fade out as the sky brightens, mirroring the sun rays fading in
-    func starOpacity(at degree: Double) -> Double {
-        if isFoggy(at: degree) { return 0 }
+    // Stars fade out as the sky brightens, mirroring the sun rays fading in, and fog hides them
+    func starOpacity(at degree: Double, hours: DialHours, fog: [(Double, Double)]) -> Double {
+        if fog.contains(where: { degree >= $0.0 && degree <= $0.1 }) { return 0 }
         guard let coordinate else { return 1 }
-        let elevation = sunElevation(date: dialDate(startOfToday: startOfToday, start: start, degree: degree, timeZone: timeZone), coordinate: coordinate)
+        let elevation = sunElevation(date: hours.date(degree: degree), coordinate: coordinate)
         let x = min(1, max(0, (elevation - stars_gone_elevation) / (all_stars_elevation - stars_gone_elevation)))
         return x * x * (3 - 2 * x)
     }
 
     var body : some View {
+        let hours = DialHours(startOfToday: startOfToday, start: start, timeZone: timeZone)
+        let fog = fogSpans(hours: hours)
+        let opacity = { (degree: Double) in starOpacity(at: degree, hours: hours, fog: fog) }
         if coordinate != nil {
-            StarRays(ray_density: star_density, start_degree: -15, end_degree: 360 - 15, starOpacity: starOpacity(at:))
+            StarRays(ray_density: star_density, start_degree: -15, end_degree: 360 - 15, starOpacity: opacity)
         }
         else if let sunrise = sunrise, let sunset = sunset {
             let (from, to) = datetime_to_degrees(sunrise: sunrise, sunset: sunset, start: start, timeZone: timeZone)
             if start % 24 == 0 {
-                StarRays(ray_density: star_density, start_degree: -15, end_degree: from, starOpacity: starOpacity(at:))
+                StarRays(ray_density: star_density, start_degree: -15, end_degree: from, starOpacity: opacity)
             }
             else {
-                StarRays(ray_density: star_density, start_degree: to, end_degree: 360 - 15, starOpacity: starOpacity(at:))
+                StarRays(ray_density: star_density, start_degree: to, end_degree: 360 - 15, starOpacity: opacity)
             }
         }
         else {
@@ -852,17 +882,20 @@ struct CloudRims: View {
                     !circles.indices.contains { j in j != i && distance(p, toLineFrom: circles[j].inner, to: circles[j].outer) < radius }
                 }
 
+                // The visible pieces of the rim, stroked together
+                var rim = Path()
                 let step: CGFloat = 4.0.degreesToRadians
                 var angle = circle.outward - cloud_rim_extent.degreesToRadians
                 while angle < circle.outward + cloud_rim_extent.degreesToRadians {
                     let next = angle + step
                     if isVisible(rimPoint(angle)) && isVisible(rimPoint(next)) {
-                        var arc = Path()
-                        arc.addArc(center: circle.outer, radius: rimRadius, startAngle: .radians(angle), endAngle: .radians(next), clockwise: false)
-                        context.stroke(arc, with: .color(color), lineWidth: cloud_rim_width)
+                        // Without the move, addArc would join the visible pieces with straight lines
+                        rim.move(to: rimPoint(angle))
+                        rim.addArc(center: circle.outer, radius: rimRadius, startAngle: .radians(angle), endAngle: .radians(next), clockwise: false)
                     }
                     angle = next
                 }
+                context.stroke(rim, with: .color(color), lineWidth: cloud_rim_width)
             }
         }
     }
@@ -912,26 +945,26 @@ struct Clock : View {
 
 
     // Shade of the hour `offset` hours away, if it's on this dial and has clouds
-    func neighborShade(id: Int, offset: Int) -> Double? {
+    func neighborShade(id: Int, offset: Int, hours: DialHours) -> Double? {
         let neighborId = id + offset
         guard neighborId >= 0 && neighborId < 12 else { return nil }
-        return cloudShade(weather[startOfToday.addingLocalHours(id + start + offset, in: timeZone)])
+        return cloudShade(weather[hours.date(hour: id + start + offset)])
     }
 
     // Shade of the cloud mask over the sun rays `offset` hours away: clear hours have none, and across the break at
     // the top of the dial the mask just continues as it is
-    func neighborMaskShade(id: Int, offset: Int, shade: Double) -> Double {
+    func neighborMaskShade(id: Int, offset: Int, shade: Double, hours: DialHours) -> Double {
         let neighborId = id + offset
         guard neighborId >= 0 && neighborId < 12 else { return shade }
-        return cloudShade(weather[startOfToday.addingLocalHours(id + start + offset, in: timeZone)]) ?? 0
+        return cloudShade(weather[hours.date(hour: id + start + offset)]) ?? 0
     }
 
     // Rain (or snow) heaviness `offset` hours away: dry hours, and hours with the other kind of precipitation, have
     // none, and across the break at the top of the dial the precipitation just continues as it is
-    func neighborHeaviness(id: Int, offset: Int, heaviness: Double, snow: Bool) -> Double {
+    func neighborHeaviness(id: Int, offset: Int, heaviness: Double, snow: Bool, hours: DialHours) -> Double {
         let neighborId = id + offset
         guard neighborId >= 0 && neighborId < 12 else { return heaviness }
-        guard let neighbor = weather[startOfToday.addingLocalHours(id + start + offset, in: timeZone)],
+        guard let neighbor = weather[hours.date(hour: id + start + offset)],
               (neighbor.weatherType == .snow) == snow,
               neighbor.rainMillimeter > 0 || neighbor.weatherType == .rain else { return 0 }
         return neighbor.rainHeaviness
@@ -946,7 +979,8 @@ struct Clock : View {
     var body : some View {
         GeometryReader { (geometry) in
             let frame = geometry.size
-            let startTime = startOfToday.addingLocalHours(start, in: timeZone)
+            let hours = DialHours(startOfToday: startOfToday, start: start, timeZone: timeZone)
+            let startTime = hours.date(hour: start)
             // Hours and minutes at the location, which can be in a different time zone than the phone
             let hour = now.fractionalHour(in: timeZone)
             let minutes = floor((hour - floor(hour)) * 60)
@@ -972,7 +1006,7 @@ struct Clock : View {
                 #endif
                 
                 ForEach(0..<12, id: \.self) { id in
-                    let startDatetime = startOfToday.addingLocalHours(id + start, in: timeZone)
+                    let startDatetime = hours.date(hour: id + start)
                     if let weather = weather[startDatetime] {
                         let (from, to) = hourDegrees(id + start)
 
@@ -1008,8 +1042,8 @@ struct Clock : View {
                         if let shade = cloudShade {
                             // black anti-rays — fade in with cloudiness so thin clouds still let the sun through. Blended
                             // towards the neighboring hours, so the light doesn't jump at the hour boundaries.
-                            let previousMask = neighborMaskShade(id: id, offset: -1, shade: shade)
-                            let nextMask = neighborMaskShade(id: id, offset: 1, shade: shade)
+                            let previousMask = neighborMaskShade(id: id, offset: -1, shade: shade, hours: hours)
+                            let nextMask = neighborMaskShade(id: id, offset: 1, shade: shade, hours: hours)
                             let maskWidth = min(geometry.size.height/2, geometry.size.width) / 50
                             ColoredRays(
                                 a: cloud_diameter,
@@ -1038,9 +1072,9 @@ struct Clock : View {
                                 start_degree: from,
                                 end_degree: to,
                                 snow: snow,
-                                heavinessBefore: (neighborHeaviness(id: id, offset: -1, heaviness: heaviness, snow: snow) + heaviness) / 2,
+                                heavinessBefore: (neighborHeaviness(id: id, offset: -1, heaviness: heaviness, snow: snow, hours: hours) + heaviness) / 2,
                                 heavinessCenter: heaviness,
-                                heavinessAfter: (heaviness + neighborHeaviness(id: id, offset: 1, heaviness: heaviness, snow: snow)) / 2,
+                                heavinessAfter: (heaviness + neighborHeaviness(id: id, offset: 1, heaviness: heaviness, snow: snow, hours: hours)) / 2,
                                 seed: id + start
                             )
                         }
@@ -1061,8 +1095,8 @@ struct Clock : View {
                                 from: from,
                                 to: to,
                                 shade: shade,
-                                previousShade: neighborShade(id: id, offset: -1),
-                                nextShade: neighborShade(id: id, offset: 1),
+                                previousShade: neighborShade(id: id, offset: -1, hours: hours),
+                                nextShade: neighborShade(id: id, offset: 1, hours: hours),
                                 cloudSize: cloud_size
                             )
                             CloudRims(from: from, to: to, cloudSize: cloud_size, seed: id + start)
