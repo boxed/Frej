@@ -4,13 +4,13 @@ import CoreLocation
 
 private let moon_bg_color = Color(#colorLiteral(red: 0.2549019754, green: 0.2745098174, blue: 0.3019607961, alpha: 1))
 private let moon_slice_color = Color(#colorLiteral(red: 0.7179528061, green: 0.7179528061, blue: 0.7179528061, alpha: 1))
-private let moon_maria_color = Color(#colorLiteral(red: 0.6315254227, green: 0.6354416913, blue: 0.6432933126, alpha: 1))
+private let moon_maria_color = Color(#colorLiteral(red: 0.6747391144, green: 0.6766972487, blue: 0.6806230594, alpha: 1))
 // Multiplied onto the lit surface inside the earth's umbra: sunlight reddened by passing through the earth's atmosphere.
 private let moon_umbra_edge_tint = (red: 0.75, green: 0.40, blue: 0.28)
 private let moon_umbra_center_tint = (red: 0.60, green: 0.28, blue: 0.18)
 // The penumbra only dims the sunlight, from the umbra edge's brightness at its inner edge.
 private let moon_penumbra_tint = (red: 0.47, green: 0.47, blue: 0.47)
-private let moon_dark_maria_color = Color(#colorLiteral(red: 0.2078431373, green: 0.2274509804, blue: 0.2549019608, alpha: 1))
+private let moon_dark_maria_color = Color(#colorLiteral(red: 0.2313725564, green: 0.2509803989, blue: 0.2784313785, alpha: 1))
 
 /// Outlines of the near side maria on a unit disc, north up, as seen from Earth. Generated from the LROC global mare
 /// boundaries (https://data.lroc.im-ldi.com/lroc/view_rdr/SHAPEFILE_LROC_GLOBAL_MARE): orthographically projected,

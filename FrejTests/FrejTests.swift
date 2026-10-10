@@ -173,8 +173,7 @@ class DrawingBenchmarkTests: XCTestCase {
         time("bolts x12", ZStack {
             ForEach(0..<12, id: \.self) { id in
                 let (from, to) = hourDegrees(id)
-                Bolt(a: 3.1, b: 3.7, start_degree: from, end_degree: to).stroke(Color.black, style: StrokeStyle(lineWidth: 3, lineCap: .round, lineJoin: .round))
-                Bolt(a: 3.1, b: 3.7, start_degree: from, end_degree: to).stroke(Color.yellow)
+                LightningStrikes(a: 3.1, b: 3.7, start_degree: from, end_degree: to, seed: id)
             }
         })
         time("dial and hands", ZStack {

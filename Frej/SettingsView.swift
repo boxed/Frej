@@ -21,6 +21,7 @@ struct SettingsView: View {
                 Section(header: Text("Display")) {
                     Toggle("Show UV Index on Sun Rays", isOn: $userSettings.showUVRays)
                     Toggle("Show \"Feels Like\" Temperature", isOn: $userSettings.useApparentTemperature)
+                    Toggle("Animate Rain and Snow", isOn: $userSettings.animatePrecipitation)
                 }
 
                 Section(header: Text("Locations")) {

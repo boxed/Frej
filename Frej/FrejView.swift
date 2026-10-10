@@ -232,6 +232,11 @@ struct ColoredRays: View {
     }
 }
 
+extension EnvironmentValues {
+    // Whether rain and snow fall, set from the user's settings. Off by default, so the widget and tests draw still drops.
+    @Entry var animatePrecipitation = false
+}
+
 // Rain or snow falling from the cloud towards the dial, as evenly spaced rays of drops. Rain drops are small teardrops
 // in drizzle and grow into long tapered streaks in heavy rain; snowflakes are round and grow with the snowfall. All the
 // drops go into one path that is filled once, so drawing them individually stays cheap.
@@ -260,79 +265,97 @@ struct Precipitation: View {
         return heavinessCenter + (heavinessAfter - heavinessCenter) * (progress - 0.5) * 2
     }
 
+    @Environment(\.animatePrecipitation) private var animate
+    @Environment(\.accessibilityReduceMotion) private var reduceMotion
+
     var body: some View {
-        Canvas { context, size in
-            let center = CGPoint(x: size.width / 2, y: size.height / 2)
-            var path = Path()
-            var degree = start_degree
-            var ray = 0
-            while degree < end_degree {
-                let heaviness = heaviness(at: degree)
-                var outer = size.height / a
-                var inner = size.height / b
-                if ray % 2 == 0 {
-                    outer *= wiggle_size
-                } else {
-                    inner *= wiggle_size
+        let paused = !animate || reduceMotion
+        TimelineView(.animation(minimumInterval: 1 / 30, paused: paused)) { timeline in
+            // Seconds since a recent fixed point, small enough to keep full precision
+            let time = paused ? 0 : timeline.date.timeIntervalSinceReferenceDate.truncatingRemainder(dividingBy: 3600)
+            Canvas { context, size in
+                draw(context: context, size: size, time: time)
+            }
+        }
+    }
+
+    func draw(context: GraphicsContext, size: CGSize, time: Double) {
+        let center = CGPoint(x: size.width / 2, y: size.height / 2)
+        let scale = size.height / 350
+        var path = Path()
+        var degree = start_degree
+        var ray = 0
+        while degree < end_degree {
+            let heaviness = heaviness(at: degree)
+            var outer = size.height / a
+            var inner = size.height / b
+            if ray % 2 == 0 {
+                outer *= wiggle_size
+            } else {
+                inner *= wiggle_size
+            }
+
+            // u points inwards along the ray, the direction the drops fall, and v across it
+            let radians = CGFloat.pi - degree.degreesToRadians
+            let u = CGPoint(x: -sin(radians), y: -cos(radians))
+            let v = CGPoint(x: -u.y, y: u.x)
+            func point(_ distance: CGFloat, _ across: CGFloat = 0) -> CGPoint {
+                CGPoint(
+                    x: center.x + u.x * (distance - outer) + v.x * across,
+                    y: center.y + u.y * (distance - outer) + v.y * across
+                )
+            }
+
+            let rayLength = outer - inner
+
+            if snow {
+                // Flakes scattered along the ray at random, the way snow drifts
+                let diameter = snowFlakeDiameter(heaviness: heaviness, dialHeight: size.height)
+                let period = diameter + snowFlakeGap(heaviness: heaviness, dialHeight: size.height)
+                // Flakes drift down slowly, weaving from side to side as they fall, each ray out of step with the others
+                let fallen = time * snowFallSpeed(heaviness: heaviness) * scale
+                let sway = snowSway(heaviness: heaviness) * scale
+                var flake = (dropDashPhase(seed: seed, ray: ray) * period + fallen).truncatingRemainder(dividingBy: period) - period
+                while flake < rayLength {
+                    let p = point(flake, sway * sin(flake / (snowSwayWavelength * scale) * 2 * .pi + CGFloat(ray) * 2.1))
+                    path.addEllipse(in: CGRect(x: p.x - diameter / 2, y: p.y - diameter / 2, width: diameter, height: diameter))
+                    flake += period
                 }
-
-                // u points inwards along the ray, the direction the drops fall, and v across it
-                let radians = CGFloat.pi - degree.degreesToRadians
-                let u = CGPoint(x: -sin(radians), y: -cos(radians))
-                let v = CGPoint(x: -u.y, y: u.x)
-                func point(_ distance: CGFloat, _ across: CGFloat = 0) -> CGPoint {
-                    CGPoint(
-                        x: center.x + u.x * (distance - outer) + v.x * across,
-                        y: center.y + u.y * (distance - outer) + v.y * across
-                    )
-                }
-
-                let rayLength = outer - inner
-
-                if snow {
-                    // Flakes scattered along the ray at random, the way snow drifts
-                    let diameter = snowFlakeDiameter(heaviness: heaviness, dialHeight: size.height)
-                    let period = diameter + snowFlakeGap(heaviness: heaviness, dialHeight: size.height)
-                    var flake = dropDashPhase(seed: seed, ray: ray) * period
-                    while flake < rayLength {
-                        let p = point(flake)
-                        path.addEllipse(in: CGRect(x: p.x - diameter / 2, y: p.y - diameter / 2, width: diameter, height: diameter))
-                        flake += period
-                    }
-                    degree += 1 / (ray_density * dropDensityScale(heaviness: heaviness))
-                    ray += 1
-                    continue
-                }
-
-                let width = rainDropWidth(heaviness: heaviness, dialHeight: size.height)
-                let dash = rainDash(heaviness: heaviness, dialHeight: size.height)
-                let length = max(dash[0], width)
-                let period = length + dash[1]
-
-                var tail = -rainDashPhase(seed: seed, ray: ray) * period
-                while tail < rayLength {
-                    // Drops crossing the ends of the ray are cut off, like the dashes were
-                    let start = max(tail, 0)
-                    let end = min(tail + length, rayLength)
-                    if end - start > width / 2 {
-                        // Pointed tail, round head
-                        let r = min(width / 2, (end - start) / 2)
-                        let k = 0.5523 * r
-                        let head = end - r
-                        path.move(to: point(start))
-                        path.addLine(to: point(head, r))
-                        path.addCurve(to: point(head + r), control1: point(head + k, r), control2: point(head + r, k))
-                        path.addCurve(to: point(head, -r), control1: point(head + r, -k), control2: point(head + k, -r))
-                        path.closeSubpath()
-                    }
-                    tail += period
-                }
-
                 degree += 1 / (ray_density * dropDensityScale(heaviness: heaviness))
                 ray += 1
+                continue
             }
-            context.fill(path, with: .color(snow ? snow_color : rainColor))
+
+            let width = rainDropWidth(heaviness: heaviness, dialHeight: size.height)
+            let dash = rainDash(heaviness: heaviness, dialHeight: size.height)
+            let length = max(dash[0], width)
+            let period = length + dash[1]
+
+            // Drops fall towards the dial, the bigger ones faster
+            let fallen = time * rainFallSpeed(heaviness: heaviness) * scale
+            var tail = (fallen - rainDashPhase(seed: seed, ray: ray) * period).truncatingRemainder(dividingBy: period) - period
+            while tail < rayLength {
+                // Drops crossing the ends of the ray are cut off, like the dashes were
+                let start = max(tail, 0)
+                let end = min(tail + length, rayLength)
+                if end - start > width / 2 {
+                    // Pointed tail, round head
+                    let r = min(width / 2, (end - start) / 2)
+                    let k = 0.5523 * r
+                    let head = end - r
+                    path.move(to: point(start))
+                    path.addLine(to: point(head, r))
+                    path.addCurve(to: point(head + r), control1: point(head + k, r), control2: point(head + r, k))
+                    path.addCurve(to: point(head, -r), control1: point(head + r, -k), control2: point(head + k, -r))
+                    path.closeSubpath()
+                }
+                tail += period
+            }
+
+            degree += 1 / (ray_density * dropDensityScale(heaviness: heaviness))
+            ray += 1
         }
+        context.fill(path, with: .color(snow ? snow_color : rainColor))
     }
 }
 
@@ -384,49 +407,154 @@ struct StarRays: View {
     }
 }
 
-struct Bolt: Shape {
+// Lightning striking from the cloud down to the ground. Each bolt is a jagged channel with a branch or two forking off
+// it, different for every strike. When animated, each bolt strikes every few seconds at random and flickers with the
+// return strokes of a real flash, which run down the main channel without the branches.
+struct LightningStrikes: View {
     let a: CGFloat
     let b: CGFloat
     var start_degree = 0.0
     var end_degree = 360.0
-    
-    
-    func path(in rect: CGRect) -> Path {
-        var p = Path()
-        let degree = (start_degree + end_degree) / 2
-    
-        let size_a : CGFloat = rect.height/a
-        let size_b : CGFloat = rect.height/b
-        let size_m = (size_a + size_b)/2
-        let radians: CGFloat = .pi - degree.degreesToRadians
-        for i in [-0.21, -0.14, -0.07, 0.0, 0.07, 0.14, 0.21] {
-            p.move(
-                to: CGPoint(
-                    x: sin(i + radians + 0.03) * size_a + rect.width / 2,
-                    y: cos(i + radians + 0.03) * size_a + rect.height / 2
-                )
-            )
-            p.addLine(
-                to: CGPoint(
-                    x: sin(i + radians + 0.015) * size_m + rect.width / 2,
-                    y: cos(i + radians + 0.015) * size_m + rect.height / 2
-                )
-            )
-            p.addLine(
-                to: CGPoint(
-                    x: sin(i + radians + 0.04) * size_m * 1.01 + rect.width / 2,
-                    y: cos(i + radians + 0.04) * size_m * 1.01 + rect.height / 2
-                )
-            )
-            p.addLine(
-                to: CGPoint(
-                    x: sin(i + radians + 0.03) * size_b + rect.width / 2,
-                    y: cos(i + radians + 0.03) * size_b + rect.height / 2
-                )
-            )
+    var seed = 0
+
+    @Environment(\.animatePrecipitation) private var animate
+    @Environment(\.accessibilityReduceMotion) private var reduceMotion
+
+    var body: some View {
+        let paused = !animate || reduceMotion
+        // Faster than the rain, so the short flashes aren't missed between frames
+        TimelineView(.animation(minimumInterval: 1 / 60, paused: paused)) { timeline in
+            let time = paused ? nil : timeline.date.timeIntervalSinceReferenceDate.truncatingRemainder(dividingBy: 3600)
+            Canvas { context, size in
+                draw(context: context, size: size, time: time)
+            }
         }
-        return p
     }
+
+    // Draws every bolt when `time` is nil, otherwise only the ones flashing at that time
+    func draw(context: GraphicsContext, size: CGSize, time: Double?) {
+        let center = CGPoint(x: size.width / 2, y: size.height / 2)
+        let scale = size.height / 350
+        let outer = size.height / a
+        let length = outer - size.height / b
+        let slotWidth = (end_degree - start_degree) / Double(lightning_bolts_per_hour)
+        for slot in 0..<lightning_bolts_per_hour {
+            var strike = 0
+            var brightness = 1.0
+            var branched = true
+            if let time {
+                let cycle = 2.5 + 3 * lightningRandom(seed, slot)
+                strike = Int(floor(time / cycle))
+                // Some cycles have no strike, so the bolts don't come at a steady beat
+                guard lightningRandom(seed, slot, strike, 1) < 0.6 else { continue }
+                let sinceStrike = time - Double(strike) * cycle - lightningRandom(seed, slot, strike, 2) * (cycle - 0.5)
+                let returnStrokes = 1 + Int(lightningRandom(seed, slot, strike, 3) * 3)
+                guard let pulse = lightningPulse(sinceStrike, returnStrokes: returnStrokes) else { continue }
+                brightness = pulse.brightness
+                branched = pulse.first
+            }
+
+            let degree = start_degree + (Double(slot) + 0.25 + 0.5 * lightningRandom(seed, slot, strike, 4)) * slotWidth
+            let radians = CGFloat.pi - degree.degreesToRadians
+            let u = CGPoint(x: -sin(radians), y: -cos(radians))
+            let v = CGPoint(x: -u.y, y: u.x)
+            func point(_ p: CGPoint) -> CGPoint {
+                CGPoint(
+                    x: center.x + u.x * (p.x - outer) + v.x * p.y,
+                    y: center.y + u.y * (p.x - outer) + v.y * p.y
+                )
+            }
+            func path(_ points: [CGPoint]) -> Path {
+                Path { $0.addLines(points.map(point)) }
+            }
+
+            let channel = lightningChannel(length: length, key: Int(lightningRandom(seed, slot, strike, 5) * 1e9))
+            let main = path(channel.main)
+            var branches = Path()
+            if branched {
+                for branch in channel.branches {
+                    branches.addPath(path(branch))
+                }
+            }
+
+            var context = context
+            context.opacity = brightness
+            func stroke(_ path: Path, _ color: Color, _ width: CGFloat) {
+                context.stroke(path, with: .color(color), style: StrokeStyle(lineWidth: width * scale, lineCap: .round, lineJoin: .round))
+            }
+            // black outline, so the bolts stand out from the rain, then the white-hot core of the main channel
+            stroke(main, .black, 3.4)
+            stroke(branches, .black, 2.6)
+            stroke(main, lightning_color, 1.4)
+            stroke(branches, lightning_color, 0.6)
+            stroke(main, .white, 0.6)
+        }
+    }
+}
+
+private let lightning_bolts_per_hour = 3
+
+// Brightness of a flash `t` seconds after it starts: a bright first stroke, then up to two fainter return strokes down
+// the same channel, with dark gaps in between. Nil while the channel is dark.
+func lightningPulse(_ t: Double, returnStrokes: Int) -> (brightness: Double, first: Bool)? {
+    let strokes: [(start: Double, length: Double, peak: Double)] = [(0, 0.08, 1), (0.14, 0.06, 0.85), (0.27, 0.05, 0.7)]
+    for (i, s) in strokes.prefix(returnStrokes).enumerated() where t >= s.start && t < s.start + s.length {
+        return (s.peak * (1 - 0.4 * (t - s.start) / s.length), i == 0)
+    }
+    return nil
+}
+
+// The jagged channel of one bolt and the branches forking off it, as points of (distance down from the cloud,
+// distance across)
+func lightningChannel(length: CGFloat, key: Int) -> (main: [CGPoint], branches: [[CGPoint]]) {
+    var draws = 0
+    func random() -> CGFloat {
+        draws += 1
+        return lightningRandom(key, draws)
+    }
+    let steps = 5
+    let step = length / CGFloat(steps)
+    var coarse = [CGPoint.zero]
+    var across: CGFloat = 0
+    for n in 1...steps {
+        // Sharp kinks to either side, pulled back towards the middle so the bolt keeps heading down
+        across += (random() * 2 - 1) * step * 0.8 - across * 0.35
+        let down = n == steps ? length : (CGFloat(n) + (random() - 0.5) * 0.5) * step
+        coarse.append(CGPoint(x: down, y: across))
+    }
+    // Smaller kinks within each of the big ones, the way a real channel is jagged at every scale
+    var main = [coarse[0]]
+    for (from, to) in zip(coarse, coarse.dropFirst()) {
+        let jitter = (random() * 2 - 1) * 0.3
+        main.append(CGPoint(x: (from.x + to.x) / 2 - (to.y - from.y) * jitter, y: (from.y + to.y) / 2 + (to.x - from.x) * jitter))
+        main.append(to)
+    }
+    var branches: [[CGPoint]] = []
+    for _ in 0..<(1 + Int(random() * 2)) {
+        // Forks off the upper part of the channel and peters out partway down, off to one side
+        var p = main[1 + Int(random() * 4)]
+        let side: CGFloat = random() < 0.5 ? -1 : 1
+        var branch = [p]
+        for _ in 0..<(2 + Int(random() * 2)) where p.x < length * 0.7 {
+            p.x += step * (0.6 + 0.5 * random())
+            p.y += side * step * (0.3 + 0.8 * random())
+            branch.append(p)
+        }
+        branches.append(branch)
+    }
+    return (main, branches)
+}
+
+// A random number in 0..<1 that is always the same for the same values
+func lightningRandom(_ values: Int...) -> Double {
+    var x: UInt64 = 0
+    for value in values {
+        x = x &+ UInt64(bitPattern: Int64(value)) &+ 0x9E3779B97F4A7C15
+        x = (x ^ (x >> 30)) &* 0xBF58476D1CE4E5B9
+        x = (x ^ (x >> 27)) &* 0x94D049BB133111EB
+        x ^= x >> 31
+    }
+    return Double(x >> 11) / Double(UInt64(1) << 53)
 }
 
 func createDate(year: Int, month: Int, day: Int, hour: Int) -> Date {
@@ -468,6 +596,24 @@ func snowFlakeDiameter(heaviness: Double, dialHeight: CGFloat) -> CGFloat {
 func snowFlakeGap(heaviness: Double, dialHeight: CGFloat) -> CGFloat {
     (3.5 - 1.5 * heaviness) * dialHeight / 350
 }
+
+// How fast rain drops and snowflakes fall, in points per second on a dial 350 points tall. Real drops fall at 2-9 m/s
+// and flakes at around 1 m/s, so the snow drifts down many times slower than the rain.
+func rainFallSpeed(heaviness: Double) -> Double {
+    12.5 + 12.5 * heaviness
+}
+
+func snowFallSpeed(heaviness: Double) -> Double {
+    2 + 1 * heaviness
+}
+
+// How far the snowflakes sway to the sides as they fall, and how far they fall for each sway back and forth, on a dial
+// 350 points tall
+func snowSway(heaviness: Double) -> Double {
+    0.8 + 0.4 * heaviness
+}
+
+let snowSwayWavelength: CGFloat = 10
 
 // Fraction of the full rain_density drawn: the drops are only a little sparser in light precipitation, so the rain
 // still reads as rain
@@ -1149,9 +1295,7 @@ struct Clock : View {
                         }
                         
                         if weather.weatherType == .lightning {
-                            // black outline, so the bolts stand out from the rain
-                            Bolt(a: bolt_diameter, b: bolt_diameter2, start_degree: from, end_degree: to).stroke(Color.black, style: StrokeStyle(lineWidth: 3, lineCap: .round, lineJoin: .round))
-                            Bolt(a: bolt_diameter, b: bolt_diameter2, start_degree: from, end_degree: to).stroke(lightning_color)
+                            LightningStrikes(a: bolt_diameter, b: bolt_diameter2, start_degree: from, end_degree: to, seed: id + start)
                         }
                         
                         if let shade = cloudShade {
@@ -1438,6 +1582,12 @@ class UserSettings: ObservableObject {
         }
     }
 
+    @Published var animatePrecipitation: Bool {
+        didSet {
+            UserDefaults.standard.set(animatePrecipitation, forKey: "animatePrecipitation")
+        }
+    }
+
     @Published var useApparentTemperature: Bool {
         didSet {
             UserDefaults.standard.set(useApparentTemperature, forKey: "useApparentTemperature")
@@ -1456,6 +1606,7 @@ class UserSettings: ObservableObject {
         self.selectedLocationIndex = UserDefaults.standard.integer(forKey: "selectedLocationIndex")
         self.showUVRays = UserDefaults.standard.bool(forKey: "showUVRays")
         self.useApparentTemperature = UserDefaults.standard.bool(forKey: "useApparentTemperature")
+        self.animatePrecipitation = UserDefaults.standard.bool(forKey: "animatePrecipitation")
 
         if let data = UserDefaults.standard.data(forKey: "savedLocations"),
            let decoded = try? JSONDecoder().decode([SavedLocation].self, from: data) {
@@ -1795,6 +1946,7 @@ struct FrejView: View {
             .sheet(isPresented: $showSettings) {
                 SettingsView(userSettings: userSettings, gpsLocation: $gpsLocation)
             }
+            .environment(\.animatePrecipitation, userSettings.animatePrecipitation)
             .onChange(of: userSettings.savedLocations) { oldValue, newValue in
                 // Fetch weather for any newly added locations
                 let newLocations = newValue.filter { newLoc in
