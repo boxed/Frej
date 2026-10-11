@@ -18,6 +18,8 @@ private let cloud_ray_density = 0.20
 private let cloud_diameter = 3.0
 private let cloud_diameter2 = 2.98
 private let cloud_wiggle_size = 1.02
+// The first cloud circle of an hour is half a circle spacing in from its start, so the circles are centered on the hour
+private let cloud_offset = 0.5 / cloud_ray_density
 private let bolt_diameter = 3.1
 private let bolt_diameter2 = 3.7
 
@@ -279,13 +281,39 @@ struct Precipitation: View {
         }
     }
 
+    // Degrees between rays at a given degree
+    func raySpacing(at degree: Double) -> Double {
+        1 / (ray_density * dropDensityScale(heaviness: heaviness(at: degree)))
+    }
+
+    // Where the rays go: spaced by the local density, with half a space before the first and after the last, stretched
+    // a little to fit the section exactly. Then the neighboring section's rays continue at the same spacing across the
+    // edge, instead of sometimes ending up right next to each other and drawing a line.
+    func rayDegrees() -> [Double] {
+        var degrees: [Double] = []
+        var extents: [Double] = []
+        var degree = start_degree + raySpacing(at: start_degree) / 2
+        while degree < end_degree {
+            let spacing = raySpacing(at: degree)
+            degrees.append(degree)
+            extents.append(degree + spacing / 2)
+            degree += spacing
+        }
+        guard let last = extents.last else { return [] }
+        // Drop the last ray if the rest fit the section better
+        if extents.count > 1 && abs(extents[extents.count - 2] - end_degree) < abs(last - end_degree) {
+            degrees.removeLast()
+            extents.removeLast()
+        }
+        let stretch = (end_degree - start_degree) / (extents.last! - start_degree)
+        return degrees.map { start_degree + ($0 - start_degree) * stretch }
+    }
+
     func draw(context: GraphicsContext, size: CGSize, time: Double) {
         let center = CGPoint(x: size.width / 2, y: size.height / 2)
         let scale = size.height / 350
         var path = Path()
-        var degree = start_degree
-        var ray = 0
-        while degree < end_degree {
+        for (ray, degree) in rayDegrees().enumerated() {
             let heaviness = heaviness(at: degree)
             var outer = size.height / a
             var inner = size.height / b
@@ -321,8 +349,6 @@ struct Precipitation: View {
                     path.addEllipse(in: CGRect(x: p.x - diameter / 2, y: p.y - diameter / 2, width: diameter, height: diameter))
                     flake += period
                 }
-                degree += 1 / (ray_density * dropDensityScale(heaviness: heaviness))
-                ray += 1
                 continue
             }
 
@@ -351,9 +377,6 @@ struct Precipitation: View {
                 }
                 tail += period
             }
-
-            degree += 1 / (ray_density * dropDensityScale(heaviness: heaviness))
-            ray += 1
         }
         context.fill(path, with: .color(snow ? snow_color : rainColor))
     }
@@ -1039,8 +1062,8 @@ struct CloudRims: View {
 
     var body: some View {
         Canvas { context, size in
-            let start_degree = from + 0.5
-            let count = Int((to + 0.5 - start_degree) * cloud_ray_density)
+            let start_degree = from + cloud_offset
+            let count = Int((to + cloud_offset - start_degree) * cloud_ray_density)
             if count <= 0 { return }
 
             // Each circle is a round-capped line from `inner` to `outer`, like the rays drawn by CloudBand
@@ -1190,17 +1213,17 @@ struct CloudBand: View {
     }
 
     func band(_ selection: RaySelection, _ color: Color) -> some View {
-        Rays(a: cloud_diameter, b: cloud_diameter2, ray_density: cloud_ray_density, wiggle_c: true, start_degree: from + 0.5, end_degree: to + 0.5, wiggle_size: cloud_wiggle_size, selection: selection)
+        Rays(a: cloud_diameter, b: cloud_diameter2, ray_density: cloud_ray_density, wiggle_c: true, start_degree: from + cloud_offset, end_degree: to + cloud_offset, wiggle_size: cloud_wiggle_size, selection: selection)
             .stroke(color, style: StrokeStyle(lineWidth: cloudSize, lineCap: .round))
     }
 
     var body: some View {
         // Beneath the circles, so they only show in the gaps. The filler towards the next hour is drawn here rather
         // than by the next hour, so the next hour's circles and black border are drawn over it.
-        CloudFillers(start_degree: from + 0.5, end_degree: to + 0.5, cloudSize: cloudSize, trailing: false)
+        CloudFillers(start_degree: from + cloud_offset, end_degree: to + cloud_offset, cloudSize: cloudSize, trailing: false)
             .fill(color(towards: nil))
         if let nextShade {
-            CloudFillers(start_degree: from + 0.5, end_degree: to + 0.5, cloudSize: cloudSize, onlyTrailing: true)
+            CloudFillers(start_degree: from + cloud_offset, end_degree: to + cloud_offset, cloudSize: cloudSize, onlyTrailing: true)
                 .fill(cloudBandColor(shade: (shade + nextShade) / 2))
         }
         band(.first, color(towards: previousShade))
@@ -1321,12 +1344,15 @@ struct Clock : View {
                             // the hour boundaries
                             let snow = weather.weatherType == .snow
                             let heaviness = weather.rainHeaviness
+                            // At the break at the top of the dial the rain stops where the cloud it falls from does
+                            let lastCloudCircle = from + cloud_offset + Double(Int((to - from) * cloud_ray_density) - 1) / cloud_ray_density
+                            let cloudEnd = lastCloudCircle + (cloud_size / 2 / (frame.height / cloud_diameter)).radiansToDegrees
                             Precipitation(
                                 a: cloud_diameter,
                                 b: circle_inner_diameter,
                                 ray_density: rain_density * rainDensityScale,
                                 start_degree: from,
-                                end_degree: to,
+                                end_degree: (id + start) % 12 == 11 ? min(to, cloudEnd) : to,
                                 snow: snow,
                                 heavinessBefore: (neighborHeaviness(id: id, offset: -1, heaviness: heaviness, snow: snow, hours: hours) + heaviness) / 2,
                                 heavinessCenter: heaviness,
@@ -1341,7 +1367,7 @@ struct Clock : View {
                         
                         if let shade = cloudShade {
                             // black border
-                            Rays(a: cloud_diameter - dark_cloud_border_offset, b: cloud_diameter2 - dark_cloud_border_offset, ray_density: cloud_ray_density, wiggle_c: true, start_degree: from + 0.5, end_degree: to + 0.5, wiggle_size: cloud_wiggle_size)
+                            Rays(a: cloud_diameter - dark_cloud_border_offset, b: cloud_diameter2 - dark_cloud_border_offset, ray_density: cloud_ray_density, wiggle_c: true, start_degree: from + cloud_offset, end_degree: to + cloud_offset, wiggle_size: cloud_wiggle_size)
                                 .stroke(Color.black, style: StrokeStyle(lineWidth: cloud_size, lineCap: .round))
 
                             // cloud band, shaded continuously from white to dark grey by cloud cover
