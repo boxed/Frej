@@ -1142,6 +1142,39 @@ struct CloudShadow: View {
     }
 }
 
+// Smaller circles in the gaps between the cloud circles, on the side towards the dial center, so the cloud bottoms are
+// flatter than the tops, like real cumulus, while still a little bumpy. Each filler sits halfway between two circles.
+// Size of a filler circle, relative to the cloud circles
+private let cloud_filler_scale = 0.6
+// How far above the bottom of the cloud circles the fillers reach down to, relative to the cloud circle radius
+private let cloud_filler_lift = 0.1
+
+struct CloudFillers: Shape {
+    let start_degree: Double
+    let end_degree: Double
+    let cloudSize: CGFloat
+    // Include the filler after the last circle, between it and the next hour's first circle
+    var trailing = true
+    var onlyTrailing = false
+
+    func path(in rect: CGRect) -> Path {
+        var p = Path()
+        let count = Int((end_degree - start_degree) * cloud_ray_density)
+        if count <= 0 { return p }
+        let radius = cloudSize / 2
+        let fillerRadius = radius * cloud_filler_scale
+        let distance = rect.height / cloud_diameter - radius + radius * cloud_filler_lift + fillerRadius
+        let range = onlyTrailing ? (count - 1)..<count : 0..<(trailing ? count : count - 1)
+        for i in range {
+            let degree = start_degree + (Double(i) + 0.5) / cloud_ray_density
+            let radians = .pi - degree.degreesToRadians
+            let center = CGPoint(x: sin(radians) * distance + rect.width / 2, y: cos(radians) * distance + rect.height / 2)
+            p.addEllipse(in: CGRect(x: center.x - fillerRadius, y: center.y - fillerRadius, width: fillerRadius * 2, height: fillerRadius * 2))
+        }
+        return p
+    }
+}
+
 // The circles at each end of a band are pulled a third of the way towards the neighboring hour's shade, so adjacent
 // hours blend in even steps. A nil neighbor (no clouds, or across the break at the top of the dial) means no blending.
 struct CloudBand: View {
@@ -1162,6 +1195,14 @@ struct CloudBand: View {
     }
 
     var body: some View {
+        // Beneath the circles, so they only show in the gaps. The filler towards the next hour is drawn here rather
+        // than by the next hour, so the next hour's circles and black border are drawn over it.
+        CloudFillers(start_degree: from + 0.5, end_degree: to + 0.5, cloudSize: cloudSize, trailing: false)
+            .fill(color(towards: nil))
+        if let nextShade {
+            CloudFillers(start_degree: from + 0.5, end_degree: to + 0.5, cloudSize: cloudSize, onlyTrailing: true)
+                .fill(cloudBandColor(shade: (shade + nextShade) / 2))
+        }
         band(.first, color(towards: previousShade))
         band(.inner, color(towards: nil))
         band(.last, color(towards: nextShade))
