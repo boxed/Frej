@@ -1152,7 +1152,9 @@ struct CloudShadow: View {
                     .init(color: .black.opacity(edge(id + 1)), location: location(to)),
                 ]
 
-                runStart = runStart ?? from
+                // The first sun ray is right at the start of the dial, so the shadow reaches a little before it to cover
+                // the whole ray, not just half of it
+                runStart = runStart ?? (id == 0 ? from - 1 : from)
                 if shades.indices.contains(id + 1) && shades[id + 1] != nil { continue }
                 path.addArc(center: center, radius: outer, startAngle: angle(runStart!), endAngle: angle(to), clockwise: false)
                 path.addArc(center: center, radius: inner, startAngle: angle(to), endAngle: angle(runStart!), clockwise: true)
