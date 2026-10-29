@@ -22,6 +22,10 @@ private let cloud_wiggle_size = 1.02
 private let cloud_offset = 0.5 / cloud_ray_density
 private let bolt_diameter = 3.1
 private let bolt_diameter2 = 3.7
+// Days of forecast that can be paged through
+private let forecast_days = 6
+// Screens at least this wide relative to their height (like an unfolded phone) show two days side by side
+private let two_day_min_aspect_ratio = 0.75
 
 let dark_cloud_color = Color(#colorLiteral(red: 0.3568909366, green: 0.3843440824, blue: 0.4227784864, alpha: 1))
 let dark_cloud_border_offset = 0.05
@@ -1502,8 +1506,22 @@ struct Foo : View {
                 }
             }
         }
-        .onAppear { updatePulse(loading: isInitialLoading) }
+        .onAppear {
+            updatePulse(loading: isInitialLoading)
+            clampSelectedDay()
+        }
         .onChange(of: isInitialLoading) { _, loading in updatePulse(loading: loading) }
+        .onChange(of: showsTwoDays) { _, _ in clampSelectedDay() }
+    }
+
+    // The two day layout has one page fewer, so the last day is shown on the page before
+    private func clampSelectedDay() {
+        #if !os(watchOS)
+        let lastPage = showsTwoDays ? forecast_days - 2 : forecast_days - 1
+        if selectedDay > lastPage {
+            selectedDay = lastPage
+        }
+        #endif
     }
 
     private func updatePulse(loading: Bool) {
@@ -1520,6 +1538,58 @@ struct Foo : View {
                 pulsePhase = 0
             }
         }
+    }
+
+    // Wide enough to show two days side by side, like an unfolded phone or a landscape iPad
+    var showsTwoDays: Bool {
+        #if os(watchOS)
+        return false
+        #else
+        return size.width >= size.height * two_day_min_aspect_ratio
+        #endif
+    }
+
+    // The two 12 hour clocks of a day, stacked, with the moon in the corner
+    func dayView(_ day: Int, width: CGFloat, screenHeight: CGFloat, fractionalHour: Double, startOfToday: Date) -> some View {
+        let clockHeight = min(height, width * 0.9)
+        return ZStack {
+            HStack {
+                Spacer()
+                let moon_size = min(screenHeight/2, width) / 6.0
+
+                let date = now.addingTimeInterval(TimeInterval(day * 24 * 60 * 60))
+                // On a day with a lunar eclipse, show it at its greatest so it can be seen ahead of time.
+                let eclipse = MoonAppearance.greatestEclipse(
+                    from: startOfToday.addingLocalHours(day * 24, in: timeZone),
+                    to: startOfToday.addingLocalHours((day + 1) * 24, in: timeZone),
+                    coordinate: coordinate
+                )
+
+                Moon(date: eclipse ?? date, coordinate: coordinate).frame(width: moon_size, height: moon_size).padding(.trailing, 10).padding([.top, .leading], 20)
+            }
+
+            VStack {
+                ForEach([day * 2, day * 2 + 1], id: \.self) { i in
+                    let start = 12*i
+                    let start_d = Double(start)
+                    Clock(
+                        now: now,
+                        startOfToday: startOfToday,
+                        showDials: fractionalHour > (start_d - 0.5) && fractionalHour < (start_d + 12 - 0.5),
+                        start: start,
+                        weather: weather,
+                        sunrise: sunrise,
+                        sunset: sunset,
+                        unit: unit,
+                        showUVRays: showUVRays,
+                        timeZone: timeZone,
+                        useApparentTemperature: useApparentTemperature,
+                        coordinate: coordinate
+                    ).frame(height: clockHeight)
+                }
+            }
+        }
+        .frame(width: width)
     }
 
     var clock: some View {
@@ -1547,60 +1617,20 @@ struct Foo : View {
                     .tag(id)
                 }
 #else
-                ForEach(0..<6, id: \.self) { day in
-                    ZStack {
-                        HStack {
-                            Spacer()
-                            let moon_size = min(geometry.size.height/2, geometry.size.width) / 6.0
-
-                            let date = now.addingTimeInterval(TimeInterval(day * 24 * 60 * 60))
-                            // On a day with a lunar eclipse, show it at its greatest so it can be seen ahead of time.
-                            let eclipse = MoonAppearance.greatestEclipse(
-                                from: startOfToday.addingLocalHours(day * 24, in: timeZone),
-                                to: startOfToday.addingLocalHours((day + 1) * 24, in: timeZone),
-                                coordinate: coordinate
-                            )
-
-                            Moon(date: eclipse ?? date, coordinate: coordinate).frame(width: moon_size, height: moon_size).padding(.trailing, 10).padding([.top, .leading], 20)
-                        }
-
-                        VStack {
-                            let i: Int = day * 2
-                            let start1: Int = 12*i
-                            let start2: Int = 12*(i + 1)
-                            let start1_d = Double(start1)
-                            let start2_d = Double(start2)
-                            Clock(
-                                now: now,
-                                startOfToday: startOfToday,
-                                showDials: fractionalHour > (start1_d - 0.5) && fractionalHour < (start1_d + 12 - 0.5),
-                                start: start1,
-                                weather: weather,
-                                sunrise: sunrise,
-                                sunset: sunset,
-                                unit: unit,
-                                showUVRays: showUVRays,
-                                timeZone: timeZone,
-                                useApparentTemperature: useApparentTemperature,
-                                coordinate: coordinate
-                            ).frame(height: height)
-                            Clock(
-                                now: now,
-                                startOfToday: startOfToday,
-                                showDials: fractionalHour > (start2_d - 0.5) && fractionalHour < (start2_d + 12 - 0.5),
-                                start: start2,
-                                weather: weather,
-                                sunrise: sunrise,
-                                sunset: sunset,
-                                unit: unit,
-                                showUVRays: showUVRays,
-                                timeZone: timeZone,
-                                useApparentTemperature: useApparentTemperature,
-                                coordinate: coordinate
-                            ).frame(height: height)
+                // On a wide screen, like an unfolded phone, each page shows two days side by side and
+                // swiping moves one day, so the last page has the last two days
+                ForEach(0..<(showsTwoDays ? forecast_days - 1 : forecast_days), id: \.self) { page in
+                    Group {
+                        if showsTwoDays {
+                            HStack(spacing: 0) {
+                                dayView(page, width: size.width / 2, screenHeight: geometry.size.height, fractionalHour: fractionalHour, startOfToday: startOfToday)
+                                dayView(page + 1, width: size.width / 2, screenHeight: geometry.size.height, fractionalHour: fractionalHour, startOfToday: startOfToday)
+                            }
+                        } else {
+                            dayView(page, width: geometry.size.width, screenHeight: geometry.size.height, fractionalHour: fractionalHour, startOfToday: startOfToday)
                         }
                     }
-                    .tag(day)
+                    .tag(page)
                 }
 #endif
             }
